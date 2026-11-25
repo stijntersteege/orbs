@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Orbs.Api/Orbs.Api.csproj" />
+    <Project Path="src/Orbs.Application/Orbs.Application.csproj" />
+    <Project Path="src/Orbs.Domain/Orbs.Domain.csproj" />
+    <Project Path="src/Orbs.Infrastructure/Orbs.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Orbs.Api.IntegrationTests/Orbs.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Orbs.Application.Tests/Orbs.Application.Tests.csproj" />
+    <Project Path="tests/Orbs.Architecture.Tests/Orbs.Architecture.Tests.csproj" />
+    <Project Path="tests/Orbs.Domain.Tests/Orbs.Domain.Tests.csproj" />
+    <Project Path="tests/Orbs.Infrastructure.Tests/Orbs.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Orbs.Specs/Orbs.Specs.csproj" />
+    <Project Path="tests/Orbs.Testing/Orbs.Testing.csproj" />
+  </Folder>
+</Solution>

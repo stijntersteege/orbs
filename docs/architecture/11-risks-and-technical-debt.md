@@ -1,0 +1,21 @@
+# 11. Risks and technical debt
+
+## Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| **No user accounts** yet; a single shared API token protects the API. | Anyone with the token sees everything. Not suitable for shared servers. | Documented in SECURITY.md; accounts (passkeys, OAuth) are first on the roadmap. Run on private networks or behind an authenticating proxy until then. |
+| **Server-side fetching** of web pages (SSRF). | A user could make the server request internal URLs. | Only trusted users should have access today; add an allow/deny list and private-range blocking before multi-user support. |
+| **Large context** is cut to a character budget. | Answers may miss information in big sources. | Retrieval with embeddings behind the `PromptBuilder` seam. |
+| **Provider API drift** (streaming formats, model lists). | Adapters break. | Adapters are small and isolated; unit tests for parsing; community can add native adapters. |
+| **Losing the Data Protection key ring.** | Stored API keys can no longer be decrypted. | Keys live in the database, so database backups cover them. Documented in the self-hosting guide. |
+
+## Technical debt
+
+| Item | Why it exists | Plan |
+| --- | --- | --- |
+| Conversations are loaded with all messages. | Simple and fine for typical chat sizes. | Paginate messages when histories grow. |
+| Context sync is on demand only. | Keeps the first version simple. | Background scheduler (hosted service) per source. |
+| Frontend API types are written by hand. | Avoids a generator step for a small API. | Generate from `/openapi/v1.json` once the API stabilizes. |
+| English-only UI copy. | Focus on the core first. | Introduce i18n (message catalogs) when translators join. |
+| Only two provider adapters. | The OpenAI-compatible adapter covers most providers. | Add native adapters where a provider has no compatible API. |

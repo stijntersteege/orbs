@@ -1,0 +1,40 @@
+# Orbs with PostgreSQL. Start: docker compose up -d   Then open http://localhost:8080
+# Settings come from .env (copy .env.example). Only the database is required.
+name: orbs
+
+services:
+  orbs:
+    build: .
+    image: ghcr.io/your-org/orbs:latest
+    restart: unless-stopped
+    ports:
+      - "${ORBS_PORT:-8080}:8080"
+    environment:
+      Database__Provider: Postgres
+      ConnectionStrings__Orbs: "Host=db;Database=orbs;Username=orbs;Password=${POSTGRES_PASSWORD:-orbs}"
+      Orbs__ApiToken: "${ORBS_API_TOKEN:-}"
+      Orbs__SeedDemoData: "${ORBS_SEED_DEMO_DATA:-true}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: orbs
+      POSTGRES_USER: orbs
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-orbs}"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      # Exposed for local development (dotnet run against Postgres). Remove in production.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orbs -d orbs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

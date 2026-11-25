@@ -1,0 +1,15 @@
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/coverage
+**/playwright-report
+**/test-results
+**/*.db
+**/*.db-*
+.git
+.github
+.claude
+docs
+*.md
+!frontend/**/*.md

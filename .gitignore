@@ -1,0 +1,34 @@
+# Dependencies and build output
+node_modules/
+bin/
+obj/
+dist/
+publish/
+coverage/
+TestResults/
+playwright-report/
+test-results/
+
+# Local data and secrets
+*.db
+*.db-shm
+*.db-wal
+.env
+*.local
+appsettings.*.local.json
+
+# Editors and OS
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.user
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Design source (kept outside the repo)
+*.pdf

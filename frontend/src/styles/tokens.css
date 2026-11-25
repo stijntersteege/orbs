@@ -1,0 +1,104 @@
+/*
+ * Orbs design tokens. One set of variables, night and day.
+ * Orb colors (Plasma ... Bubblegum) never change between themes.
+ */
+:root {
+  /* Orb palette */
+  --plasma: #7c4dff;
+  --plasma-2: #c9b8ff;
+  --ocean: #3d5bff;
+  --ocean-2: #a9b7ff;
+  --sky: #4cc9ff;
+  --sky-2: #b5e9ff;
+  --mint: #2ee59d;
+  --mint-2: #a8f7d6;
+  --sun: #ffc53d;
+  --sun-2: #ffe7a3;
+  --coral: #ff6b5b;
+  --coral-2: #ffb3a8;
+  --bubblegum: #ff7ac6;
+  --bubblegum-2: #ffc4e6;
+  --void: #0f0c1d;
+
+  /* Type */
+  --font-display: 'Unbounded Variable', 'Unbounded', system-ui, sans-serif;
+  --font-body: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Shape: nothing is sharp. Inputs 16, cards 28, buttons and chips always pill. */
+  --radius-sm: 10px;
+  --radius-input: 16px;
+  --radius-md: 22px;
+  --radius-card: 28px;
+  --radius-pill: 999px;
+
+  /* Spacing: 4 px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Motion */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-pop: 240ms;
+  --dur-settle: 160ms;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--ocean);
+}
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f0c1d;
+  --side: #14102a;
+  --card: #1a1530;
+  --raised: #241d40;
+  --sel: #2e2654;
+  --line: #362d5c;
+  --line2: #2a2350;
+  --muted: #a9a1cc;
+  --faint: #7e76a3;
+  --text: #f4f1ff;
+  --accent-text: #c9b8ff;
+  --ok: #2ee59d;
+  --warn: #ffc53d;
+  --err: #ff8a7d;
+  --info: #4cc9ff;
+  --ok-bg: #10302a;
+  --warn-bg: #33290f;
+  --err-bg: #3a1a1f;
+  --wash-plasma: #231b47;
+  --wash-mint: #12302a;
+  --wash-sky: #112b3a;
+  --ring2: #4a3a99;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #fff8ee;
+  --side: #fbf1e2;
+  --card: #ffffff;
+  --raised: #f1eaff;
+  --sel: #ece4ff;
+  --line: #e3d9ee;
+  --line2: #eee4f2;
+  --muted: #5e5878;
+  --faint: #847e9e;
+  --text: #1a1033;
+  --accent-text: #5b2ee0;
+  --ok: #0b7a50;
+  --warn: #8a5a00;
+  --err: #c2362a;
+  --info: #0a6f9c;
+  --ok-bg: #ddf7ec;
+  --warn-bg: #fff0c7;
+  --err-bg: #ffe1dd;
+  --wash-plasma: #eee7ff;
+  --wash-mint: #ddf8ee;
+  --wash-sky: #ddf3ff;
+  --ring2: #c9b8ff;
+}

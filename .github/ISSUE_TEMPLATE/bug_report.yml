@@ -1,0 +1,45 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time! Please never paste API keys or other secrets.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Orbs version
+      placeholder: v0.1.0 or a commit sha
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      multiple: true
+      options: [Web, Android, iOS, API, Docker / self-hosting]
+  - type: input
+    id: provider
+    attributes:
+      label: Model provider (if relevant)
+      placeholder: OpenAI-compatible (Ollama), Echo, ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: shell

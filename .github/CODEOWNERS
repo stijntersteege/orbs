@@ -1,0 +1,5 @@
+# Default reviewers. Replace these with the GitHub handles or teams of the maintainers.
+*            @your-org/maintainers
+/backend/    @your-org/maintainers
+/frontend/   @your-org/maintainers
+/docs/       @your-org/maintainers

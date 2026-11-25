@@ -1,0 +1,10 @@
+{
+  "name": "Orbs",
+  "short_name": "Orbs",
+  "description": "Open-source AI companions. Any model, any context.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0C1D",
+  "theme_color": "#0F0C1D",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
