@@ -23,7 +23,7 @@ COPY backend/src/ src/
 RUN dotnet publish src/Orbs.Api/Orbs.Api.csproj -c Release -o /app --no-restore
 
 # ---- Runtime ------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-alpine AS runtime
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_RUNNING_IN_CONTAINER=true \
