@@ -11,7 +11,7 @@ COPY frontend/ ./
 RUN pnpm build
 
 # ---- API ----------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS api
 WORKDIR /src/backend
 COPY backend/global.json backend/Directory.Build.props backend/Directory.Packages.props ./
 COPY backend/src/Orbs.Domain/Orbs.Domain.csproj src/Orbs.Domain/
