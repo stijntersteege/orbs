@@ -2,7 +2,7 @@
 # One image serves the API and the web client. Build: docker build -t orbs .
 
 # ---- Web client ---------------------------------------------------------------
-FROM node:24-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /src/frontend
 RUN npm install -g pnpm@12.8.1
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
