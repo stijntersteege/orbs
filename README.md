@@ -20,7 +20,7 @@ Plug in any model, connect any context and give every orb its own face.
 
 <br />
 
-<a href="https://stijntersteege.github.io/orbs/demo/"><img src="docs/assets/orbs-demo.gif" width="880" alt="The Orbs web app: switching to the orb Basil from the message box, picking the echo-1 model at the top, asking what is on the grocery list, then opening the menu to see all orbs" /></a>
+<a href="https://stijntersteege.github.io/orbs/demo/"><img src="docs/assets/orbs-demo-0.2.0.gif" width="880" alt="The Orbs web app: picking the orb Basil in the sidebar, choosing the echo-1 model, asking what is on the grocery list, and the activity panel showing it read the grocery list and which model answered" /></a>
 
 <sub>Making an orb in the <a href="https://stijntersteege.github.io/orbs/demo/">live demo</a>: name it, pick what it knows, give it a face, say hi.</sub>
 
