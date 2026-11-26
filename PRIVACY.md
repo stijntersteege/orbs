@@ -21,6 +21,7 @@ When you run Orbs, **you** decide what happens with the data in it, and it stays
 
 - **Hosting.** The website runs on GitHub Pages. GitHub may log technical data such as your IP address to keep the service secure; see the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 - **No cookies, no analytics.** The website sets no cookies and doesn't track visits. Fonts are served from the website itself, not from a third party.
+- **Light or dark mode.** If you use the switch, the website remembers your choice in your browser's local storage. It stays on your device, and the live demo uses the same setting.
 - **Live demo.** The demo keeps its sample orbs and chats in your browser's local storage. That data never leaves your device, and "Reset demo" removes it. The demo doesn't call real model providers.
 
 ## GitHub and email

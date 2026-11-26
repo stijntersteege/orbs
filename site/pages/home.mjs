@@ -106,7 +106,7 @@ export function home({ root }) {
       <a class="button ghost" href="${root}demo/">Open the live demo full screen ${icon('arrow')}</a>
     </div>
     <div class="phone">
-      <iframe src="${root}demo/#/orbs/demo-orb-pip/chat" title="Orbs live demo: chat with Pip" loading="lazy"></iframe>
+      <iframe src="${root}demo/#/orbs/demo-orb-pip/chat" title="Orbs live demo: chat with Pip" loading="lazy" data-follows-theme></iframe>
     </div>
   </div>
 </section>

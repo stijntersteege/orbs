@@ -52,8 +52,9 @@
   color-scheme: dark;
 }
 
+/* Day: when the system prefers light and no choice is stored, or when light is picked with the switch. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme='dark']) {
     --bg: #fff8ee;
     --side: #fbf1e2;
     --card: #ffffff;
@@ -72,6 +73,26 @@
     --shadow: rgba(60, 30, 120, 0.22);
     color-scheme: light;
   }
+}
+
+:root[data-theme='light'] {
+  --bg: #fff8ee;
+  --side: #fbf1e2;
+  --card: #ffffff;
+  --raised: #f1eaff;
+  --sel: #ece4ff;
+  --line: #e3d9ee;
+  --line2: #eee4f2;
+  --muted: #5e5878;
+  --text: #1a1033;
+  --accent-text: #5b2ee0;
+  --ok: #0b7a50;
+  --ok-bg: #ddf7ec;
+  --wash-plasma: #eee7ff;
+  --wash-mint: #ddf8ee;
+  --wash-sky: #ddf3ff;
+  --shadow: rgba(60, 30, 120, 0.22);
+  color-scheme: light;
 }
 
 /* Base */
@@ -1399,4 +1420,46 @@ h3 {
 .card > .button,
 .split-text > .button {
   align-self: flex-start;
+}
+
+/* Light/dark switch */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent-text);
+}
+
+.theme-toggle .icon-moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .theme-toggle .icon-sun {
+    display: none;
+  }
+
+  :root:not([data-theme='dark']) .theme-toggle .icon-moon {
+    display: block;
+  }
+}
+
+:root[data-theme='light'] .theme-toggle .icon-sun {
+  display: none;
+}
+
+:root[data-theme='light'] .theme-toggle .icon-moon {
+  display: block;
 }

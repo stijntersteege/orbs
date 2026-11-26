@@ -326,6 +326,7 @@ function build() {
   }
 
   cpSync(join(here, 'style.css'), join(out, 'style.css'))
+  cpSync(join(here, 'theme.js'), join(out, 'theme.js'))
   cpSync(join(repoRoot, 'frontend/public/favicon.svg'), join(out, 'favicon.svg'))
   mkdirSync(join(out, 'assets'), { recursive: true })
   if (existsSync(mermaidBundle)) cpSync(mermaidBundle, join(out, 'assets/mermaid.min.js'))

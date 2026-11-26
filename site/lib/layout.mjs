@@ -22,6 +22,8 @@ const ICONS = {
   lock: '<path d="M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>',
   shield: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
 }
 
 /** An inline stroke icon. Decorative unless a label is given. */
@@ -48,6 +50,7 @@ function header(root, current) {
     <a class="brand" href="${root}">${orb({ eyes: 'dots', accessory: 'none', blush: false, glow: false, size: 34 })}<span>orbs</span></a>
     <nav class="main-nav" aria-label="Main">${links}</nav>
     <div class="header-actions">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between light and dark mode">${icon('sun', 20).replace('class="icon"', 'class="icon icon-sun"')}${icon('moon', 20).replace('class="icon"', 'class="icon icon-moon"')}</button>
       <a class="button ghost small" href="${REPO}">${icon('star', 16)}Star on GitHub</a>
       <a class="button primary small" href="${root}get/">Get Orbs</a>
     </div>
@@ -122,13 +125,26 @@ export function policyNav(root, active) {
 
 /** A whole HTML document. `current` marks the active main-nav item ('home', 'docs/', ...). */
 export function layout({ title, description, body, root, current, mermaid = false }) {
+  // Diagrams render in the current theme and re-render when the switch changes it.
   const mermaidScript = mermaid
     ? `<script src="${root}assets/mermaid.min.js"></script>
     <script>
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: matchMedia('(prefers-color-scheme: light)').matches ? 'neutral' : 'dark',
-      })
+      ;(() => {
+        const nodes = [...document.querySelectorAll('pre.mermaid')]
+        for (const node of nodes) node.dataset.source = node.textContent
+        const isLight = () =>
+          (document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')) === 'light'
+        const draw = () => {
+          mermaid.initialize({ startOnLoad: false, theme: isLight() ? 'neutral' : 'dark' })
+          for (const node of nodes) {
+            node.removeAttribute('data-processed')
+            node.textContent = node.dataset.source
+          }
+          mermaid.run({ nodes })
+        }
+        draw()
+        document.addEventListener('orbs:theme', draw)
+      })()
     </script>`
     : ''
   return `<!doctype html>
@@ -138,6 +154,13 @@ export function layout({ title, description, body, root, current, mermaid = fals
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="${escapeHtml(description)}" />
     <meta name="theme-color" content="#0F0C1D" />
+    <script>
+      // Apply a stored light/dark choice before the page paints (shared with the live demo).
+      try {
+        const theme = JSON.parse(localStorage.getItem('orbs.settings.v1') || '{}').theme
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:type" content="website" />
@@ -152,6 +175,7 @@ export function layout({ title, description, body, root, current, mermaid = fals
 ${body}
     </main>
     ${footer(root)}
+    <script src="${root}theme.js" defer></script>
     ${mermaidScript}
   </body>
 </html>

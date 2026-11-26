@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - New website design based on the Orbs design system: home page, Get Orbs, Open source, light and dark themes.
 - Policy pages on the website (privacy, security, code of conduct, contributing, license), generated from the files in the repository.
 - `PRIVACY.md`: what happens with your data in the software and on the website.
+- Light/dark switch on the website. The choice is shared with the live demo and remembered in the browser.
 
 ### Changed
 

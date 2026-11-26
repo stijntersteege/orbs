@@ -92,7 +92,7 @@ The project website is built from this repository by `site/build.mjs` and publis
 | Changelog (`/changelog/`) | `CHANGELOG.md` (an empty `[Unreleased]` section is hidden) |
 | Live demo (`/demo/`) | the real web app, built with `pnpm build:demo` |
 
-The orb mascots on the website come from `site/lib/orb.mjs`, a plain-SVG copy of `frontend/src/components/orb/Orb.tsx`. Keep the two in step when the orb changes. The site follows the app's design tokens: dark by default, light when the visitor's system prefers it.
+The orb mascots on the website come from `site/lib/orb.mjs`, a plain-SVG copy of `frontend/src/components/orb/Orb.tsx`. Keep the two in step when the orb changes. The site follows the app's design tokens: it follows the visitor's system preference until they use the light/dark switch (`site/theme.js`). The switch stores the choice the way the app does (`orbs.settings.v1` in local storage), so the website and the live demo always match.
 
 Docs pages follow the folders: `docs/guides/`, `docs/architecture/` (arc42) and `docs/adr/` each get a section in the sidebar, in file-name order, titled by each file's first heading. Links between Markdown files become website links; links to other repository files point to GitHub. A new file in one of these folders shows up on the website without any extra step.
 
