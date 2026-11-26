@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, createHashRouter, RouterProvider, type RouteObject } from 'react-router'
-import { AppShell } from '@/components/layout/AppShell'
+import { AppShell, PageLayout } from '@/components/layout/AppShell'
 import { ButtonLink, EmptyState } from '@/components/ui'
 import { Orb } from '@/components/orb/Orb'
 import { ChatPage } from '@/features/chat/ChatPage'
@@ -19,7 +19,7 @@ function NotFound() {
       <h1>Nothing here</h1>
       <p>This page floated away.</p>
       <ButtonLink to="/" variant="primary">
-        Back to your orbs
+        Back to chat
       </ButtonLink>
     </EmptyState>
   )
@@ -30,15 +30,22 @@ export const routes: RouteObject[] = [
     path: '/',
     element: <AppShell />,
     children: [
-      { index: true, element: <OrbsPage /> },
-      { path: 'orbs/new', element: <OrbEditorPage /> },
-      { path: 'orbs/:orbId', element: <OrbEditorPage /> },
+      // Chatting is the home screen. Everything else sits behind the menu.
+      { index: true, element: <ChatPage /> },
       { path: 'orbs/:orbId/chat', element: <ChatPage /> },
       { path: 'orbs/:orbId/chat/:conversationId', element: <ChatPage /> },
-      { path: 'context', element: <ContextPage /> },
-      { path: 'models', element: <ModelsPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: '*', element: <NotFound /> },
+      {
+        element: <PageLayout />,
+        children: [
+          { path: 'orbs', element: <OrbsPage /> },
+          { path: 'orbs/new', element: <OrbEditorPage /> },
+          { path: 'orbs/:orbId', element: <OrbEditorPage /> },
+          { path: 'context', element: <ContextPage /> },
+          { path: 'models', element: <ModelsPage /> },
+          { path: 'settings', element: <SettingsPage /> },
+          { path: '*', element: <NotFound /> },
+        ],
+      },
     ],
   },
 ]

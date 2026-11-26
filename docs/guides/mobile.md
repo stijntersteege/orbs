@@ -18,7 +18,7 @@ Run `pnpm cap:sync` after every web change you want in the native app.
 
 ## Connect to a server
 
-The app talks to your Orbs server over HTTPS. On first launch, open **Settings > Server** and enter its address (for example `https://orbs.example.com`) and the API token if the server has one.
+The app talks to your Orbs server over HTTPS. On first launch, open the menu, then **Settings and more > Settings > Server**, and enter its address (for example `https://orbs.example.com`) and the API token if the server has one.
 
 For development against a local API, use your computer's LAN address (`http://192.168.1.20:5080`) and add the app origin to CORS:
 

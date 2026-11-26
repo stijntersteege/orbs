@@ -53,3 +53,9 @@ Fonts are bundled with the app (Fontsource), so nothing loads from third-party s
 - Touch targets at least 44 px.
 - Colors that must be told apart also differ in lightness, not hue alone.
 - Streaming replies are announced politely (`aria-live`).
+
+## App layout
+
+- Chat is the home screen. The model picker sits at the top of every chat, so switching models is one click; the message box is front and center.
+- The sidebar holds only **New chat** and your chats. Models, Orbs, Context and Settings sit behind one **Settings and more** menu at the bottom.
+- On phones the sidebar slides in from a menu button; there is no tab bar.

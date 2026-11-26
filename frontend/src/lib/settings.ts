@@ -9,9 +9,17 @@ export interface Settings {
   serverUrl: string
   /** Optional shared secret, when the server sets Orbs__ApiToken. */
   apiToken: string
+  /** The orb a new chat starts with. Empty means "the first orb". */
+  lastOrbId: string
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', animations: true, serverUrl: '', apiToken: '' }
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  animations: true,
+  serverUrl: '',
+  apiToken: '',
+  lastOrbId: '',
+}
 
 const STORAGE_KEY = 'orbs.settings.v1'
 
