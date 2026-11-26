@@ -46,7 +46,7 @@ function header(root, current) {
     const active = current && current !== 'home' && href.startsWith(current) ? ' aria-current="page"' : ''
     return `<a href="${target}"${active}>${label}</a>`
   }).join('')
-  return `<a class="announce" href="${root}changelog/">Orbs 0.2: a fresh look, with models front and center. <span>Read the changelog →</span></a>
+  return `<a class="announce" href="${root}changelog/">Orbs 0.2.0: a fresh look, with models front and center. <span>Read the changelog →</span></a>
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="${root}">${orb({ eyes: 'dots', accessory: 'none', blush: false, glow: false, size: 30 })}<span>orbs</span></a>
