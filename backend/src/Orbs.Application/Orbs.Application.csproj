@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Use cases and ports. Depends only on the domain. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Orbs.Domain\Orbs.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Orbs.Application.Tests" />
+  </ItemGroup>
+</Project>

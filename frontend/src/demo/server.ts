@@ -1,0 +1,454 @@
+// An in-browser stand-in for the Orbs API, used by the static live demo.
+// It mirrors the real endpoints closely enough for every screen to work, keeps data in
+// localStorage, and answers chats like the Echo provider. Real model providers are not
+// called: the demo has no server and must never send anyone's API key anywhere.
+
+import type {
+  ChatEvent,
+  ContextKind,
+  ContextSource,
+  Conversation,
+  Message,
+  Orb,
+  Provider,
+  ProviderKind,
+  SaveContextSourceRequest,
+  SaveOrbRequest,
+  SaveProviderRequest,
+} from '@/api/types'
+import { DEFAULT_APPEARANCE } from '@/api/types'
+import { DEMO_STORAGE_KEY } from './mode'
+import { seed, type DemoState } from './seed'
+
+const STORAGE_KEY = DEMO_STORAGE_KEY
+const ECHO_KIND = 'echo'
+
+export const PROVIDER_KINDS: ProviderKind[] = [
+  {
+    kind: 'openai-compatible',
+    displayName: 'OpenAI-compatible',
+    description:
+      'Any endpoint that speaks the OpenAI chat API: OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM.',
+    requiresBaseUrl: true,
+    requiresApiKey: false,
+  },
+  {
+    kind: ECHO_KIND,
+    displayName: 'Echo (demo)',
+    description: 'Repeats what you say. No key needed, handy for trying Orbs out.',
+    requiresBaseUrl: false,
+    requiresApiKey: false,
+  },
+]
+
+export const CONTEXT_KINDS: ContextKind[] = [
+  {
+    kind: 'text',
+    displayName: 'Note',
+    description: 'Type or paste anything your orbs should know.',
+    usesLocation: false,
+    usesInput: true,
+  },
+  {
+    kind: 'url',
+    displayName: 'Web page',
+    description: 'Paste a link. Orbs reads the page and keeps its text in sync when you ask.',
+    usesLocation: true,
+    usesInput: false,
+  },
+]
+
+const OFFLINE_REPLY =
+  'This is the live demo, so real models are switched off and nothing leaves your browser. ' +
+  'Run Orbs on your own server to connect this provider, or pick the Echo provider to keep playing here.'
+
+export interface DemoOptions {
+  /** Pause between streamed words, in milliseconds. */
+  wordDelay?: number
+  now?: () => Date
+}
+
+export class HttpError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+/** The demo "server". Every method takes and returns plain API contracts. */
+export class DemoServer {
+  private state: DemoState
+  private readonly wordDelay: number
+  private readonly now: () => Date
+
+  constructor(options: DemoOptions = {}) {
+    this.wordDelay = options.wordDelay ?? 30
+    this.now = options.now ?? (() => new Date())
+    this.state = this.load()
+  }
+
+  /** Routes one request. Returns a Response like fetch would. */
+  async handle(method: string, url: URL, body: unknown, signal?: AbortSignal): Promise<Response> {
+    try {
+      return await this.route(method.toUpperCase(), url, body, signal)
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return json({ title: error.message, detail: error.message, status: error.status }, error.status)
+      }
+      throw error
+    }
+  }
+
+  reset(): void {
+    this.state = seed(this.now())
+    this.save()
+  }
+
+  private async route(method: string, url: URL, body: unknown, signal?: AbortSignal): Promise<Response> {
+    const parts = url.pathname
+      .replace(/^.*?\/api\//, '')
+      .split('/')
+      .filter(Boolean)
+    const [resource, id, action] = parts
+    const s = this.state
+
+    switch (resource) {
+      case 'orbs':
+        if (!id) return method === 'GET' ? json(s.orbs) : json(this.saveOrb(undefined, body), 201)
+        if (method === 'GET') return json(this.find(s.orbs, id, 'orb'))
+        if (method === 'PUT') return json(this.saveOrb(id, body))
+        if (method === 'DELETE') return this.removeOrb(id)
+        break
+
+      case 'providers':
+        if (id === 'kinds') return json(PROVIDER_KINDS)
+        if (!id) return method === 'GET' ? json(s.providers) : json(this.saveProvider(undefined, body), 201)
+        if (action === 'models') return json(this.models(id))
+        if (method === 'PUT') return json(this.saveProvider(id, body))
+        if (method === 'DELETE') return this.removeProvider(id)
+        break
+
+      case 'context-sources':
+        if (id === 'kinds') return json(CONTEXT_KINDS)
+        if (!id)
+          return method === 'GET' ? json(s.contextSources) : json(this.saveSource(undefined, body), 201)
+        if (action === 'sync') return json(this.syncSource(id))
+        if (method === 'PUT') return json(this.saveSource(id, body))
+        if (method === 'DELETE') return this.removeSource(id)
+        break
+
+      case 'conversations': {
+        if (!id) {
+          if (method === 'GET') {
+            const orbId = url.searchParams.get('orbId')
+            return json(
+              s.conversations
+                .filter((c) => !orbId || c.orbId === orbId)
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                .map(({ messages: _messages, ...summary }) => summary),
+            )
+          }
+          return json(this.startConversation(body), 201)
+        }
+        if (action === 'messages') return this.send(id, body, signal)
+        if (method === 'GET') return json(this.find(s.conversations, id, 'conversation'))
+        if (method === 'DELETE') {
+          s.conversations = s.conversations.filter((c) => c.id !== id)
+          this.save()
+          return new Response(null, { status: 204 })
+        }
+        break
+      }
+    }
+    throw new HttpError(404, 'Not found.')
+  }
+
+  // Orbs
+
+  private saveOrb(id: string | undefined, body: unknown): Orb {
+    const request = body as SaveOrbRequest
+    const name = required(request.name, 'name')
+    const now = this.timestamp()
+    const existing = id ? this.find(this.state.orbs, id, 'orb') : undefined
+    const orb: Orb = {
+      id: existing?.id ?? newId(),
+      name,
+      description: request.description?.trim() ?? '',
+      instructions: request.instructions?.trim() ?? '',
+      appearance: request.appearance ?? existing?.appearance ?? DEFAULT_APPEARANCE,
+      model: request.model ?? undefined,
+      contextSourceIds: request.contextSourceIds ?? existing?.contextSourceIds ?? [],
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    }
+    this.state.orbs = existing
+      ? this.state.orbs.map((o) => (o.id === orb.id ? orb : o))
+      : [...this.state.orbs, orb]
+    this.save()
+    return orb
+  }
+
+  private removeOrb(id: string): Response {
+    this.find(this.state.orbs, id, 'orb')
+    this.state.orbs = this.state.orbs.filter((o) => o.id !== id)
+    this.state.conversations = this.state.conversations.filter((c) => c.orbId !== id)
+    this.save()
+    return new Response(null, { status: 204 })
+  }
+
+  // Providers
+
+  private saveProvider(id: string | undefined, body: unknown): Provider {
+    const request = body as SaveProviderRequest
+    const name = required(request.name, 'name')
+    if (!PROVIDER_KINDS.some((k) => k.kind === request.kind))
+      throw new HttpError(400, 'Unknown provider kind.')
+    const now = this.timestamp()
+    const existing = id ? this.find(this.state.providers, id, 'provider') : undefined
+    const provider: Provider = {
+      id: existing?.id ?? newId(),
+      name,
+      kind: request.kind,
+      baseUrl: request.baseUrl?.trim() || undefined,
+      // The demo never stores keys; it only remembers that one was given.
+      hasApiKey: request.apiKey === undefined ? (existing?.hasApiKey ?? false) : request.apiKey !== '',
+      defaultModel: request.defaultModel?.trim() || (request.kind === ECHO_KIND ? 'echo-1' : undefined),
+      isEnabled: request.isEnabled ?? existing?.isEnabled ?? true,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    }
+    this.state.providers = existing
+      ? this.state.providers.map((p) => (p.id === provider.id ? provider : p))
+      : [...this.state.providers, provider]
+    this.save()
+    return provider
+  }
+
+  private removeProvider(id: string): Response {
+    this.find(this.state.providers, id, 'provider')
+    this.state.providers = this.state.providers.filter((p) => p.id !== id)
+    this.state.orbs = this.state.orbs.map((o) =>
+      o.model?.providerId === id ? { ...o, model: undefined } : o,
+    )
+    this.save()
+    return new Response(null, { status: 204 })
+  }
+
+  private models(id: string) {
+    const provider = this.find(this.state.providers, id, 'provider')
+    if (provider.kind === ECHO_KIND) return [{ id: 'echo-1', displayName: 'Echo 1' }]
+    return provider.defaultModel ? [{ id: provider.defaultModel }] : []
+  }
+
+  // Context sources
+
+  private saveSource(id: string | undefined, body: unknown): ContextSource {
+    const request = body as SaveContextSourceRequest
+    const name = required(request.name, 'name')
+    if (!CONTEXT_KINDS.some((k) => k.kind === request.kind)) throw new HttpError(400, 'Unknown context kind.')
+    const now = this.timestamp()
+    const existing = id ? this.find(this.state.contextSources, id, 'context source') : undefined
+    const base = {
+      id: existing?.id ?? newId(),
+      name,
+      kind: request.kind,
+      location: request.location?.trim() ?? '',
+      input: request.input ?? '',
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    }
+    const source = { ...base, ...this.read(base, now) }
+    this.state.contextSources = existing
+      ? this.state.contextSources.map((c) => (c.id === source.id ? source : c))
+      : [...this.state.contextSources, source]
+    this.save()
+    return source
+  }
+
+  private syncSource(id: string): ContextSource {
+    const existing = this.find(this.state.contextSources, id, 'context source')
+    const source = { ...existing, ...this.read(existing, this.timestamp()) }
+    this.state.contextSources = this.state.contextSources.map((c) => (c.id === id ? source : c))
+    this.save()
+    return source
+  }
+
+  /** Notes are read as typed. Web pages cannot be fetched without a server, so they fail politely. */
+  private read(source: Pick<ContextSource, 'kind' | 'input'>, now: string) {
+    if (source.kind === 'text') {
+      return {
+        status: 'ready' as const,
+        lastError: undefined,
+        lastSyncedAt: now,
+        contentLength: source.input.length,
+      }
+    }
+    return {
+      status: 'failed' as const,
+      lastError: 'The live demo cannot read web pages. Self-host Orbs to use this source.',
+      lastSyncedAt: undefined,
+      contentLength: 0,
+    }
+  }
+
+  private removeSource(id: string): Response {
+    this.find(this.state.contextSources, id, 'context source')
+    this.state.contextSources = this.state.contextSources.filter((c) => c.id !== id)
+    this.state.orbs = this.state.orbs.map((o) => ({
+      ...o,
+      contextSourceIds: o.contextSourceIds.filter((sourceId) => sourceId !== id),
+    }))
+    this.save()
+    return new Response(null, { status: 204 })
+  }
+
+  // Conversations
+
+  private startConversation(body: unknown): Conversation {
+    const { orbId } = (body ?? {}) as { orbId?: string }
+    this.find(this.state.orbs, orbId ?? '', 'orb')
+    const now = this.timestamp()
+    const conversation: Conversation = {
+      id: newId(),
+      orbId: orbId!,
+      title: 'New chat',
+      createdAt: now,
+      updatedAt: now,
+      messages: [],
+    }
+    this.state.conversations = [...this.state.conversations, conversation]
+    this.save()
+    return conversation
+  }
+
+  /** Picks the model like the real ModelResolver: a pinned, enabled provider first, else "Auto". */
+  private resolve(orb: Orb): { provider: Provider; model: string } {
+    const enabled = this.state.providers.filter((p) => p.isEnabled)
+    const pinned = orb.model && enabled.find((p) => p.id === orb.model!.providerId)
+    if (pinned) return { provider: pinned, model: orb.model!.model }
+    const fallback = enabled
+      .filter((p) => p.defaultModel)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]
+    if (!fallback) throw new HttpError(409, 'No model is available. Connect a provider under Models first.')
+    return { provider: fallback, model: fallback.defaultModel! }
+  }
+
+  private send(id: string, body: unknown, signal?: AbortSignal): Response {
+    const conversation = this.find(this.state.conversations, id, 'conversation')
+    const content = required((body as { content?: string })?.content, 'content')
+    const orb = this.find(this.state.orbs, conversation.orbId, 'orb')
+    const { provider, model } = this.resolve(orb)
+
+    this.append(conversation, 'user', content)
+    const reply = provider.kind === ECHO_KIND ? `You said: ${content}` : OFFLINE_REPLY
+    const words = reply.split(' ').map((word, i) => (i === 0 ? word : ` ${word}`))
+
+    const events = async function* (this: DemoServer): AsyncGenerator<ChatEvent> {
+      yield { type: 'start', model }
+      for (const word of words) {
+        await delay(this.wordDelay, signal)
+        yield { type: 'delta', text: word }
+      }
+      const message = this.append(conversation, 'assistant', reply)
+      yield { type: 'done', messageId: message.id }
+    }.call(this)
+
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        try {
+          const next = await events.next()
+          if (next.done) controller.close()
+          else controller.enqueue(encoder.encode(`data: ${JSON.stringify(next.value)}\n\n`))
+        } catch (error) {
+          controller.error(error)
+        }
+      },
+      cancel() {
+        void events.return(undefined)
+      },
+    })
+    return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
+  }
+
+  private append(conversation: Conversation, role: Message['role'], content: string): Message {
+    const now = this.timestamp()
+    const message: Message = { id: newId(), role, content, createdAt: now }
+    const current = this.find(this.state.conversations, conversation.id, 'conversation')
+    const title = current.title === 'New chat' && role === 'user' ? titleFrom(content) : current.title
+    const updated = { ...current, title, updatedAt: now, messages: [...current.messages, message] }
+    this.state.conversations = this.state.conversations.map((c) => (c.id === updated.id ? updated : c))
+    this.save()
+    return message
+  }
+
+  // Helpers
+
+  private find<T extends { id: string }>(items: T[], id: string, what: string): T {
+    const item = items.find((i) => i.id === id)
+    if (!item) throw new HttpError(404, `That ${what} does not exist.`)
+    return item
+  }
+
+  private timestamp(): string {
+    return this.now().toISOString()
+  }
+
+  private load(): DemoState {
+    try {
+      const raw = globalThis.localStorage?.getItem(STORAGE_KEY)
+      if (raw) return JSON.parse(raw) as DemoState
+    } catch {
+      // Unreadable or blocked storage: start fresh.
+    }
+    const fresh = seed(this.now())
+    this.state = fresh
+    this.save()
+    return fresh
+  }
+
+  private save(): void {
+    try {
+      globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    } catch {
+      // Storage full or blocked: the demo keeps working in memory.
+    }
+  }
+}
+
+function json(value: unknown, status = 200): Response {
+  return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+function required(value: string | undefined, field: string): string {
+  const text = value?.trim()
+  if (!text) throw new HttpError(400, `The ${field} is required.`)
+  return text
+}
+
+function titleFrom(content: string): string {
+  const firstLine = (content.split('\n', 1)[0] ?? '').trim()
+  return firstLine.length <= 60 ? firstLine : `${firstLine.slice(0, 57)}...`
+}
+
+function newId(): string {
+  return globalThis.crypto.randomUUID()
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(new DOMException('Aborted', 'AbortError'))
+    if (ms <= 0) return resolve()
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer)
+        reject(new DOMException('Aborted', 'AbortError'))
+      },
+      { once: true },
+    )
+  })
+}

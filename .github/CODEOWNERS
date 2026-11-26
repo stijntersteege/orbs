@@ -1,0 +1,5 @@
+# Default reviewers for every change.
+*            @stijntersteege
+/backend/    @stijntersteege
+/frontend/   @stijntersteege
+/docs/       @stijntersteege
