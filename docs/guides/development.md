@@ -80,19 +80,27 @@ curl -N -X POST http://localhost:5080/api/conversations/<id>/messages \
   -H 'Content-Type: application/json' -d '{"content":"hello"}'
 ```
 
-## Website and live demo
+## Website, docs and live demo
 
-The project website lives in `site/` and is published to GitHub Pages by `.github/workflows/pages.yml` on every push to `main` that touches the site, the frontend or `CHANGELOG.md`. It has three parts:
+The project website is built from this repository by `site/build.mjs` and published to GitHub Pages by `.github/workflows/pages.yml` on **every push to `main`**, so it always matches the repository. Nothing on the website is edited by hand:
 
-- **Landing page** (`site/pages/index.html`) and **404 page**, wrapped in one shared layout by `site/build.mjs`.
-- **Changelog**, rendered from `CHANGELOG.md` at build time.
-- **Live demo** at `/demo/`: the real web app built with `pnpm build:demo`. In that mode `src/demo/` answers every `/api/...` call in the browser with sample data kept in `localStorage`, replies like the Echo provider and never calls real model providers. Normal builds contain none of this code.
+| Page | Source |
+| --- | --- |
+| Landing page and 404 page | `site/pages/*.html`, wrapped in one shared layout |
+| Docs (`/docs/`) | every Markdown file in `docs/`, with GitHub-style tables, heading anchors and Mermaid diagrams |
+| Changelog (`/changelog/`) | `CHANGELOG.md` (an empty `[Unreleased]` section is hidden) |
+| Live demo (`/demo/`) | the real web app, built with `pnpm build:demo` |
 
-When you change an API contract, update `frontend/src/demo/server.ts` too, so the demo keeps working.
+Docs pages follow the folders: `docs/guides/`, `docs/architecture/` (arc42) and `docs/adr/` each get a section in the sidebar, in file-name order, titled by each file's first heading. Links between Markdown files become website links; links to other repository files point to GitHub. A new file in one of these folders shows up on the website without any extra step.
 
-Build and preview it locally:
+The build fails on a relative link to a file that does not exist. CI runs that check (`Website` job) on every pull request.
+
+In the live demo, `frontend/src/demo/` answers every `/api/...` call in the browser with sample data kept in `localStorage`, replies like the Echo provider and never calls real model providers. Normal builds contain none of this code. When you change an API contract, update `frontend/src/demo/server.ts` too, so the demo keeps working.
+
+Build and preview the website locally:
 
 ```bash
+cd site && pnpm install && pnpm check   # render everything and check links
 cd frontend && pnpm build:demo && cd ..
 node site/build.mjs _site frontend/dist-demo
 python3 -m http.server -d _site 8000   # open http://localhost:8000

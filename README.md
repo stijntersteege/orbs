@@ -14,7 +14,7 @@ Plug in any model, connect any context and give every orb its own face.
 [![License: MIT](https://img.shields.io/badge/license-MIT-7C4DFF.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-2EE59D.svg)](CONTRIBUTING.md)
 
-**[Live demo](https://stijntersteege.github.io/orbs/demo/)** · [Website](https://stijntersteege.github.io/orbs/) · [Changelog](CHANGELOG.md)
+**[Live demo](https://stijntersteege.github.io/orbs/demo/)** · [Website](https://stijntersteege.github.io/orbs/) · [Docs](https://stijntersteege.github.io/orbs/docs/) · [Changelog](CHANGELOG.md)
 
 [Quick start](#quick-start) · [Features](#features) · [Architecture](#architecture) · [Development](#development) · [Docs](docs/README.md) · [Contributing](#contributing)
 

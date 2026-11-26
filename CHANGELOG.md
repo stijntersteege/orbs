@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Documentation on the website: guides, the arc42 architecture and the decision records, generated from `docs/` on every push to `main`.
+- CI checks that the website builds and that links in the docs and changelog are not broken.
+
 ## [0.1.0] - 2026-11-26
 
 ### Added

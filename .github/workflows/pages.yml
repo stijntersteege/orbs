@@ -1,13 +1,9 @@
 name: Website
 
+# Deploys on every push to main, so the docs, changelog and demo always match the repository.
 on:
   push:
     branches: [main]
-    paths:
-      - site/**
-      - frontend/**
-      - CHANGELOG.md
-      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
@@ -19,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build landing page, changelog and live demo
+    name: Build landing page, docs, changelog and live demo
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,9 +26,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            site/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
+      - run: pnpm install --frozen-lockfile
+        working-directory: site
       - run: pnpm build:demo
         working-directory: frontend
       - id: pages

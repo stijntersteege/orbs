@@ -1,0 +1,20 @@
+{
+  "name": "@orbs/site",
+  "private": true,
+  "type": "module",
+  "description": "Orbs website: landing page, docs, changelog and live demo",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs ../_site",
+    "check": "node build.mjs ../_site --check",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "marked": "18.2.0",
+    "mermaid": "12.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@12.8.1"
+}
