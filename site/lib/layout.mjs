@@ -94,7 +94,7 @@ function footer(root) {
     </div>
     <div class="footer-bottom">
       <span>© 2026 Orbs contributors. Code released under the <a href="${root}license/">MIT License</a>.</span>
-      <span>Made by <a href="https://stijntersteege.com/">Stijn ter Steege</a> as a hobby project.</span>
+      <span>Made with <span role="img" aria-label="love">❤️</span> by <a href="https://stijntersteege.nl/">Stijn ter Steege</a></span>
     </div>
   </div>
 </footer>`
