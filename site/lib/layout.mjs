@@ -17,6 +17,7 @@ const ICONS = {
   star: '<path d="M12 3l2.8 5.6 6.2.9-4.5 4.4 1 6.1L12 17.1 6.5 20l1-6.1L3 9.5l6.2-.9z"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   server: '<path d="M3 5h18v11H3z M8 20h8 M12 16v4"/>',
   lock: '<path d="M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4"/>',
@@ -32,11 +33,11 @@ export function icon(name, size = 18) {
 }
 
 const NAV = [
-  ['Features', '#features', '#features'],
-  ['How it works', '#how', '#how'],
-  ['Open source', 'open-source/'],
+  ['Models', '#models', '#models'],
+  ['Context', '#context', '#context'],
+  ['Use cases', '#jobs', '#jobs'],
   ['Docs', 'docs/'],
-  ['Changelog', 'changelog/'],
+  ['Open source', 'open-source/'],
 ]
 
 function header(root, current) {
@@ -45,14 +46,15 @@ function header(root, current) {
     const active = current && current !== 'home' && href.startsWith(current) ? ' aria-current="page"' : ''
     return `<a href="${target}"${active}>${label}</a>`
   }).join('')
-  return `<header class="site-header">
+  return `<a class="announce" href="${root}changelog/">Orbs 0.1 is here: any model, any context, open source. <span>Read the changelog →</span></a>
+<header class="site-header">
   <div class="header-inner">
-    <a class="brand" href="${root}">${orb({ eyes: 'dots', accessory: 'none', blush: false, glow: false, size: 34 })}<span>orbs</span></a>
+    <a class="brand" href="${root}">${orb({ eyes: 'dots', accessory: 'none', blush: false, glow: false, size: 30 })}<span>orbs</span></a>
     <nav class="main-nav" aria-label="Main">${links}</nav>
     <div class="header-actions">
-      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between light and dark mode">${icon('sun', 20).replace('class="icon"', 'class="icon icon-sun"')}${icon('moon', 20).replace('class="icon"', 'class="icon icon-moon"')}</button>
-      <a class="button ghost small" href="${REPO}">${icon('star', 16)}Star on GitHub</a>
-      <a class="button primary small" href="${root}get/">Get Orbs</a>
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between light and dark mode">${icon('sun', 18).replace('class="icon"', 'class="icon icon-sun"')}${icon('moon', 18).replace('class="icon"', 'class="icon icon-moon"')}</button>
+      <a class="v2-btn v2-btn-small v2-btn-quiet ghost" href="${REPO}">${icon('star', 15)}Star on GitHub</a>
+      <a class="v2-btn v2-btn-small v2-btn-solid" href="${root}get/">Get started</a>
     </div>
   </div>
 </header>`
@@ -67,36 +69,31 @@ function footer(root) {
   <div class="footer-inner">
     <div class="footer-cols">
       <div class="footer-about">
-        <a class="brand" href="${root}">${orb({ size: 40, glow: false })}<span>orbs</span></a>
-        <p>An open-source home for AI companions. Any model, any context, any face. A hobby project, made with care in spare time.</p>
+        <span class="footer-brand">orbs</span>
+        <p>The open-source home for AI companions.</p>
       </div>
       ${col('Product', [
-        ['Features', '#features'],
-        ['Get Orbs', 'get/'],
+        ['Get started', 'get/'],
+        ['Models', '#models'],
+        ['Context', '#context'],
         ['Live demo', 'demo/'],
         ['Changelog', 'changelog/'],
-      ])}
-      ${col('Docs', [
-        ['Documentation', 'docs/'],
-        ['Self-hosting', 'docs/guides/self-hosting/'],
-        ['Configuration', 'docs/guides/configuration/'],
-        ['Architecture', 'docs/architecture/'],
       ])}
       ${col('Open source', [
         ['GitHub', REPO],
         ['Contribute', 'open-source/'],
-        ['Discussions', `${REPO}/discussions`],
-        ['Report a bug', `${REPO}/issues/new/choose`],
-      ])}
-      ${col('Policies', [
-        ['Privacy', 'privacy/'],
-        ['Security', 'security/'],
-        ['Code of conduct', 'code-of-conduct/'],
+        ['Docs', 'docs/'],
         ['License', 'license/'],
+        ['Security', 'security/'],
+      ])}
+      ${col('Legal', [
+        ['Privacy', 'privacy/'],
+        ['Code of conduct', 'code-of-conduct/'],
+        ['Contributing', 'contributing/'],
       ])}
     </div>
     <div class="footer-bottom">
-      <span>© 2026 Orbs contributors. Code released under the <a href="${root}license/">MIT License</a>.</span>
+      <span>© 2026 Orbs contributors · <a href="${root}license/">MIT License</a></span>
       <span>Made with <span role="img" aria-label="love">❤️</span> by <a href="https://stijntersteege.nl/">Stijn ter Steege</a></span>
     </div>
   </div>
