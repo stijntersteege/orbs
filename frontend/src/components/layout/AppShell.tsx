@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router'
-import { useConversations, useOrbs } from '@/api/queries'
+import { Link, NavLink, Outlet, useMatch } from 'react-router'
+import { useContextSources, useOrbs } from '@/api/queries'
+import type { ContextSource, Orb as OrbModel } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
 import { Icon, type IconName } from '@/components/ui/icons'
 import { DemoBanner } from '@/demo/DemoBanner'
@@ -8,13 +9,23 @@ import { useSettings } from '@/app/SettingsContext'
 import { usePopover } from '@/lib/usePopover'
 import styles from './AppShell.module.css'
 
-/** Everything that is not chatting lives behind one menu. */
+/** Everything that is not chatting with an orb lives behind one menu. */
 export const MENU: { to: string; label: string; hint: string; icon: IconName }[] = [
   { to: '/models', label: 'Models', hint: 'Providers and API keys', icon: 'models' },
-  { to: '/orbs', label: 'Orbs', hint: 'Names, faces and instructions', icon: 'orbs' },
   { to: '/context', label: 'Context', hint: 'Notes and web pages', icon: 'context' },
+  { to: '/orbs', label: 'Manage orbs', hint: 'Faces, instructions, delete', icon: 'orbs' },
   { to: '/settings', label: 'Settings', hint: 'Theme, motion and server', icon: 'settings' },
 ]
+
+type OrbStatus = { tone: 'ok' | 'warn' | 'err'; label: string }
+
+/** Green when everything the orb knows is ready, amber while a source syncs, red when one failed. */
+function statusOf(orb: OrbModel, sources: ContextSource[] | undefined): OrbStatus {
+  const linked = sources?.filter((s) => orb.contextSourceIds.includes(s.id)) ?? []
+  if (linked.some((s) => s.status === 'failed')) return { tone: 'err', label: 'A source failed to sync' }
+  if (linked.some((s) => s.status === 'pending')) return { tone: 'warn', label: 'A source is syncing' }
+  return { tone: 'ok', label: 'Ready' }
+}
 
 function SettingsMenu() {
   const { open, setOpen, ref, toggle } = usePopover()
@@ -54,20 +65,17 @@ function SettingsMenu() {
   )
 }
 
-/** A quiet sidebar with your chats, and one menu for everything else. On phones it slides in. */
+/** Your orbs are always in the sidebar; pick one to talk to it. On phones the sidebar slides in. */
 export function AppShell() {
   const { data: orbs } = useOrbs()
-  const { data: conversations } = useConversations()
+  const { data: sources } = useContextSources()
   const { settings } = useSettings()
-  const navigate = useNavigate()
+  // The layout sits above the chat route, so it reads the orb from the URL itself.
+  const orbId = useMatch('/orbs/:orbId/*')?.params.orbId
   const [drawer, setDrawer] = useState(false)
 
-  const orbOf = (id: string) => orbs?.find((o) => o.id === id)
-  const startOrb = orbs?.find((o) => o.id === settings.lastOrbId) ?? orbs?.[0]
-  const newChat = () => {
-    setDrawer(false)
-    navigate(startOrb ? `/orbs/${startOrb.id}/chat` : '/')
-  }
+  // On the home screen the chat opens with the orb you used last.
+  const activeId = orbId ?? (orbs?.find((o) => o.id === settings.lastOrbId) ?? orbs?.[0])?.id
 
   return (
     <div className={styles.shell}>
@@ -88,9 +96,9 @@ export function AppShell() {
         <Link to="/" className={styles.brand}>
           <span className={styles.wordmark}>orbs</span>
         </Link>
-        <button type="button" className={styles.iconButton} aria-label="New chat" onClick={newChat}>
+        <Link to="/orbs/new" className={styles.iconButton} aria-label="New orb">
           <Icon name="plus" />
-        </button>
+        </Link>
       </header>
 
       {drawer && <div className={styles.scrim} onClick={() => setDrawer(false)} aria-hidden="true" />}
@@ -120,32 +128,38 @@ export function AppShell() {
           </button>
         </div>
 
-        <button type="button" className={styles.newChat} onClick={newChat}>
-          <Icon name="edit" size={18} /> New chat
-        </button>
-
-        <nav aria-label="Chats" className={styles.chats}>
-          {conversations && conversations.length > 0 ? (
-            <>
-              <span className={styles.sectionLabel}>Chats</span>
-              {conversations.map((c) => {
-                const orb = orbOf(c.orbId)
-                return (
-                  <NavLink key={c.id} to={`/orbs/${c.orbId}/chat/${c.id}`} className={styles.chatItem}>
-                    {orb && (
-                      <Orb
-                        size={20}
-                        appearance={{ ...orb.appearance, glow: false, floating: false, accessory: 'none' }}
-                      />
-                    )}
-                    <span className={styles.chatTitle}>{c.title}</span>
-                  </NavLink>
-                )
-              })}
-            </>
-          ) : (
-            <p className={styles.noChats}>Your chats show up here.</p>
-          )}
+        <nav aria-label="Your orbs" className={styles.roster}>
+          <span className={styles.sectionLabel}>Your orbs</span>
+          {orbs?.map((orb) => {
+            const status = statusOf(orb, sources)
+            const active = orb.id === activeId
+            return (
+              <Link
+                key={orb.id}
+                to={`/orbs/${orb.id}/chat`}
+                className={[styles.orbItem, active && styles.active].filter(Boolean).join(' ')}
+                aria-current={active ? 'page' : undefined}
+              >
+                <Orb
+                  size={32}
+                  appearance={{ ...orb.appearance, glow: false, floating: false, accessory: 'none' }}
+                />
+                <span className={styles.orbText}>
+                  <span className={styles.orbName}>{orb.name}</span>
+                  {orb.description && <span className={styles.orbDescription}>{orb.description}</span>}
+                </span>
+                <span className={styles.dot} data-tone={status.tone} title={status.label}>
+                  <span className="visually-hidden">{status.label}</span>
+                </span>
+              </Link>
+            )
+          })}
+          <Link to="/orbs/new" className={styles.newOrb}>
+            <span className={styles.newOrbIcon}>
+              <Icon name="plus" size={16} />
+            </span>
+            New orb
+          </Link>
         </nav>
 
         <SettingsMenu />

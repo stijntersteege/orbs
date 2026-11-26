@@ -8,11 +8,15 @@ test('a first run opens a chat with the demo orb', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^Model:/ })).toBeVisible()
 })
 
-test('orbs, models, context and settings sit behind the menu', async ({ page }) => {
+test('orbs stay in the sidebar, everything else sits behind the menu', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto('/')
+  await expect(page.getByRole('navigation', { name: 'Your orbs' }).getByText('Pip')).toBeVisible()
   await page.getByRole('button', { name: 'Settings and more' }).click()
-  await page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: /Orbs/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Menu' })
+    .getByRole('link', { name: /Manage orbs/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Your orbs' })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Orbs' }).getByText('Pip')).toBeVisible()
 })
@@ -31,6 +35,12 @@ test('people can create an orb and talk to it', async ({ page }) => {
   await page.getByRole('button', { name: 'Send' }).click()
 
   await expect(page.getByText('You said: Hello from Playwright')).toBeVisible()
+  // Narrow screens open the activity panel from the header; wide ones always show it.
+  const toggle = page.getByRole('button', { name: 'Activity', exact: true })
+  if (await toggle.isVisible()) await toggle.click()
+  await expect(
+    page.getByRole('complementary', { name: 'Activity' }).getByText(/^Answered with /),
+  ).toBeVisible()
 })
 
 test('the theme can be switched', async ({ page }) => {

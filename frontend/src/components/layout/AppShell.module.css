@@ -79,74 +79,107 @@
   display: none;
 }
 
-.newChat {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 500;
-  text-align: left;
-}
-
-.newChat:hover {
-  background: var(--raised);
-}
-
-.chats {
+.roster {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: var(--space-3);
 }
 
 .sectionLabel {
-  padding: 0 var(--space-3) 6px;
+  padding: 4px var(--space-3) 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.noChats {
-  padding: 0 var(--space-3);
-  color: var(--faint);
-  font-size: 14px;
-}
-
-.chatItem {
+.orbItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 36px;
-  padding: 0 var(--space-3);
+  min-height: 52px;
+  padding: 8px 10px;
   border-radius: 10px;
-  color: var(--muted);
-  font-size: 14px;
+  color: var(--text);
   text-decoration: none;
 }
 
-.chatItem:hover {
+.orbItem:hover {
   background: var(--raised);
-  color: var(--text);
 }
 
-.chatItem:global(.active) {
-  background: var(--raised);
-  color: var(--text);
+.orbItem.active {
+  background: var(--chip);
 }
 
-.chatTitle {
+.orbText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.orbName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.orbDescription {
   overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mint);
+}
+
+.dot[data-tone='warn'] {
+  background: var(--sun);
+}
+
+.dot[data-tone='err'] {
+  background: var(--coral);
+}
+
+.newOrb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.newOrb:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.newOrbIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px dashed var(--line);
 }
 
 .menuWrap {

@@ -18,3 +18,11 @@ Feature: Connecting context
     And an orb named "Pip" that knows "Team"
     When I delete the source "Team"
     Then "Pip" knows nothing
+
+  Scenario: A reply shows which model answered and which sources it read
+    Given a note "Team" saying "Sam leads design."
+    And an orb named "Scout" that knows "Team"
+    And the demo model is connected
+    When I say "Who leads design?" to "Scout"
+    Then the reply was written by "echo-1" from "Echo"
+    And the reply read the source "Team"

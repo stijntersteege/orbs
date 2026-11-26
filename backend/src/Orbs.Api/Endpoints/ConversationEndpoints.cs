@@ -35,7 +35,7 @@ internal static class ConversationEndpoints
                 var events = await chat.SendAsync(id, request, ct);
                 return TypedResults.ServerSentEvents(ToSse(events, ct));
             })
-            .WithSummary("Send a message and stream the reply as server-sent events (start, delta, done, error)");
+            .WithSummary("Send a message and stream the reply as server-sent events (start with model, provider and sources read; delta; done; error)");
     }
 
     private static async IAsyncEnumerable<SseItem<ChatEvent>> ToSse(

@@ -54,6 +54,19 @@ public sealed class ChatSteps(SpecContext context)
         last.Text!.ShouldContain(text);
     }
 
+    [Then("the reply was written by {string} from {string}")]
+    public void ThenTheReplyWasWrittenBy(string model, string provider)
+    {
+        var start = context.LastReply!.Events[0];
+        start.Type.ShouldBe(ChatEvent.StartType);
+        start.Model.ShouldBe(model);
+        start.Provider.ShouldBe(provider);
+    }
+
+    [Then("the reply read the source {string}")]
+    public void ThenTheReplyReadTheSource(string name) =>
+        context.LastReply!.Events[0].Sources!.Select(s => s.Name).ShouldContain(name);
+
     private Task<ConversationDto> ReloadConversation() =>
         context.Api.GetAsync<ConversationDto>($"/api/conversations/{context.Conversation!.Id}");
 }

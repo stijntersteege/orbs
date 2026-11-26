@@ -148,8 +148,17 @@ export interface Conversation extends ConversationSummary {
   messages: Message[]
 }
 
+/** A source the orb read to answer, as reported when a reply starts. */
+export interface ChatSource {
+  id: string
+  name: string
+  kind: string
+  characters: number
+  truncated: boolean
+}
+
 export type ChatEvent =
-  | { type: 'start'; model: string }
+  | { type: 'start'; model: string; provider?: string; sources?: ChatSource[] }
   | { type: 'delta'; text: string }
   | { type: 'done'; messageId: string }
   | { type: 'error'; text: string }

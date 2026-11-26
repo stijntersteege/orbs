@@ -18,15 +18,28 @@ public sealed record StartConversationRequest(Guid OrbId);
 
 public sealed record SendMessageRequest(string Content);
 
-/// <summary>One event in a streamed reply: a text fragment, the end, or an error.</summary>
-public sealed record ChatEvent(string Type, string? Text = null, Guid? MessageId = null, string? Model = null)
+/// <summary>A context source an orb read to answer, as reported in the start event.</summary>
+public sealed record ChatSourceDto(Guid Id, string Name, string Kind, int Characters, bool Truncated);
+
+/// <summary>
+/// One event in a streamed reply: the start (which model and provider answer, and which sources they read),
+/// a text fragment, the end, or an error.
+/// </summary>
+public sealed record ChatEvent(
+    string Type,
+    string? Text = null,
+    Guid? MessageId = null,
+    string? Model = null,
+    string? Provider = null,
+    IReadOnlyList<ChatSourceDto>? Sources = null)
 {
     public const string StartType = "start";
     public const string DeltaType = "delta";
     public const string DoneType = "done";
     public const string ErrorType = "error";
 
-    public static ChatEvent Start(string model) => new(StartType, Model: model);
+    public static ChatEvent Start(string model, string? provider = null, IReadOnlyList<ChatSourceDto>? sources = null) =>
+        new(StartType, Model: model, Provider: provider, Sources: sources ?? []);
 
     public static ChatEvent Delta(string text) => new(DeltaType, Text: text);
 

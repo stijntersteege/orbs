@@ -6,6 +6,7 @@
 import type {
   ChatEvent,
   ContextKind,
+  ChatSource,
   ContextSource,
   Conversation,
   Message,
@@ -22,6 +23,8 @@ import { seed, type DemoState } from './seed'
 
 const STORAGE_KEY = DEMO_STORAGE_KEY
 const ECHO_KIND = 'echo'
+/** Same as PromptBudget.MaxContextCharacters on the server. */
+const PROMPT_CONTEXT_CHARACTERS = 48_000
 
 export const PROVIDER_KINDS: ProviderKind[] = [
   {
@@ -335,18 +338,35 @@ export class DemoServer {
     return { provider: fallback, model: fallback.defaultModel! }
   }
 
+  /** The sources that go into the prompt, with the same budget rules as the server's PromptBuilder. */
+  private sourcesUsed(orb: Orb): ChatSource[] {
+    const ready = this.state.contextSources.filter(
+      (s) => orb.contextSourceIds.includes(s.id) && s.status === 'ready' && s.contentLength > 0,
+    )
+    if (ready.length === 0) return []
+    const share = Math.floor(PROMPT_CONTEXT_CHARACTERS / ready.length)
+    return ready.map((s) => ({
+      id: s.id,
+      name: s.name,
+      kind: s.kind,
+      characters: Math.min(s.contentLength, share),
+      truncated: s.contentLength > share,
+    }))
+  }
+
   private send(id: string, body: unknown, signal?: AbortSignal): Response {
     const conversation = this.find(this.state.conversations, id, 'conversation')
     const content = required((body as { content?: string })?.content, 'content')
     const orb = this.find(this.state.orbs, conversation.orbId, 'orb')
     const { provider, model } = this.resolve(orb)
+    const sources = this.sourcesUsed(orb)
 
     this.append(conversation, 'user', content)
     const reply = provider.kind === ECHO_KIND ? `You said: ${content}` : OFFLINE_REPLY
     const words = reply.split(' ').map((word, i) => (i === 0 ? word : ` ${word}`))
 
     const events = async function* (this: DemoServer): AsyncGenerator<ChatEvent> {
-      yield { type: 'start', model }
+      yield { type: 'start', model, provider: provider.name, sources }
       for (const word of words) {
         await delay(this.wordDelay, signal)
         yield { type: 'delta', text: word }

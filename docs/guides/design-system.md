@@ -56,6 +56,10 @@ Fonts are bundled with the app (Fontsource), so nothing loads from third-party s
 
 ## App layout
 
-- Chat is the home screen. The model picker sits at the top of every chat, so switching models is one click; the message box is front and center.
-- The sidebar holds only **New chat** and your chats. Models, Orbs, Context and Settings sit behind one **Settings and more** menu at the bottom.
-- On phones the sidebar slides in from a menu button; there is no tab bar.
+The app has three columns, like the product preview on the website:
+
+- **Your orbs** on the left, always visible. A dot shows if everything an orb reads is ready (green), still syncing (amber) or failed (red). **New orb** sits at the end of the list. Models, Context, Manage orbs and Settings sit behind one **Settings and more** menu at the bottom.
+- **The chat** in the middle. The header shows the orb, its model picker (one click to switch models) and the sources it can read. Earlier chats with this orb are under **Chats**, so the screen stays simple.
+- **Activity** on the right: for every reply, which sources the orb read and which model and provider wrote it, and how long it took. Each answer also lists the sources it read. Below that, everything the orb can read.
+
+On narrow screens the orbs slide in from a menu button and Activity opens from the header.
