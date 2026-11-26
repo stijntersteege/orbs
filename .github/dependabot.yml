@@ -16,6 +16,11 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # Types must match the Node.js version CI and the Docker image run (24).
+      # Raise this together with the Node.js version, not on its own.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: npm
     directory: /site
     schedule:
@@ -28,3 +33,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # Major .NET and Node.js upgrades are planned changes (global.json, CI, docs), not automatic bumps.
+      - dependency-name: dotnet/sdk
+        update-types: ['version-update:semver-major']
+      - dependency-name: dotnet/aspnet
+        update-types: ['version-update:semver-major']
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
