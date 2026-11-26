@@ -80,6 +80,29 @@ public class ChatServiceTests
     }
 
     [Fact]
+    public async Task The_start_event_says_which_provider_answers_and_which_sources_it_reads()
+    {
+        var adapter = new ScriptedModelAdapter("scripted", "ok");
+        var (orb, chat) = GivenAnOrbWithAChat();
+        var note = ContextSource.Create("Roadmap", "text", _clock.Now);
+        note.MarkSynced("Billing ships in Q1", _clock.Now);
+        var empty = ContextSource.Create("Empty page", "url", _clock.Now);
+        _store.ContextItems.Add(note);
+        _store.ContextItems.Add(empty);
+        orb.LinkContext(note.Id, _clock.Now);
+        orb.LinkContext(empty.Id, _clock.Now);
+
+        var events = await CollectAsync(await CreateService(adapter).SendAsync(chat.Id, new SendMessageRequest("When does billing ship?")));
+
+        events[0].Provider.ShouldNotBeNullOrEmpty();
+        var source = events[0].Sources.ShouldHaveSingleItem();
+        source.Id.ShouldBe(note.Id);
+        source.Name.ShouldBe("Roadmap");
+        source.Characters.ShouldBe("Billing ships in Q1".Length);
+        source.Truncated.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task A_failing_provider_ends_with_an_error_and_stores_no_reply()
     {
         var adapter = new ScriptedModelAdapter("scripted", "Part", "never") { FailAfterFirstFragment = new HttpRequestException("boom") };

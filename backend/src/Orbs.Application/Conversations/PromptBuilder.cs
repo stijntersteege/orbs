@@ -53,7 +53,7 @@ public static class PromptBuilder
             prompt.AppendLine().AppendLine("## How to behave").AppendLine(orb.Instructions);
         }
 
-        var ready = context.Where(s => s.Status == ContextSourceStatus.Ready && s.Content.Length > 0).ToList();
+        var ready = Readable(context);
         if (ready.Count > 0)
         {
             prompt.AppendLine()
@@ -70,4 +70,25 @@ public static class PromptBuilder
 
         return prompt.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// The sources that end up in the prompt, with how much of each the model sees.
+    /// Same rules as <see cref="Build"/>, so what people are shown is what the model read.
+    /// </summary>
+    public static IReadOnlyList<ChatSourceDto> SourcesUsed(IReadOnlyList<ContextSource> context, PromptBudget? budget = null)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        budget ??= PromptBudget.Default;
+        var ready = Readable(context);
+        if (ready.Count == 0)
+        {
+            return [];
+        }
+
+        var share = budget.MaxContextCharacters / ready.Count;
+        return [.. ready.Select(s => new ChatSourceDto(s.Id, s.Name, s.Kind, Math.Min(s.Content.Length, share), s.Content.Length > share))];
+    }
+
+    private static List<ContextSource> Readable(IReadOnlyList<ContextSource> context) =>
+        [.. context.Where(s => s.Status == ContextSourceStatus.Ready && s.Content.Length > 0)];
 }

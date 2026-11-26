@@ -65,7 +65,8 @@ public sealed class ChatService(
 
         var chatRequest = new ChatRequest(resolved.Model, PromptBuilder.Build(orb, context, conversation.Messages));
         var connection = providerService.ConnectionFor(resolved.Provider);
-        return StreamReplyAsync(conversation, adapter, connection, chatRequest, cancellationToken);
+        var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context));
+        return StreamReplyAsync(conversation, adapter, connection, chatRequest, start, cancellationToken);
     }
 
     private async IAsyncEnumerable<ChatEvent> StreamReplyAsync(
@@ -73,9 +74,10 @@ public sealed class ChatService(
         IModelAdapter adapter,
         ProviderConnection connection,
         ChatRequest request,
+        ChatEvent start,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        yield return ChatEvent.Start(request.Model);
+        yield return start;
 
         var reply = new StringBuilder();
         string? error = null;
