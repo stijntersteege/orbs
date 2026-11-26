@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   appId: 'org.orbs.app',
   appName: 'Orbs',
   webDir: 'dist',
-  backgroundColor: '#0F0C1D',
+  backgroundColor: '#0B0A12',
 }
 
 export default config

@@ -19,6 +19,12 @@ const PATHS = {
   note: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h4',
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18',
   plug: 'M9 2v6 M15 2v6 M6 8h12v3a6 6 0 0 1-12 0z M12 17v5',
+  menu: 'M4 7h16 M4 12h16 M4 17h16',
+  chevron: 'M6 9l6 6 6-6',
+  check: 'M5 12l5 5L20 7',
+  close: 'M6 6l12 12 M18 6L6 18',
+  up: 'M12 19V5 M5 12l7-7 7 7',
+  more: 'M5 12h.01 M12 12h.01 M19 12h.01',
 } as const
 
 export type IconName = keyof typeof PATHS

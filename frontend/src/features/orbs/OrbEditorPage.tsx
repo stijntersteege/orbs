@@ -81,7 +81,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
   const onDelete = async () => {
     if (!orbId || !window.confirm(`Delete ${form.name} and all its chats? This cannot be undone.`)) return
     await remove.mutateAsync(orbId)
-    navigate('/')
+    navigate('/orbs')
   }
 
   const name = form.name.trim() || 'Your orb'

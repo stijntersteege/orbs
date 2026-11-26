@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
+A makeover: a cleaner look for the app and the website, and an app that opens on a chat.
+
 ### Added
 
 - Documentation on the website: guides, the arc42 architecture and the decision records, generated from `docs/` on every push to `main`.
@@ -13,9 +17,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Policy pages on the website (privacy, security, code of conduct, contributing, license), generated from the files in the repository.
 - `PRIVACY.md`: what happens with your data in the software and on the website.
 - Light/dark switch on the website. The choice is shared with the live demo and remembered in the browser.
+- Model picker at the top of every chat: search the models of every connected provider, or pick "Auto". The choice is saved on the orb.
+- Orb switcher in the message box.
 
 ### Changed
 
+- New design for the app and the website: clean neutral light and dark themes, the orb colors as the only accents, Geist and Geist Mono as fonts, quieter buttons, cards and borders.
+- The app opens on a new chat instead of the orb overview. The sidebar only shows New chat and your chats; Models, Orbs, Context and Settings moved behind one "Settings and more" menu. On phones the sidebar slides in from a menu button, replacing the bottom tab bar.
+- New website home page: product preview, use cases, any model, any context, any face, and a FAQ.
 - `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and the README now speak in a personal voice and make no promises about response times: Orbs is a hobby project.
 
 ## [0.1.0] - 2026-11-26
@@ -33,5 +42,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Documentation: arc42 architecture, ADRs, guides, contribution and security policies.
 - Project website on GitHub Pages with a landing page, the changelog and a live demo that runs on sample data in the browser.
 
-[Unreleased]: https://github.com/stijntersteege/orbs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/stijntersteege/orbs/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/stijntersteege/orbs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/stijntersteege/orbs/releases/tag/v0.1.0

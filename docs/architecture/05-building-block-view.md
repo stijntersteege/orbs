@@ -82,7 +82,7 @@ classDiagram
 | --- | --- |
 | `src/api` | Types mirroring the API, a fetch client with error mapping, an SSE reader, TanStack Query hooks with one set of cache keys. |
 | `src/app` | Router, providers (query client, settings), theme application. |
-| `src/components` | `Orb` mascot, UI primitives (buttons, fields, switch, chips), icons, app shell (sidebar or tab bar). |
+| `src/components` | `Orb` mascot, UI primitives (buttons, fields, switch, chips), icons, app shell (chat sidebar with a settings menu; a slide-in drawer on phones). |
 | `src/features` | One folder per screen: orbs (list, editor, orb maker), chat (page, `useChat`), context, models (with presets), settings. |
 | `src/lib` | Small framework-free helpers: device settings, formatting. |
 | `src/styles` | Design tokens and global styles. |
