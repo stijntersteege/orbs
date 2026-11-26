@@ -15,10 +15,13 @@ concurrency:
 
 jobs:
   build:
-    name: Build landing page, docs, changelog and live demo
+    name: Build landing page, docs, policies, changelog and live demo
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so policy pages can show when they last changed.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: frontend/package.json

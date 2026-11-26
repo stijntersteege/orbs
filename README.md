@@ -211,6 +211,8 @@ On first launch, set your server address under **Settings > Server**. Details in
 
 ## Roadmap
 
+Things I'd like to add some day. Orbs is a hobby project, so there are no dates or promises.
+
 - [ ] Accounts and sign-in (passkeys, OAuth) for multi-user servers
 - [ ] Retrieval with embeddings for large context sources
 - [ ] File uploads (PDF, Markdown) as context
@@ -225,7 +227,9 @@ Ideas welcome in [Discussions](https://github.com/stijntersteege/orbs/discussion
 
 Contributions of every size are welcome: bug reports, docs, tests, connectors, design. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and look for issues labelled **good first issue**. Everyone taking part agrees to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md).
+Orbs is a hobby project that I work on in my spare time, so replies and reviews can take a while.
+
+Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md). How data is handled is described in [PRIVACY.md](PRIVACY.md).
 
 ## License
 

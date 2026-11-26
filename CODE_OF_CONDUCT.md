@@ -4,7 +4,7 @@ Orbs follows the [Contributor Covenant, version 2.1](https://www.contributor-cov
 
 ## In short
 
-We want Orbs to be a welcoming place for everyone, whatever their experience, background or identity.
+I want Orbs to be a welcoming place for everyone, whatever their experience, background or identity.
 
 **Do**
 
@@ -22,12 +22,12 @@ We want Orbs to be a welcoming place for everyone, whatever their experience, ba
 
 ## Scope
 
-This applies in every project space (issues, pull requests, discussions, chat) and when you represent the project elsewhere.
+This applies in every project space (issues, pull requests, discussions) and when you represent the project elsewhere.
 
 ## Reporting
 
-If you experience or witness unacceptable behaviour, contact the maintainers at [mail@stijntersteege.com](mailto:mail@stijntersteege.com). Reports are handled confidentially. Maintainers who are involved in a report step aside from handling it.
+If you experience or witness unacceptable behaviour, email me at [mail@stijntersteege.com](mailto:mail@stijntersteege.com). I'll handle your report confidentially.
 
 ## Enforcement
 
-Maintainers may take any action they find appropriate, from a private warning to a permanent ban, following the [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines) of the Contributor Covenant.
+I may take any action I find appropriate, from a private warning to a permanent ban, following the [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines) of the Contributor Covenant.

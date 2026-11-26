@@ -1,5 +1,7 @@
 // Builds the project website for GitHub Pages from the repository itself:
-// landing page, docs (everything in docs/), changelog (CHANGELOG.md), 404 page and the live demo.
+// landing, Get Orbs and Open source pages (site/pages), the docs (everything in docs/), the changelog
+// (CHANGELOG.md), the policies (PRIVACY.md, SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, LICENSE),
+// a 404 page and the live demo.
 //
 //   node site/build.mjs <output-dir> [demo-dir] [--check]
 //
@@ -7,26 +9,44 @@
 // The build fails when a relative link in the docs or changelog points at a file that does not exist,
 // so broken links are caught in CI before they reach the website.
 
+import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, posix, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Marked } from 'marked'
+import { BRANCH as branch, escapeHtml, layout, policyNav, REPO as repo } from './lib/layout.mjs'
+import { get } from './pages/get.mjs'
+import { home } from './pages/home.mjs'
+import { licenseBody, notFound } from './pages/misc.mjs'
+import { openSource } from './pages/open-source.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 const out = args[0] ? resolve(args[0]) : join(repoRoot, '_site')
 const demo = args[1] ? resolve(args[1]) : undefined
-const repo = 'https://github.com/stijntersteege/orbs'
-const branch = 'main'
-const fonts = join(repoRoot, 'frontend/node_modules/@fontsource-variable')
+const fontFiles = [
+  ['unbounded', 'frontend/node_modules/@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2'],
+  ['figtree', 'frontend/node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2'],
+  ['jetbrains-mono', 'frontend/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2'],
+]
 const mermaidBundle = join(here, 'node_modules/mermaid/dist/mermaid.min.js')
 
 // ---------------------------------------------------------------------------
 // Pages: every Markdown file that becomes a page, keyed by its repository path.
 
 /** Repository path (posix) -> site path (posix, no leading slash, ends with "/" or is ""). */
-const pages = new Map([['CHANGELOG.md', 'changelog/']])
+const POLICY_FILES = [
+  ['PRIVACY.md', 'privacy/', 'privacy'],
+  ['SECURITY.md', 'security/', 'security'],
+  ['CODE_OF_CONDUCT.md', 'code-of-conduct/', 'code-of-conduct'],
+  ['CONTRIBUTING.md', 'contributing/', 'contributing'],
+]
+const pages = new Map([
+  ['CHANGELOG.md', 'changelog/'],
+  ['LICENSE', 'license/'],
+  ...POLICY_FILES.map(([file, path]) => [file, path]),
+])
 const docFiles = walk(join(repoRoot, 'docs'))
   .filter((file) => file.endsWith('.md'))
   .map((file) => posix.join('docs', relative(join(repoRoot, 'docs'), file).split('\\').join('/')))
@@ -51,10 +71,6 @@ function sitePathFor(file) {
 // Markdown
 
 const brokenLinks = []
-
-function escapeHtml(text) {
-  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
-}
 
 /** GitHub-style heading anchors, so links like `guide.md#adding-a-preset` keep working. */
 function slugify(text, seen) {
@@ -147,7 +163,7 @@ export function prepareChangelog(markdown) {
 }
 
 // ---------------------------------------------------------------------------
-// Layout
+// Docs navigation
 
 const DOC_SECTIONS = [
   { title: 'Guides', dir: 'docs/guides/' },
@@ -171,61 +187,36 @@ function docsNav(currentFile, root) {
     const items = files.map((f) => `<li>${link(f, f.endsWith('README.md') ? 'Overview' : titleOf(f))}</li>`)
     return `<details${files.includes(currentFile) ? ' open' : ''}><summary>${escapeHtml(title)}</summary><ul>${items.join('')}</ul></details>`
   })
-  return `<nav class="docs-nav" aria-label="Documentation">${link('docs/README.md', 'Overview')}${sections.join('')}</nav>`
-}
-
-function layout({ title, description, body, root, mermaid = false }) {
-  const fill = (text) => text.replaceAll('{{root}}', root).replaceAll('{{repo}}', repo)
-  const mermaidScript = mermaid
-    ? `<script src="{{root}}assets/mermaid.min.js"></script>
-    <script>
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'neutral',
-      })
-    </script>`
-    : ''
-  return fill(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="${escapeHtml(description)}" />
-    <meta name="theme-color" content="#0F0C1D" />
-    <link rel="icon" type="image/svg+xml" href="{{root}}favicon.svg" />
-    <link rel="stylesheet" href="{{root}}style.css" />
-    <title>${escapeHtml(title)}</title>
-  </head>
-  <body>
-    <div class="wrap">
-      <header class="top">
-        <a class="brand" href="{{root}}"><img src="{{root}}favicon.svg" width="32" height="32" alt="" />orbs</a>
-        <nav class="links" aria-label="Main">
-          <a href="{{root}}demo/">Demo</a>
-          <a href="{{root}}docs/">Docs</a>
-          <a href="{{root}}changelog/">Changelog</a>
-          <a href="{{repo}}">GitHub</a>
-        </nav>
-      </header>
-      <main>
-${body}
-      </main>
-      <footer>
-        Orbs is open source under the <a href="{{repo}}/blob/${branch}/LICENSE">MIT license</a>.
-        <a href="{{repo}}/blob/${branch}/CONTRIBUTING.md">Contribute</a> ·
-        <a href="{{repo}}/blob/${branch}/SECURITY.md">Security</a>
-      </footer>
-    </div>
-    ${mermaidScript}
-  </body>
-</html>
-`)
+  return `<nav class="side-nav docs-nav" aria-label="Documentation"><span class="side-title">Documentation</span>${link('docs/README.md', 'Overview')}${sections.join('')}</nav>`
 }
 
 /** Relative path from a site page back to the site root, e.g. "../../". */
 function rootFor(sitePath) {
   const depth = sitePath.split('/').filter(Boolean).length
   return depth ? '../'.repeat(depth) : './'
+}
+
+/** Two columns: a sidebar and an article. */
+function withSidebar(nav, article, footer = '') {
+  return `<div class="wrap with-sidebar">
+${nav}
+<article class="prose">
+${article}
+${footer}
+</article>
+</div>`
+}
+
+/** Shows when a repository file last changed, from Git when available. */
+function lastUpdated(file) {
+  try {
+    const iso = execFileSync('git', ['log', '-1', '--format=%cs', '--', file], { cwd: repoRoot, encoding: 'utf8' }).trim()
+    if (!iso) return ''
+    const date = new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    return `<p class="updated">Last updated ${date}</p>`
+  } catch {
+    return ''
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -247,26 +238,62 @@ function build() {
   mkdirSync(out, { recursive: true })
   const description = 'Orbs: open-source, self-hosted AI companions. Any model, any context, your own little orbs.'
 
+  // Hand-made pages
+  write(join(out, 'index.html'), layout({ title: 'Orbs · Little orbs. Big context.', description, root: './', current: 'home', body: home({ root: './' }) }))
   write(
-    join(out, 'index.html'),
-    layout({ title: 'Orbs', description, root: './', body: readFileSync(join(here, 'pages/index.html'), 'utf8') }),
+    join(out, 'get/index.html'),
+    layout({ title: 'Get Orbs', description: 'Install Orbs with Docker or from source in about two minutes.', root: '../', current: 'get/', body: get({ root: '../' }) }),
+  )
+  write(
+    join(out, 'open-source/index.html'),
+    layout({ title: 'Open source · Orbs', description: 'Orbs is MIT licensed. What that means, and how to help.', root: '../', current: 'open-source/', body: openSource({ root: '../' }) }),
   )
 
-  const changelog = renderMarkdown(
-    prepareChangelog(readFileSync(join(repoRoot, 'CHANGELOG.md'), 'utf8')),
-    'CHANGELOG.md',
-    'changelog/',
-  )
+  // Changelog
+  const changelog = renderMarkdown(prepareChangelog(readFileSync(join(repoRoot, 'CHANGELOG.md'), 'utf8')), 'CHANGELOG.md', 'changelog/')
   write(
     join(out, 'changelog/index.html'),
     layout({
       title: 'Changelog · Orbs',
       description: 'Every notable change to Orbs.',
       root: '../',
-      body: `<article class="prose">${changelog.html}</article>`,
+      current: 'changelog/',
+      body: `<div class="wrap narrow-page"><article class="prose">${changelog.html}</article></div>`,
     }),
   )
 
+  // Policies, from the files in the repository root
+  for (const [file, sitePath, id] of POLICY_FILES) {
+    const doc = renderMarkdown(readFileSync(join(repoRoot, file), 'utf8'), file, sitePath)
+    write(
+      join(out, sitePath, 'index.html'),
+      layout({
+        title: `${doc.title} · Orbs`,
+        description: `${doc.title} for Orbs, a personal open-source hobby project.`,
+        root: '../',
+        body: withSidebar(
+          policyNav('../', id),
+          `${lastUpdated(file)}\n${doc.html}`,
+          `<p class="edit"><a href="${repo}/blob/${branch}/${file}">View ${file} on GitHub</a></p>`,
+        ),
+      }),
+    )
+  }
+  write(
+    join(out, 'license/index.html'),
+    layout({
+      title: 'License · Orbs',
+      description: 'Orbs is released under the MIT License.',
+      root: '../',
+      body: withSidebar(
+        policyNav('../', 'license'),
+        licenseBody(readFileSync(join(repoRoot, 'LICENSE'), 'utf8')),
+        `<p class="edit"><a href="${repo}/blob/${branch}/LICENSE">View LICENSE on GitHub</a></p>`,
+      ),
+    }),
+  )
+
+  // Docs
   for (const file of docFiles) {
     const sitePath = pages.get(file)
     const root = rootFor(sitePath)
@@ -277,24 +304,16 @@ function build() {
         title: `${doc.title} · Orbs docs`,
         description: `${doc.title}: Orbs documentation.`,
         root,
+        current: 'docs/',
         mermaid: doc.mermaid,
-        body: `<div class="docs">
-${docsNav(file, root)}
-<article class="prose">
-${doc.html}
-<p class="edit"><a href="${repo}/edit/${branch}/${file}">Edit this page on GitHub</a></p>
-</article>
-</div>`,
+        body: withSidebar(docsNav(file, root), doc.html, `<p class="edit"><a href="${repo}/edit/${branch}/${file}">Edit this page on GitHub</a></p>`),
       }),
     )
   }
 
   // GitHub Pages serves 404.html for any missing path, so its links must work from every depth.
   const base = process.env.SITE_BASE_PATH ?? '/'
-  write(
-    join(out, '404.html'),
-    layout({ title: 'Not found · Orbs', description, root: base, body: readFileSync(join(here, 'pages/404.html'), 'utf8') }),
-  )
+  write(join(out, '404.html'), layout({ title: 'Not found · Orbs', description, root: base, body: notFound({ root: base }) }))
 
   if (brokenLinks.length) {
     console.error(`Broken links:\n  ${brokenLinks.join('\n  ')}`)
@@ -302,7 +321,7 @@ ${doc.html}
   }
   writeFileSync(join(out, '.nojekyll'), '')
   if (check) {
-    console.log(`Site OK: ${docFiles.length} docs pages, changelog and landing page.`)
+    console.log(`Site OK: ${docFiles.length} docs pages, ${POLICY_FILES.length + 1} policy pages, changelog and landing pages.`)
     return
   }
 
@@ -311,11 +330,8 @@ ${doc.html}
   mkdirSync(join(out, 'assets'), { recursive: true })
   if (existsSync(mermaidBundle)) cpSync(mermaidBundle, join(out, 'assets/mermaid.min.js'))
   mkdirSync(join(out, 'fonts'), { recursive: true })
-  for (const [name, file] of [
-    ['unbounded', 'unbounded/files/unbounded-latin-wght-normal.woff2'],
-    ['figtree', 'figtree/files/figtree-latin-wght-normal.woff2'],
-  ]) {
-    if (existsSync(join(fonts, file))) cpSync(join(fonts, file), join(out, `fonts/${name}.woff2`))
+  for (const [name, file] of fontFiles) {
+    if (existsSync(join(repoRoot, file))) cpSync(join(repoRoot, file), join(out, `fonts/${name}.woff2`))
   }
   if (demo) cpSync(demo, join(out, 'demo'), { recursive: true })
   console.log(`Site built in ${out}`)

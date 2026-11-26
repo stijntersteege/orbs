@@ -1,8 +1,8 @@
 # Contributing to Orbs
 
-Thanks for wanting to help! Orbs is a community project, and every contribution counts: bug reports, ideas, docs, tests, design and code.
+Thanks for wanting to help! Orbs is a personal hobby project that I work on in my spare time. Every contribution is welcome: bug reports, ideas, docs, tests, design and code. Because it's a hobby, reviews and replies can take a while, and not every idea will make it in.
 
-By taking part you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Ways to help
 
@@ -78,11 +78,11 @@ Write Gherkin scenarios in the language of the product (orbs, sources, models), 
 
 ## Reviews
 
-- A maintainer reviews every PR. Expect questions; they are about the code, never about you.
-- PRs need green CI and one approval to merge. We squash-merge with the PR title as the commit message.
+- I review every pull request when I have time. Expect questions; they are about the code, never about you.
+- A pull request needs green CI and my approval to merge. I squash-merge with the PR title as the commit message.
 - Stale PRs (no activity for 30 days) may be closed; you are always welcome to reopen.
 
-## Releasing (maintainers)
+## Releasing
 
 1. Update [CHANGELOG.md](CHANGELOG.md): move items from *Unreleased* to the new version.
 2. Tag: `git tag v0.2.0 && git push --tags`.

@@ -1,0 +1,159 @@
+// Shared page chrome for the website: header, footer, policy sidebar and the HTML document.
+import { orb } from './orb.mjs'
+
+export const REPO = 'https://github.com/stijntersteege/orbs'
+export const BRANCH = 'main'
+export const EMAIL = 'mail@stijntersteege.com'
+
+export function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+const ICONS = {
+  star: '<path d="M12 3l2.8 5.6 6.2.9-4.5 4.4 1 6.1L12 17.1 6.5 20l1-6.1L3 9.5l6.2-.9z"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  server: '<path d="M3 5h18v11H3z M8 20h8 M12 16v4"/>',
+  lock: '<path d="M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4"/>',
+  eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>',
+  shield: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/>',
+}
+
+/** An inline stroke icon. Decorative unless a label is given. */
+export function icon(name, size = 18) {
+  return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`
+}
+
+const NAV = [
+  ['Features', '#features', '#features'],
+  ['How it works', '#how', '#how'],
+  ['Open source', 'open-source/'],
+  ['Docs', 'docs/'],
+  ['Changelog', 'changelog/'],
+]
+
+function header(root, current) {
+  const links = NAV.map(([label, href, homeHref]) => {
+    const target = current === 'home' && homeHref ? homeHref : `${root}${href}`
+    const active = current && current !== 'home' && href.startsWith(current) ? ' aria-current="page"' : ''
+    return `<a href="${target}"${active}>${label}</a>`
+  }).join('')
+  return `<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="${root}">${orb({ eyes: 'dots', accessory: 'none', blush: false, glow: false, size: 34 })}<span>orbs</span></a>
+    <nav class="main-nav" aria-label="Main">${links}</nav>
+    <div class="header-actions">
+      <a class="button ghost small" href="${REPO}">${icon('star', 16)}Star on GitHub</a>
+      <a class="button primary small" href="${root}get/">Get Orbs</a>
+    </div>
+  </div>
+</header>`
+}
+
+function footer(root) {
+  const col = (title, links) =>
+    `<nav class="footer-col" aria-label="${title}"><span class="footer-title">${title}</span>${links
+      .map(([label, href]) => `<a href="${href.startsWith('http') ? href : root + href}">${label}</a>`)
+      .join('')}</nav>`
+  return `<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-cols">
+      <div class="footer-about">
+        <a class="brand" href="${root}">${orb({ size: 40, glow: false })}<span>orbs</span></a>
+        <p>An open-source home for AI companions. Any model, any context, any face. A hobby project, made with care in spare time.</p>
+      </div>
+      ${col('Product', [
+        ['Features', '#features'],
+        ['Get Orbs', 'get/'],
+        ['Live demo', 'demo/'],
+        ['Changelog', 'changelog/'],
+      ])}
+      ${col('Docs', [
+        ['Documentation', 'docs/'],
+        ['Self-hosting', 'docs/guides/self-hosting/'],
+        ['Configuration', 'docs/guides/configuration/'],
+        ['Architecture', 'docs/architecture/'],
+      ])}
+      ${col('Open source', [
+        ['GitHub', REPO],
+        ['Contribute', 'open-source/'],
+        ['Discussions', `${REPO}/discussions`],
+        ['Report a bug', `${REPO}/issues/new/choose`],
+      ])}
+      ${col('Policies', [
+        ['Privacy', 'privacy/'],
+        ['Security', 'security/'],
+        ['Code of conduct', 'code-of-conduct/'],
+        ['License', 'license/'],
+      ])}
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Orbs contributors. Code released under the <a href="${root}license/">MIT License</a>.</span>
+      <span>Made by <a href="https://stijntersteege.com/">Stijn ter Steege</a> as a hobby project.</span>
+    </div>
+  </div>
+</footer>`
+}
+
+export const POLICIES = [
+  ['privacy', 'Privacy', 'privacy/'],
+  ['security', 'Security', 'security/'],
+  ['code-of-conduct', 'Code of conduct', 'code-of-conduct/'],
+  ['contributing', 'Contributing', 'contributing/'],
+  ['license', 'License (MIT)', 'license/'],
+]
+
+/** Sidebar for the policy pages, with a contact box. */
+export function policyNav(root, active) {
+  const links = POLICIES.map(
+    ([id, label, href]) =>
+      `<a href="${root}${href}"${id === active ? ' aria-current="page"' : ''}>${label}</a>`,
+  ).join('')
+  return `<nav class="side-nav policy-nav" aria-label="Policies">
+  <span class="side-title">Policies</span>${links}
+  <div class="side-box"><strong>Questions?</strong><a href="mailto:${EMAIL}">${EMAIL}</a></div>
+</nav>`
+}
+
+/** A whole HTML document. `current` marks the active main-nav item ('home', 'docs/', ...). */
+export function layout({ title, description, body, root, current, mermaid = false }) {
+  const mermaidScript = mermaid
+    ? `<script src="${root}assets/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: matchMedia('(prefers-color-scheme: light)').matches ? 'neutral' : 'dark',
+      })
+    </script>`
+    : ''
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="${escapeHtml(description)}" />
+    <meta name="theme-color" content="#0F0C1D" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="${root}favicon.svg" />
+    <link rel="stylesheet" href="${root}style.css" />
+    <title>${escapeHtml(title)}</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    ${header(root, current)}
+    <main id="main">
+${body}
+    </main>
+    ${footer(root)}
+    ${mermaidScript}
+  </body>
+</html>
+`
+}

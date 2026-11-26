@@ -9,6 +9,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Documentation on the website: guides, the arc42 architecture and the decision records, generated from `docs/` on every push to `main`.
 - CI checks that the website builds and that links in the docs and changelog are not broken.
+- New website design based on the Orbs design system: home page, Get Orbs, Open source, light and dark themes.
+- Policy pages on the website (privacy, security, code of conduct, contributing, license), generated from the files in the repository.
+- `PRIVACY.md`: what happens with your data in the software and on the website.
+
+### Changed
+
+- `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and the README now speak in a personal voice and make no promises about response times: Orbs is a hobby project.
 
 ## [0.1.0] - 2026-11-26
 
