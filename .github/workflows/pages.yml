@@ -22,7 +22,7 @@ jobs:
         with:
           # Full history, so policy pages can show when they last changed.
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: frontend/package.json
       - uses: actions/setup-node@v4
