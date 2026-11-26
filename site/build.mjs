@@ -26,9 +26,8 @@ const args = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 const out = args[0] ? resolve(args[0]) : join(repoRoot, '_site')
 const demo = args[1] ? resolve(args[1]) : undefined
 const fontFiles = [
-  ['unbounded', 'frontend/node_modules/@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2'],
-  ['figtree', 'frontend/node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2'],
-  ['jetbrains-mono', 'frontend/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2'],
+  ['geist', 'frontend/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2'],
+  ['geist-mono', 'frontend/node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2'],
 ]
 const mermaidBundle = join(here, 'node_modules/mermaid/dist/mermaid.min.js')
 

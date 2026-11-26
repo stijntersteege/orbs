@@ -24,7 +24,7 @@ export const ORB_WASH: Record<OrbColor, string> = {
   ocean: 'var(--wash-plasma)',
   sky: 'var(--wash-sky)',
   mint: 'var(--wash-mint)',
-  sun: 'var(--warn-bg)',
-  coral: 'var(--err-bg)',
-  bubblegum: 'var(--wash-plasma)',
+  sun: 'var(--wash-sun)',
+  coral: 'var(--wash-gum)',
+  bubblegum: 'var(--wash-gum)',
 }

@@ -37,7 +37,7 @@
   padding: var(--space-4);
   border-radius: var(--radius-md);
   background: var(--card);
-  border: 1px solid var(--line2);
+  border: 1px solid var(--line);
 }
 
 .rowIcon {
@@ -47,11 +47,11 @@
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  background: var(--raised);
+  border-radius: 10px;
+  background: var(--chip);
   color: var(--accent-text);
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rowText {
@@ -88,8 +88,8 @@
   gap: var(--space-1);
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--line);
-  background: var(--bg);
+  border: 1px solid var(--line);
+  background: var(--card);
   text-align: left;
 }
 
@@ -109,8 +109,8 @@
   flex-wrap: wrap;
   gap: var(--space-1);
   padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--bg);
+  border-radius: var(--radius-button);
+  background: var(--surface);
   border: 1px solid var(--line);
 }
 
@@ -120,16 +120,17 @@
   cursor: pointer;
   min-height: 40px;
   padding: 0 var(--space-4);
-  border-radius: var(--radius-pill);
+  border-radius: 9px;
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .segment:has(input:checked) {
-  background: var(--sel);
+  background: var(--card);
   color: var(--text);
+  box-shadow: 0 1px 2px rgba(20, 18, 31, 0.08);
 }
 
 @media (max-width: 599px) {

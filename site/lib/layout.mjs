@@ -153,7 +153,7 @@ export function layout({ title, description, body, root, current, mermaid = fals
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="${escapeHtml(description)}" />
-    <meta name="theme-color" content="#0F0C1D" />
+    <meta name="theme-color" content="#0B0A12" />
     <script>
       // Apply a stored light/dark choice before the page paints (shared with the live demo).
       try {

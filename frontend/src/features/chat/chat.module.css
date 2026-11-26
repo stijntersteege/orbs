@@ -25,10 +25,10 @@
 .historyItem {
   display: block;
   padding: var(--space-3);
-  border-radius: 14px;
+  border-radius: 10px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,7 +47,7 @@
   min-height: 0;
   border-radius: var(--radius-card);
   background: var(--card);
-  border: 1px solid var(--line2);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -56,7 +56,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--line2);
+  border-bottom: 1px solid var(--line);
 }
 
 .headerText {
@@ -110,25 +110,26 @@
 .user,
 .assistant {
   max-width: min(680px, 85%);
-  padding: var(--space-3) var(--space-4);
-  border-radius: 22px;
-  font-size: 16px;
-  line-height: 26px;
+  padding: 11px 15px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 24px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .user {
   align-self: flex-end;
-  background: var(--plasma);
-  color: #ffffff;
-  border-bottom-right-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  border-bottom-right-radius: 4px;
 }
 
 .assistant {
   align-self: flex-start;
-  background: var(--raised);
-  border-bottom-left-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
 }
 
 .sources {
@@ -148,16 +149,16 @@
   flex: 1;
   min-height: 48px;
   max-height: 200px;
-  padding: 12px 18px;
-  border-radius: 24px;
-  border: 1.5px solid var(--line);
-  background: var(--bg);
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--line);
+  background: var(--card);
   resize: none;
   line-height: 22px;
 }
 
 .input:focus-visible {
-  border-color: var(--ocean);
+  border-color: var(--plasma);
 }
 
 @media (max-width: 899px) {

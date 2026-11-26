@@ -24,7 +24,7 @@
       button.setAttribute('aria-label', label)
       button.title = label
     }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0F0C1D' : '#FFF8EE')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0B0A12' : '#FDFDFD')
   }
 
   function apply(theme) {

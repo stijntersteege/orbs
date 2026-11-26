@@ -1,4 +1,4 @@
-/* Buttons: always pills. */
+/* Buttons: soft rectangles, quiet weight. */
 .button {
   display: inline-flex;
   align-items: center;
@@ -6,9 +6,9 @@
   gap: var(--space-2);
   min-height: 44px;
   padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
-  border: 1.5px solid transparent;
-  font-weight: 700;
+  border-radius: var(--radius-button);
+  border: 1px solid transparent;
+  font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
   text-decoration: none;
@@ -29,17 +29,17 @@
 .primary {
   background: var(--plasma);
   color: #ffffff;
-  box-shadow: 0 10px 28px -12px var(--plasma);
 }
 
 .primary:hover:not(:disabled) {
-  background: #6a3bf0;
+  background: var(--plasma-hover);
 }
 
 .secondary {
-  background: transparent;
+  background: var(--card);
   border-color: var(--line);
   color: var(--text);
+  font-weight: 500;
 }
 
 .secondary:hover:not(:disabled) {
@@ -80,7 +80,7 @@
 /* Cards */
 .card {
   background: var(--card);
-  border: 1px solid var(--line2);
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   padding: var(--space-6);
 }
@@ -94,7 +94,7 @@
 
 .label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .hint {
@@ -107,8 +107,8 @@
   min-height: 48px;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-input);
-  border: 1.5px solid var(--line);
-  background: var(--bg);
+  border: 1px solid var(--line);
+  background: var(--card);
   color: var(--text);
 }
 
@@ -117,7 +117,7 @@
 }
 
 .input:focus-visible {
-  border-color: var(--ocean);
+  border-color: var(--plasma);
 }
 
 textarea.input {
@@ -182,10 +182,10 @@ textarea.input {
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--radius-pill);
-  background: var(--raised);
+  background: var(--surface);
   color: var(--muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -239,7 +239,7 @@ textarea.input {
   text-align: center;
   gap: var(--space-4);
   padding: var(--space-12) var(--space-6);
-  border: 1.5px dashed var(--line);
+  border: 1px dashed var(--line);
   border-radius: var(--radius-card);
   color: var(--muted);
 }
@@ -281,8 +281,8 @@ textarea.input {
   justify-content: center;
   min-height: 68px;
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--line);
-  background: var(--bg);
+  border: 1px solid var(--line);
+  background: var(--card);
   padding: 0;
 }
 
