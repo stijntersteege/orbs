@@ -48,7 +48,7 @@ public static class DependencyInjection
         services.AddHttpClient(UrlConnector.HttpClientName, c =>
         {
             c.Timeout = TimeSpan.FromSeconds(30);
-            c.DefaultRequestHeaders.UserAgent.ParseAdd("Orbs/0.1 (+https://github.com/stijntersteege/orbs)");
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("Orbs/0.2 (+https://github.com/stijntersteege/orbs)");
         });
 
         // Plugins: add a class here to support a new provider or context kind.
