@@ -18,6 +18,12 @@ Plug in any model, connect any context and give every orb its own face.
 
 [Quick start](#quick-start) · [Features](#features) · [Architecture](#architecture) · [Development](#development) · [Docs](docs/README.md) · [Contributing](#contributing)
 
+<br />
+
+<a href="https://stijntersteege.github.io/orbs/demo/"><img src="docs/assets/orbs-demo.gif" width="880" alt="Making an orb called Mochi in the Orbs web app: typing a name, linking a grocery list, choosing a mint color, blob shape, wink and sprout, then chatting with it" /></a>
+
+<sub>Making an orb in the <a href="https://stijntersteege.github.io/orbs/demo/">live demo</a>: name it, pick what it knows, give it a face, say hi.</sub>
+
 </div>
 
 ---
