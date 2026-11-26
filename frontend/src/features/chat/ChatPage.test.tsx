@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Orb, Provider } from '@/api/types'
 import { DEFAULT_APPEARANCE } from '@/api/types'
@@ -78,5 +78,33 @@ describe('ChatPage', () => {
 
     const links = await screen.findAllByRole('link', { name: 'Connect a model' })
     expect(links[0]).toHaveAttribute('href', '/models')
+  })
+
+  it('shows an activity panel with what the orb can read', async () => {
+    mockApi({
+      'GET /api/orbs': [{ ...pip, contextSourceIds: ['s1'] }],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [
+        {
+          id: 's1',
+          name: 'Roadmap',
+          kind: 'text',
+          status: 'ready',
+          location: '',
+          input: '',
+          contentLength: 10,
+        },
+      ],
+      'GET /api/conversations': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+    })
+
+    renderRoute(routes, '/orbs/o1/chat')
+
+    // On narrow screens (jsdom is 1024 px wide) the panel opens from the header.
+    await userEvent.click(await screen.findByRole('button', { name: 'Activity', expanded: false }))
+    const panel = await screen.findByRole('complementary', { name: 'Activity' })
+    expect(panel).toHaveTextContent('When Pip answers, you see here what it read')
+    expect(await within(panel).findByText('Roadmap')).toBeInTheDocument()
   })
 })

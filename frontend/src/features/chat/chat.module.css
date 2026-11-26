@@ -1,8 +1,16 @@
-.page {
+.layout {
   flex: 1;
   min-height: 0;
   display: flex;
+}
+
+.page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .header {
@@ -10,12 +18,53 @@
   top: 0;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  gap: 6px 10px;
+  min-height: 60px;
+  padding: 10px var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(10px);
+}
+
+.orbTitle {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.headerSources {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.headerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.headerButton:hover,
+.headerButton[aria-expanded='true'] {
+  background: var(--raised);
+}
+
+.activityToggle {
+  display: none;
 }
 
 .headerLink {
@@ -42,17 +91,17 @@
 .modelTrigger {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   max-width: 100%;
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
+  min-height: 32px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--text);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -69,15 +118,16 @@
 
 .modelProvider {
   color: var(--muted);
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
   font-weight: 400;
   white-space: nowrap;
 }
 
 .modelDot {
   flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--mint);
 }
@@ -366,31 +416,217 @@
   flex: 1;
 }
 
-.orbTrigger {
-  display: inline-flex;
-  align-items: center;
+.composerHint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 6px;
+  color: var(--faint);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cites {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 10px 0 6px;
+  margin-top: 10px;
+  white-space: normal;
+}
+
+.cites span {
+  padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: transparent;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.orbTrigger:hover,
-.orbTrigger[aria-expanded='true'] {
-  background: var(--raised);
+/* Activity: what the orb read and which model wrote each reply. */
+.activity {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 16px;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
 }
 
-.knows {
-  display: inline-flex;
+.activityHead {
+  display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+}
+
+.panelLabel {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panelClose {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.activityEmpty {
+  margin-top: 10px;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.5;
+}
+
+.actList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: -12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.act {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.actIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--mint);
+  color: #14121f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.actIcon[data-tone='busy'] {
+  background: var(--sun);
+}
+
+.actIcon[data-tone='err'] {
+  background: var(--coral);
+}
+
+.actIcon[data-tone='dim'] {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.actText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.actDetail {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.knowsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.knowsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.knowsList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.knowsName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowsDot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mint);
+}
+
+.knowsDot[data-status='pending'] {
+  background: var(--sun);
+}
+
+.knowsDot[data-status='failed'] {
+  background: var(--coral);
+}
+
+.knowsLink {
+  font-size: 13px;
+}
+
+@media (max-width: 1199px) {
+  .activityToggle {
+    display: inline-flex;
+  }
+
+  .activity {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 26;
+    width: min(320px, 88vw);
+    box-shadow: -24px 0 48px -24px var(--shadow);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-settle) ease-out,
+      visibility 0s linear var(--dur-settle);
+  }
+
+  .activity[data-open='true'] {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--dur-settle) ease-out;
+  }
+
+  .panelClose {
+    display: inline-flex;
+  }
 }
 
 .send {
@@ -417,8 +653,18 @@
     padding: var(--space-2) var(--space-3);
   }
 
-  .modelTrigger {
-    font-size: 16px;
+  .headerSources {
+    display: none;
+  }
+
+  .headerButton {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .buttonLabel {
+    display: none;
   }
 
   .start {

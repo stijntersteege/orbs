@@ -2,7 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { conversationsApi } from '@/api/endpoints'
 import { keys } from '@/api/queries'
-import type { ChatEvent, Message } from '@/api/types'
+import type { ChatEvent, ChatSource, Message } from '@/api/types'
+
+/** What the orb did for one reply: which model and provider answered, what it read and how long it took. */
+export interface ActivityEntry {
+  id: string
+  model: string
+  provider?: string
+  sources: ChatSource[]
+  startedAt: number
+  /** Set when the reply is complete. */
+  finishedAt?: number
+  failed?: boolean
+}
 
 export interface ChatState {
   messages: Message[]
@@ -10,6 +22,16 @@ export interface ChatState {
   streaming: string | null
   model: string | null
   error: string | null
+  /** Replies in this session, newest last. The server does not store activity, so older chats start empty. */
+  activity: ActivityEntry[]
+}
+
+const current = (state: ChatState) => state.activity.at(-1)
+
+function finishActivity(state: ChatState, patch: Partial<ActivityEntry>, now: number): ActivityEntry[] {
+  const last = current(state)
+  if (!last || last.finishedAt) return state.activity
+  return [...state.activity.slice(0, -1), { ...last, finishedAt: now, ...patch }]
 }
 
 /**
@@ -19,13 +41,29 @@ export interface ChatState {
 export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Date()): ChatState {
   switch (event.type) {
     case 'start':
-      return { ...state, streaming: '', model: event.model, error: null }
+      return {
+        ...state,
+        streaming: '',
+        model: event.model,
+        error: null,
+        activity: [
+          ...state.activity,
+          {
+            id: `reply-${state.activity.length + 1}`,
+            model: event.model,
+            provider: event.provider,
+            sources: event.sources ?? [],
+            startedAt: now.getTime(),
+          },
+        ],
+      }
     case 'delta':
       return { ...state, streaming: (state.streaming ?? '') + event.text }
     case 'done':
       return {
         ...state,
         streaming: null,
+        activity: finishActivity(state, { id: event.messageId }, now.getTime()),
         messages: [
           ...state.messages,
           {
@@ -37,22 +75,43 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
         ],
       }
     case 'error':
-      return { ...state, streaming: null, error: event.text }
+      return {
+        ...state,
+        streaming: null,
+        error: event.text,
+        activity: finishActivity(state, { failed: true }, now.getTime()),
+      }
   }
 }
 
 /** Sends messages to one conversation and streams the orb's replies. */
 export function useChat(conversationId: string | undefined, initial: Message[] | undefined) {
   const client = useQueryClient()
-  const [state, setState] = useState<ChatState>({ messages: [], streaming: null, model: null, error: null })
+  const [state, setState] = useState<ChatState>({
+    messages: [],
+    streaming: null,
+    model: null,
+    error: null,
+    activity: [],
+  })
   const abort = useRef<AbortController | null>(null)
+  // The conversation whose activity is on screen. Refetching it keeps the activity; another chat starts empty.
+  const activityFor = useRef<string | undefined>(conversationId)
 
   // Load server messages when the conversation changes, but never over a reply that is still streaming
   // (starting a new chat navigates to its id while the first reply is in flight).
   useEffect(() => {
     if (abort.current) return
-    setState({ messages: initial ?? [], streaming: null, model: null, error: null })
-  }, [initial])
+    const same = activityFor.current === conversationId
+    activityFor.current = conversationId
+    setState((s) => ({
+      messages: initial ?? [],
+      streaming: null,
+      model: null,
+      error: null,
+      activity: same ? s.activity : [],
+    }))
+  }, [initial, conversationId])
 
   useEffect(() => () => abort.current?.abort(), [])
 
@@ -93,5 +152,10 @@ export function useChat(conversationId: string | undefined, initial: Message[] |
 
   const stop = useCallback(() => abort.current?.abort(), [])
 
-  return { ...state, isStreaming: state.streaming !== null, send, stop }
+  /** Call when a new conversation is created for the first message, so its activity is kept. */
+  const adopt = useCallback((id: string) => {
+    activityFor.current = id
+  }, [])
+
+  return { ...state, isStreaming: state.streaming !== null, send, stop, adopt }
 }

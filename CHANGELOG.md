@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Activity panel in the app: for every reply, the sources the orb read and the model and provider that wrote it, with the time it took. Answers list the sources they read.
+- The `start` event of a streamed reply now includes the provider name and the sources sent to the model (`provider`, `sources`).
+
+### Changed
+
+- The app's sidebar always shows your orbs, with a status dot each. Earlier chats moved to a **Chats** menu in the chat header.
+
 ## [0.2.0] - 2026-11-26
 
 A makeover: a cleaner look for the app and the website, and an app that opens on a chat.

@@ -53,7 +53,9 @@ describe('DemoServer', () => {
     const events: ChatEvent[] = []
     for await (const event of readServerSentEvents<ChatEvent>(response.body!)) events.push(event)
 
-    expect(events[0]).toEqual({ type: 'start', model: 'echo-1' })
+    expect(events[0]).toMatchObject({ type: 'start', model: 'echo-1', provider: 'Echo (demo)' })
+    const start = events[0]
+    expect(start?.type === 'start' ? start.sources?.map((s) => s.name) : []).toEqual(['About Orbs'])
     const text = events.flatMap((e) => (e.type === 'delta' ? [e.text] : [])).join('')
     expect(text).toBe('You said: hello there')
     expect(events.at(-1)?.type).toBe('done')
