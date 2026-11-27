@@ -39,5 +39,6 @@ docker-up: ## Start Orbs and PostgreSQL on http://localhost:8080
 docker-down: ## Stop the stack (data is kept in a volume)
 	docker compose down
 
-migration: ## Add an EF Core migration: make migration name=AddSomething
-	cd backend && dotnet ef migrations add $(name) --project src/Orbs.Infrastructure --output-dir Persistence/Migrations
+migration: ## Add an EF Core migration for PostgreSQL and SQLite: make migration name=AddSomething
+	cd backend && dotnet ef migrations add $(name) --project src/Orbs.Infrastructure --context OrbsDbContext --output-dir Persistence/Migrations
+	cd backend && dotnet ef migrations add $(name) --project src/Orbs.Infrastructure --context SqliteOrbsDbContext --output-dir Persistence/Migrations/Sqlite

@@ -7,6 +7,7 @@ using Orbs.Infrastructure.Context;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Persistence;
 using Orbs.Infrastructure.Persistence.Repositories;
+using Orbs.Infrastructure.Persistence.Sqlite;
 using Orbs.Infrastructure.Security;
 
 namespace Orbs.Infrastructure;
@@ -23,17 +24,17 @@ public static class DependencyInjection
         var options = DatabaseOptions.From(configuration);
         services.AddSingleton(options);
 
-        services.AddDbContext<OrbsDbContext>(db =>
+        if (options.IsPostgres)
         {
-            if (options.IsPostgres)
-            {
-                db.UseNpgsql(options.ConnectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations"));
-            }
-            else
-            {
-                db.UseSqlite(options.ConnectionString);
-            }
-        });
+            services.AddDbContext<OrbsDbContext>(db =>
+                db.UseNpgsql(options.ConnectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations")));
+        }
+        else
+        {
+            // SQLite keeps its own migrations on a subclass; everything else asks for OrbsDbContext.
+            services.AddDbContext<SqliteOrbsDbContext>(db => db.UseSqlite(options.ConnectionString));
+            services.AddScoped<OrbsDbContext>(sp => sp.GetRequiredService<SqliteOrbsDbContext>());
+        }
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<OrbsDbContext>());
         services.AddScoped<IOrbRepository, OrbRepository>();
@@ -60,19 +61,17 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Brings the schema up to date: migrations on Postgres, create-if-missing on SQLite.</summary>
+    /// <summary>Brings the schema up to date by applying migrations, on PostgreSQL and SQLite alike.</summary>
     public static async Task InitializeDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OrbsDbContext>();
-        if (db.Database.IsNpgsql())
+        if (db is SqliteOrbsDbContext sqlite)
         {
-            await db.Database.MigrateAsync(cancellationToken);
+            await SqliteBaseline.EnsureAsync(sqlite, cancellationToken);
         }
-        else
-        {
-            await db.Database.EnsureCreatedAsync(cancellationToken);
-        }
+
+        await db.Database.MigrateAsync(cancellationToken);
     }
 }
 

@@ -9,10 +9,17 @@ using Orbs.Domain.Providers;
 
 namespace Orbs.Infrastructure.Persistence;
 
-/// <summary>The EF Core unit of work. Entity mappings live in <c>Configurations/</c>.</summary>
-public sealed class OrbsDbContext(DbContextOptions<OrbsDbContext> options)
-    : DbContext(options), IUnitOfWork, IDataProtectionKeyContext
+/// <summary>
+/// The EF Core unit of work. Entity mappings live in <c>Configurations/</c>.
+/// Migrations in <c>Migrations/</c> target PostgreSQL; <see cref="Sqlite.SqliteOrbsDbContext"/> carries the SQLite ones.
+/// </summary>
+public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 {
+    public OrbsDbContext(DbContextOptions<OrbsDbContext> options) : base(options) { }
+
+    /// <summary>For provider-specific subclasses that keep their own migrations.</summary>
+    protected OrbsDbContext(DbContextOptions options) : base(options) { }
+
     public DbSet<Orb> Orbs => Set<Orb>();
 
     public DbSet<ModelProvider> Providers => Set<ModelProvider>();
