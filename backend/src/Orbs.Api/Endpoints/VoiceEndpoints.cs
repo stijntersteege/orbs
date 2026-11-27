@@ -22,9 +22,10 @@ internal static class VoiceEndpoints
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(VoiceService.MaxAudioBytes + 1_000_000))
             .WithSummary("Turn a recording (multipart field 'audio') into text");
 
-        group.MapPost("/speak", async (SpeakRequest request, VoiceService voice, CancellationToken ct) =>
+        group.MapPost("/speak", async (SpeakRequest request, VoiceService voice, HttpContext http, CancellationToken ct) =>
             {
                 var audio = await voice.SpeakAsync(request, ct);
+                http.Response.Headers.XContentTypeOptions = "nosniff";
                 return TypedResults.File(audio.Data, audio.ContentType);
             })
             .WithSummary("Read text aloud; answers audio");
