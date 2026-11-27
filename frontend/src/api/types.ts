@@ -145,7 +145,15 @@ export interface ConversationSummary {
 }
 
 export interface Conversation extends ConversationSummary {
+  /** The newest messages, oldest first. */
   messages: Message[]
+  /** True when older messages can be loaded with `conversationsApi.messages`. */
+  hasMoreMessages?: boolean
+}
+
+export interface MessagePage {
+  messages: Message[]
+  hasMore: boolean
 }
 
 /** A source the orb read to answer, as reported when a reply starts. */

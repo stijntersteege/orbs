@@ -67,6 +67,24 @@ public sealed class ChatSteps(SpecContext context)
     public void ThenTheReplyReadTheSource(string name) =>
         context.LastReply!.Events[0].Sources!.Select(s => s.Name).ShouldContain(name);
 
+    [Then("the chat opens with the {int} newest messages when it shows {int} at a time")]
+    public async Task ThenTheChatOpensWithNewest(int count, int pageSize)
+    {
+        var conversation = await context.Api.GetAsync<ConversationDto>($"/api/conversations/{context.Conversation!.Id}?limit={pageSize}");
+        conversation.Messages.Count.ShouldBe(count);
+        conversation.HasMoreMessages.ShouldBeTrue();
+        context.LastPageStart = conversation.Messages[0].CreatedAt;
+    }
+
+    [Then("paging back shows {string} and {string}")]
+    public async Task ThenPagingBackShows(string first, string second)
+    {
+        var before = Uri.EscapeDataString(context.LastPageStart!.Value.ToString("O"));
+        var page = await context.Api.GetAsync<MessagePageDto>($"/api/conversations/{context.Conversation!.Id}/messages?before={before}");
+        page.Messages.Select(m => m.Content).ShouldBe([first, second]);
+        page.HasMore.ShouldBeFalse();
+    }
+
     private Task<ConversationDto> ReloadConversation() =>
         context.Api.GetAsync<ConversationDto>($"/api/conversations/{context.Conversation!.Id}");
 }

@@ -30,6 +30,7 @@ const echo: Provider = {
 const routes = [
   { path: '/', element: <ChatPage /> },
   { path: '/orbs/:orbId/chat', element: <ChatPage /> },
+  { path: '/orbs/:orbId/chat/:conversationId', element: <ChatPage /> },
 ]
 
 describe('ChatPage', () => {
@@ -106,5 +107,38 @@ describe('ChatPage', () => {
     const panel = await screen.findByRole('complementary', { name: 'Activity' })
     expect(panel).toHaveTextContent('When Pip answers, you see here what it read')
     expect(await within(panel).findByText('Roadmap')).toBeInTheDocument()
+  })
+
+  it('loads earlier messages of a long chat on request', async () => {
+    const message = (id: string, content: string, minute: number) => ({
+      id,
+      role: 'user' as const,
+      content,
+      createdAt: `2026-01-01T00:0${minute}:00Z`,
+    })
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [],
+      'GET /api/conversations': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+      'GET /api/conversations/c1': {
+        id: 'c1',
+        orbId: 'o1',
+        title: 'Long chat',
+        createdAt: '',
+        updatedAt: '',
+        messages: [message('m2', 'Second', 2)],
+        hasMoreMessages: true,
+      },
+      'GET /api/conversations/c1/messages': { messages: [message('m1', 'First', 1)], hasMore: false },
+    })
+
+    renderRoute(routes, '/orbs/o1/chat/c1')
+    expect(await screen.findByText('Second')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Load earlier messages' }))
+
+    expect(await screen.findByText('First')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load earlier messages' })).not.toBeInTheDocument()
   })
 })

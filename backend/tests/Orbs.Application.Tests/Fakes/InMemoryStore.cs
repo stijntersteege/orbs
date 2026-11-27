@@ -52,6 +52,13 @@ internal sealed class InMemoryStore : IUnitOfWork
         public Task<IReadOnlyList<Conversation>> ListRecentAsync(Guid? orbId, int limit, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Conversation>>(
                 [.. Inner.Items.Where(c => orbId is null || c.OrbId == orbId).OrderByDescending(c => c.UpdatedAt).Take(limit)]);
+
+        public Task<IReadOnlyList<Message>> ListMessagesAsync(Guid conversationId, DateTimeOffset? before, int limit, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Message>>(
+                [.. Inner.Items.Single(c => c.Id == conversationId).Messages
+                    .Where(m => before is null || m.CreatedAt < before)
+                    .OrderByDescending(m => m.CreatedAt)
+                    .Take(limit)]);
     }
 
     private abstract class Delegating<T>(InMemoryRepo<T> inner) : IRepository<T> where T : AggregateRoot

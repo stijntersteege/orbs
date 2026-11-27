@@ -84,3 +84,48 @@ public sealed class ChatApiTests : IDisposable
         (await _api.Http.GetAsync(new Uri($"/api/conversations/{chat.Id}", UriKind.Relative))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 }
+
+public sealed class MessagePagingTests : IDisposable
+{
+    private readonly OrbsApiFactory _factory = new();
+
+    public void Dispose() => _factory.Dispose();
+
+    [Fact]
+    public async Task Long_conversations_load_the_newest_messages_and_page_back()
+    {
+        var api = new ApiClient(_factory.CreateClient());
+        await api.ConnectEchoAsync();
+        var orb = await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var chat = await api.StartConversationAsync(orb.Id);
+        for (var i = 1; i <= 3; i++)
+        {
+            await api.SendAsync(chat.Id, $"message {i}");
+        }
+
+        var latest = await api.GetAsync<ConversationDto>($"/api/conversations/{chat.Id}?limit=2");
+        latest.Messages.Select(m => m.Content).ShouldBe(["message 3", "You said: message 3"]);
+        latest.HasMoreMessages.ShouldBeTrue();
+
+        var before = Uri.EscapeDataString(latest.Messages[0].CreatedAt.ToString("O"));
+        var older = await api.GetAsync<MessagePageDto>($"/api/conversations/{chat.Id}/messages?before={before}&limit=3");
+        older.Messages.Select(m => m.Content).ShouldBe(["You said: message 1", "message 2", "You said: message 2"]);
+        older.HasMore.ShouldBeTrue();
+
+        before = Uri.EscapeDataString(older.Messages[0].CreatedAt.ToString("O"));
+        var first = await api.GetAsync<MessagePageDto>($"/api/conversations/{chat.Id}/messages?before={before}");
+        first.Messages.Select(m => m.Content).ShouldBe(["message 1"]);
+        first.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Another_users_messages_cannot_be_paged()
+    {
+        var owner = new ApiClient(_factory.CreateClient());
+        var orb = await owner.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var chat = await owner.StartConversationAsync(orb.Id);
+        var sam = await _factory.CreateClientForNewUserAsync("sam@orbs.test");
+
+        (await sam.GetAsync(new Uri($"/api/conversations/{chat.Id}/messages", UriKind.Relative))).StatusCode.ShouldBe(System.Net.HttpStatusCode.NotFound);
+    }
+}

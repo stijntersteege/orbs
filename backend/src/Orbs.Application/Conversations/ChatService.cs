@@ -20,6 +20,8 @@ public sealed class ChatService(
     TimeProvider clock)
 {
     public const int RecentLimit = 50;
+    public const int DefaultPageSize = 50;
+    public const int MaxPageSize = 200;
 
     public async Task<IReadOnlyList<ConversationSummaryDto>> ListAsync(Guid? orbId, CancellationToken cancellationToken = default)
     {
@@ -27,8 +29,25 @@ public sealed class ChatService(
         return [.. recent.Select(c => c.ToSummary())];
     }
 
-    public async Task<ConversationDto> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
-        (await LoadAsync(id, cancellationToken)).ToDto();
+    /// <summary>The conversation with its newest <paramref name="limit"/> messages.</summary>
+    public async Task<ConversationDto> GetAsync(Guid id, int? limit = null, CancellationToken cancellationToken = default)
+    {
+        var conversation = await LoadAsync(id, cancellationToken);
+        var size = PageSize(limit);
+        var (messages, hasMore) = (await conversations.ListMessagesAsync(id, null, size + 1, cancellationToken)).ToPage(size);
+        return conversation.ToDto() with { Messages = messages, HasMoreMessages = hasMore };
+    }
+
+    /// <summary>Messages written before <paramref name="before"/>, oldest first, for scrolling back.</summary>
+    public async Task<MessagePageDto> GetMessagesAsync(Guid id, DateTimeOffset? before, int? limit = null, CancellationToken cancellationToken = default)
+    {
+        _ = await LoadAsync(id, cancellationToken);
+        var size = PageSize(limit);
+        var (messages, hasMore) = (await conversations.ListMessagesAsync(id, before, size + 1, cancellationToken)).ToPage(size);
+        return new MessagePageDto(messages, hasMore);
+    }
+
+    private static int PageSize(int? limit) => Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
 
     public async Task<ConversationDto> StartAsync(StartConversationRequest request, CancellationToken cancellationToken = default)
     {

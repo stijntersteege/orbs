@@ -1,6 +1,13 @@
 import { reduceChatEvent, type ChatState } from './useChat'
 
-const empty: ChatState = { messages: [], streaming: null, model: null, error: null, activity: [] }
+const empty: ChatState = {
+  messages: [],
+  streaming: null,
+  model: null,
+  error: null,
+  activity: [],
+  hasMore: false,
+}
 const now = new Date('2026-01-01T09:00:00Z')
 
 describe('reduceChatEvent', () => {

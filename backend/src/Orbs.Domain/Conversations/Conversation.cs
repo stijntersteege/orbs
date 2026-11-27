@@ -33,6 +33,9 @@ public sealed class Message : Entity
 public sealed class Conversation : OwnedAggregateRoot
 {
     public const int MaxTitleLength = 120;
+
+    /// <summary>How many of the newest messages are loaded with the conversation. Older ones are read page by page.</summary>
+    public const int LoadedHistory = 100;
     public const string DefaultTitle = "New chat";
 
     private readonly List<Message> _messages = [];

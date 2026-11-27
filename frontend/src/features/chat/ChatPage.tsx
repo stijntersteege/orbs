@@ -13,7 +13,7 @@ import {
 } from '@/api/queries'
 import { DEFAULT_APPEARANCE, type ChatSource, type ModelRef, type Orb as OrbModel } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
-import { ErrorNotice, Spinner } from '@/components/ui'
+import { Button, ErrorNotice, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import { useSettings } from '@/app/SettingsContext'
 import { useChat } from './useChat'
@@ -103,7 +103,7 @@ export function ChatPage() {
     (params.orbId ? undefined : (orbs.data?.find((o) => o.id === settings.lastOrbId) ?? orbs.data?.[0]))
   const conversationId = params.conversationId
   const conversation = useConversation(conversationId)
-  const chat = useChat(conversationId, conversation.data?.messages)
+  const chat = useChat(conversationId, conversation.data?.messages, conversation.data?.hasMoreMessages)
   const [draft, setDraft] = useState('')
   const [pendingModel, setPendingModel] = useState<ModelRef | undefined>()
   const [error, setError] = useState<unknown>(null)
@@ -117,7 +117,8 @@ export function ChatPage() {
   }, [orb, settings.lastOrbId, update])
 
   // Keep the newest text in view whenever a message arrives or the reply grows.
-  const lastActivity = `${chat.messages.length}:${chat.streaming?.length ?? -1}`
+  // Keyed on the newest message, so loading earlier messages does not jump to the end.
+  const lastActivity = `${chat.messages.at(-1)?.id ?? ''}:${chat.streaming?.length ?? -1}`
   useEffect(() => {
     if (lastActivity) endRef.current?.scrollIntoView?.({ block: 'end' })
   }, [lastActivity])
@@ -296,6 +297,17 @@ export function ChatPage() {
             <div className={styles.messages} aria-live="polite">
               <div className={styles.thread}>
                 {conversation.isFetching && !conversation.data && <Spinner />}
+                {chat.hasMore && (
+                  <Button
+                    small
+                    variant="ghost"
+                    className={styles.loadEarlier}
+                    disabled={chat.loadingEarlier}
+                    onClick={() => void chat.loadEarlier()}
+                  >
+                    {chat.loadingEarlier ? 'Loading…' : 'Load earlier messages'}
+                  </Button>
+                )}
                 {chat.messages.map((m) =>
                   m.role === 'user' ? (
                     <div key={m.id} className={styles.user}>

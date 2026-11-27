@@ -24,6 +24,8 @@ export interface ChatState {
   error: string | null
   /** Replies in this session, newest last. The server does not store activity, so older chats start empty. */
   activity: ActivityEntry[]
+  /** True while older messages exist on the server that are not loaded yet. */
+  hasMore: boolean
 }
 
 const current = (state: ChatState) => state.activity.at(-1)
@@ -85,7 +87,11 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
 }
 
 /** Sends messages to one conversation and streams the orb's replies. */
-export function useChat(conversationId: string | undefined, initial: Message[] | undefined) {
+export function useChat(
+  conversationId: string | undefined,
+  initial: Message[] | undefined,
+  initialHasMore = false,
+) {
   const client = useQueryClient()
   const [state, setState] = useState<ChatState>({
     messages: [],
@@ -93,7 +99,9 @@ export function useChat(conversationId: string | undefined, initial: Message[] |
     model: null,
     error: null,
     activity: [],
+    hasMore: false,
   })
+  const [loadingEarlier, setLoadingEarlier] = useState(false)
   const abort = useRef<AbortController | null>(null)
   // The conversation whose activity is on screen. Refetching it keeps the activity; another chat starts empty.
   const activityFor = useRef<string | undefined>(conversationId)
@@ -110,8 +118,9 @@ export function useChat(conversationId: string | undefined, initial: Message[] |
       model: null,
       error: null,
       activity: same ? s.activity : [],
+      hasMore: initialHasMore,
     }))
-  }, [initial, conversationId])
+  }, [initial, conversationId, initialHasMore])
 
   useEffect(() => () => abort.current?.abort(), [])
 
@@ -152,10 +161,25 @@ export function useChat(conversationId: string | undefined, initial: Message[] |
 
   const stop = useCallback(() => abort.current?.abort(), [])
 
+  /** Prepends the page of messages before the oldest one on screen. */
+  const loadEarlier = useCallback(async () => {
+    const oldest = state.messages[0]
+    if (!conversationId || !oldest || loadingEarlier) return
+    setLoadingEarlier(true)
+    try {
+      const page = await conversationsApi.messages(conversationId, oldest.createdAt)
+      setState((s) => ({ ...s, messages: [...page.messages, ...s.messages], hasMore: page.hasMore }))
+    } catch (error) {
+      setState((s) => ({ ...s, error: error instanceof Error ? error.message : 'Loading failed.' }))
+    } finally {
+      setLoadingEarlier(false)
+    }
+  }, [conversationId, loadingEarlier, state.messages])
+
   /** Call when a new conversation is created for the first message, so its activity is kept. */
   const adopt = useCallback((id: string) => {
     activityFor.current = id
   }, [])
 
-  return { ...state, isStreaming: state.streaming !== null, send, stop, adopt }
+  return { ...state, isStreaming: state.streaming !== null, send, stop, adopt, loadEarlier, loadingEarlier }
 }
