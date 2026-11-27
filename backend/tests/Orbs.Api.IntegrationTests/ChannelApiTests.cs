@@ -87,8 +87,19 @@ public sealed class ChannelApiTests : IDisposable
     }
 
     [Fact]
-    public async Task Telegram_is_offered()
+    public async Task Every_messaging_app_is_offered()
     {
-        (await _api.GetAsync<List<ChannelKindDto>>("/api/channels/kinds")).Select(k => k.Kind).ShouldContain("telegram");
+        (await _api.GetAsync<List<ChannelKindDto>>("/api/channels/kinds")).Select(k => k.Kind)
+            .ShouldBe(["discord", "email", "matrix", "signal", "telegram", FakeChannel.KindName], ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task The_pairing_code_may_sit_anywhere_in_the_message()
+    {
+        var channel = await ConnectAsync();
+
+        await SayAsync("sam@example.com", $"Pairing\n\nHere is my code: {channel.PairingCode}. Thanks!");
+
+        _factory.Chat.Outbox.ShouldHaveSingleItem().Text.ShouldStartWith("Paired.");
     }
 }

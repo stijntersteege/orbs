@@ -29,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Web page sources can keep themselves up to date: hourly, daily or weekly, in the background, re-indexed after every sync.
 - Proactive notifications: when a schedule runs, its orb tells you what it wrote (or that it needs your approval) with a Web Push notification that opens the chat. Turn them on per device under **Account > Notifications**, with **quiet hours** in your time zone; notifications that arrive then wait until quiet hours end. The server makes its own VAPID keys (or set `Orbs:Push:VapidPublicKey`, `VapidPrivateKey` and `Subject`). A service worker (`/sw.js`) shows them.
 - Channels: talk to your orbs in messaging apps. A new `IChannelAdapter` port, starting with **Telegram**: each orb is its own bot (named after the orb), polled so no public address is needed. Pair a chat by sending a one-time code; everyone else is ignored. Tool approvals work by replying yes or no. The chat shows up in the app as a normal conversation. Manage it on the new **Channels** page, which can also make a PNG of the orb's face for the bot's picture.
+- More channels: **Matrix** (joins rooms it is invited to; sets its name and face), **Discord** (one text channel, read over REST), **Signal** (through your own signal-cli REST API) and **email** (its own mailbox, answers by SMTP). The pairing code may now sit anywhere in a message.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

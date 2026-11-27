@@ -10,12 +10,15 @@ import { Icon } from '@/components/ui/icons'
 import { orbPng } from '@/lib/orbImage'
 import shared from '../shared.module.css'
 
-/** Shows how to pair a chat: open the bot and send the one-time code. */
+/** Shows how to pair a chat: send the one-time code to the orb in the app. */
 function Pairing({ channel, code }: { channel: Channel; code: string }) {
+  const message = channel.kind === 'telegram' ? `/start ${code}` : code
+  const how =
+    channel.kind === 'email' ? 'Mail' : channel.kind === 'matrix' ? 'Invite it to a room and send' : 'Send'
   return (
     <p className={shared.muted}>
-      Open <strong>{channel.address}</strong> and send <code className="mono">/start {code}</code>. The code
-      works once; other people who find the bot get no answer.
+      {how} <strong>{channel.address}</strong> the message <code className="mono">{message}</code>. The code
+      works once; anyone else who finds the orb gets no answer.
     </p>
   )
 }
