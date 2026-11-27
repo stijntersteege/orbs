@@ -25,6 +25,9 @@ public interface IModelProviderRepository : IRepository<ModelProvider>;
 public interface IContextSourceRepository : IRepository<ContextSource>
 {
     Task<IReadOnlyList<ContextSource>> ListAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>Sources whose background sync is due, across all users. Called as the system.</summary>
+    Task<IReadOnlyList<ContextSource>> ListDueForSyncAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default);
 }
 
 public interface IConversationRepository : IRepository<Conversation>

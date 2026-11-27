@@ -71,6 +71,9 @@ internal sealed class InMemoryStore : IUnitOfWork
             var set = ids.ToHashSet();
             return Task.FromResult<IReadOnlyList<ContextSource>>([.. Inner.Items.Where(s => set.Contains(s.Id))]);
         }
+
+        public Task<IReadOnlyList<ContextSource>> ListDueForSyncAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ContextSource>>([.. Inner.Items.Where(s => s.NextSyncAt <= now).Take(limit)]);
     }
 
     private sealed class ChunkRepo(InMemoryRepo<ContextChunk> inner) : Delegating<ContextChunk>(inner), IContextChunkRepository

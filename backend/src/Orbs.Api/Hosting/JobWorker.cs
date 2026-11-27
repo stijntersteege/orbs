@@ -1,4 +1,5 @@
 using Orbs.Application.Accounts;
+using Orbs.Application.Context;
 using Orbs.Application.Jobs;
 using Orbs.Application.Schedules;
 
@@ -29,6 +30,7 @@ internal sealed partial class JobWorker(JobRunner runner, IServiceScopeFactory s
                     scope.ServiceProvider.GetRequiredService<CurrentUser>().ActAsSystem();
                     await scope.ServiceProvider.GetRequiredService<Housekeeping>().EnsureScheduledAsync(stoppingToken);
                     await scope.ServiceProvider.GetRequiredService<ScheduleDispatcher>().DispatchDueAsync(stoppingToken);
+                    await scope.ServiceProvider.GetRequiredService<ContextSyncDispatcher>().DispatchDueAsync(stoppingToken);
                 }
 
                 await runner.RunDueAsync(stoppingToken);

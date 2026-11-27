@@ -48,6 +48,9 @@ internal sealed class ContextSourceRepository(OrbsDbContext db) : EfRepository<C
         var wanted = ids.ToList();
         return wanted.Count == 0 ? [] : await Query.Where(s => wanted.Contains(s.Id)).ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<ContextSource>> ListDueForSyncAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+        await Query.Where(s => s.NextSyncAt != null && s.NextSyncAt <= now).OrderBy(s => s.NextSyncAt).Take(limit).ToListAsync(cancellationToken);
 }
 
 internal sealed class ConversationRepository(OrbsDbContext db) : EfRepository<Conversation>(db), IConversationRepository

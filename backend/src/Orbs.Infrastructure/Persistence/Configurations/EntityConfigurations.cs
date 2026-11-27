@@ -96,6 +96,8 @@ internal sealed class ContextSourceConfiguration : IEntityTypeConfiguration<Cont
         builder.Property(s => s.Content).IsRequired();
         builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(s => s.LastError).HasMaxLength(1_000);
+        builder.Property(s => s.SyncEvery).HasConversion<string>().HasMaxLength(20);
+        builder.HasIndex(s => s.NextSyncAt);
     }
 }
 

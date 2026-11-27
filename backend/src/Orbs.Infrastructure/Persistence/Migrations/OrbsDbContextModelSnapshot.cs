@@ -170,6 +170,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<DateTimeOffset?>("NextSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
@@ -178,10 +181,17 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("SyncEvery")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NextSyncAt");
 
                     b.HasIndex("OwnerId");
 
