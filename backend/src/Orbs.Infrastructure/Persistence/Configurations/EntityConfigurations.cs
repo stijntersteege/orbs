@@ -26,6 +26,7 @@ internal sealed class OrbConfiguration : IEntityTypeConfiguration<Orb>
         builder.Property(o => o.Name).HasMaxLength(Orb.MaxNameLength).IsRequired();
         builder.Property(o => o.Description).HasMaxLength(Orb.MaxDescriptionLength).IsRequired();
         builder.Property(o => o.Instructions).HasMaxLength(Orb.MaxInstructionsLength).IsRequired();
+        builder.Property(o => o.Voice).HasMaxLength(Orb.MaxVoiceLength);
 
         builder.ComplexProperty(o => o.Appearance, a =>
         {

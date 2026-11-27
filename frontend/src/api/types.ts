@@ -53,6 +53,8 @@ export interface Orb {
   updatedAt: string
   /** Tools not listed here ask first. */
   toolPermissions?: Record<string, ToolAccess>
+  /** How the orb sounds when it reads replies aloud. */
+  voice?: string
 }
 
 export interface SaveOrbRequest {
@@ -64,6 +66,7 @@ export interface SaveOrbRequest {
   contextSourceIds?: string[]
   /** Omit to keep the current permissions. */
   toolPermissions?: Record<string, ToolAccess>
+  voice?: string
 }
 
 export interface ProviderKind {

@@ -240,6 +240,8 @@ export const voiceApi = {
       text: string
     }>
   },
-  speak: async (text: string, voice?: string) =>
-    (await request('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text, voice }) })).blob(),
+  speak: async (text: string, voice?: string, orbId?: string) =>
+    (
+      await request('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text, voice, orbId }) })
+    ).blob(),
 }

@@ -25,7 +25,8 @@ public sealed record SpokenAudio(byte[] Data, string ContentType);
 
 public sealed record TranscriptionDto(string Text);
 
-public sealed record SpeakRequest(string Text, string? Voice = null);
+/// <summary>Text to read aloud, in a given voice or in an orb's voice.</summary>
+public sealed record SpeakRequest(string Text, string? Voice = null, Guid? OrbId = null);
 
 /// <summary>What the app needs to offer voice: whether listening and speaking work, and which voices to suggest.</summary>
 public sealed record VoiceStatusDto(bool CanListen, bool CanSpeak, IReadOnlyList<string> Voices);
@@ -34,7 +35,7 @@ public sealed record VoiceStatusDto(bool CanListen, bool CanSpeak, IReadOnlyList
 /// Voice in and out, through whichever provider has a speech model set: like "Auto", the first enabled one.
 /// Works with OpenAI and anything that speaks its audio API: a local Whisper server, Kokoro, Piper.
 /// </summary>
-public sealed class VoiceService(IModelProviderRepository providers, PluginRegistry<IModelAdapter> adapters, ProviderService providerService)
+public sealed class VoiceService(IModelProviderRepository providers, IOrbRepository orbs, PluginRegistry<IModelAdapter> adapters, ProviderService providerService)
 {
     public const int MaxAudioBytes = 25 * 1024 * 1024;
     public const int MaxSpeechCharacters = 4_000;
@@ -79,9 +80,11 @@ public sealed class VoiceService(IModelProviderRepository providers, PluginRegis
 
         var (provider, adapter) = await FindAsync<ITextToSpeechAdapter>(p => p.TextToSpeechModel, cancellationToken)
             ?? throw new ModelUnavailableException("No provider has a text-to-speech model. Set one under Models.");
+        var orbVoice = request.OrbId is { } orbId ? (await orbs.FindAsync(orbId, cancellationToken))?.Voice : null;
+        var voice = !string.IsNullOrWhiteSpace(request.Voice) ? request.Voice.Trim() : orbVoice ?? (adapter.SuggestedVoices.Count > 0 ? adapter.SuggestedVoices[0] : DefaultVoice);
         try
         {
-            return await adapter.SpeakAsync(providerService.ConnectionFor(provider), provider.TextToSpeechModel!, string.IsNullOrWhiteSpace(request.Voice) ? DefaultVoice : request.Voice.Trim(), text, cancellationToken);
+            return await adapter.SpeakAsync(providerService.ConnectionFor(provider), provider.TextToSpeechModel!, voice, text, cancellationToken);
         }
         catch (HttpRequestException ex)
         {

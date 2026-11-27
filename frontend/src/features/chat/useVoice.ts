@@ -56,11 +56,11 @@ export function useVoice(onTranscript: (text: string) => void) {
 
   const stopListening = useCallback(() => recorder.current?.stop(), [])
 
-  const speak = useCallback(async (text: string, voice?: string) => {
+  const speak = useCallback(async (text: string, voice?: string, orbId?: string) => {
     setError(null)
     try {
       audio.current?.pause()
-      const blob = await voiceApi.speak(text, voice)
+      const blob = await voiceApi.speak(text, voice, orbId)
       const player = new Audio(URL.createObjectURL(blob))
       audio.current = player
       setState('speaking')

@@ -17,6 +17,7 @@ public sealed class Orb : OwnedAggregateRoot
     private readonly Dictionary<string, ToolAccess> _toolPermissions = new(StringComparer.Ordinal);
 
     public const int MaxToolNameLength = 64;
+    public const int MaxVoiceLength = 64;
 
     /// <summary>Ask first: an orb never acts in another app without the person saying yes, unless they allowed it.</summary>
     public const ToolAccess DefaultToolPermission = ToolAccess.Ask;
@@ -101,6 +102,16 @@ public sealed class Orb : OwnedAggregateRoot
         {
             Touch(now);
         }
+    }
+
+    /// <summary>How the orb sounds when it reads replies aloud, such as "nova" or "af_heart". Null for the provider default.</summary>
+    public string? Voice { get; private set; }
+
+    public void UseVoice(string? voice, DateTimeOffset now)
+    {
+        var value = Guard.Text(voice, nameof(Voice), MaxVoiceLength, required: false);
+        Voice = value.Length == 0 ? null : value;
+        Touch(now);
     }
 
     /// <summary>Per-tool permissions. Tools that are not listed use <see cref="DefaultToolPermission"/>.</summary>

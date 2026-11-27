@@ -504,6 +504,10 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Voice")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.PrimitiveCollection<List<Guid>>("_contextSourceIds")
                         .IsRequired()
                         .HasColumnType("uuid[]")

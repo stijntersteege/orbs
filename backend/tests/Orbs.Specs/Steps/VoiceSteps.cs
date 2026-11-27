@@ -31,6 +31,13 @@ public sealed class VoiceSteps(SpecContext context)
     [Then("Orbs hears {string}")]
     public void ThenOrbsHears(string words) => _heard.ShouldBe(words);
 
+    [Given("an orb named {string} with the voice {string}")]
+    public async Task GivenAnOrbWithVoice(string name, string voice) =>
+        context.Orbs[name] = await context.Api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest(name, Voice: voice));
+
+    [Then("{string} reads its answers in the voice {string}")]
+    public void ThenReadsInVoice(string name, string voice) => context.Orbs[name].Voice.ShouldBe(voice);
+
     [Then("Orbs can read the answer aloud")]
     public async Task ThenOrbsCanSpeak()
     {

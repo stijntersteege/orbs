@@ -14,7 +14,8 @@ public sealed record OrbDto(
     IReadOnlyList<Guid> ContextSourceIds,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    IReadOnlyDictionary<string, ToolAccess>? ToolPermissions = null);
+    IReadOnlyDictionary<string, ToolAccess>? ToolPermissions = null,
+    string? Voice = null);
 
 /// <summary>Creates or fully updates an orb. Omitted optional parts fall back to defaults.</summary>
 public sealed record SaveOrbRequest(
@@ -24,7 +25,8 @@ public sealed record SaveOrbRequest(
     OrbAppearance? Appearance = null,
     ModelRefDto? Model = null,
     IReadOnlyList<Guid>? ContextSourceIds = null,
-    IReadOnlyDictionary<string, ToolAccess>? ToolPermissions = null);
+    IReadOnlyDictionary<string, ToolAccess>? ToolPermissions = null,
+    string? Voice = null);
 
 internal static class OrbMapping
 {
@@ -38,5 +40,6 @@ internal static class OrbMapping
         [.. orb.ContextSourceIds],
         orb.CreatedAt,
         orb.UpdatedAt,
-        new Dictionary<string, ToolAccess>(orb.ToolPermissions));
+        new Dictionary<string, ToolAccess>(orb.ToolPermissions),
+        orb.Voice);
 }

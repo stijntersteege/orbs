@@ -305,3 +305,13 @@
   color: inherit;
   font: inherit;
 }
+
+.voiceRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.voiceRow > :first-child {
+  flex: 1;
+}

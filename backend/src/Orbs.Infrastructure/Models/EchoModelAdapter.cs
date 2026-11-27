@@ -135,8 +135,14 @@ internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter, ISpee
     }
 
     /// <summary>A short silent WAV: enough to show that speaking works.</summary>
-    public Task<SpokenAudio> SpeakAsync(ProviderConnection connection, string model, string voice, string text, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new SpokenAudio(SilentWav(TimeSpan.FromMilliseconds(Math.Clamp(text.Length * 40, 200, 3000))), "audio/wav"));
+    public Task<SpokenAudio> SpeakAsync(ProviderConnection connection, string model, string voice, string text, CancellationToken cancellationToken = default)
+    {
+        LastVoice = voice;
+        return Task.FromResult(new SpokenAudio(SilentWav(TimeSpan.FromMilliseconds(Math.Clamp(text.Length * 40, 200, 3000))), "audio/wav"));
+    }
+
+    /// <summary>The voice of the last thing Echo read aloud.</summary>
+    internal string? LastVoice { get; private set; }
 
     internal static byte[] SilentWav(TimeSpan length)
     {

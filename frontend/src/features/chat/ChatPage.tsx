@@ -150,9 +150,9 @@ export function ChatPage() {
     if (lastMessage.id === spokenUpTo.current) return
     spokenUpTo.current = lastMessage.id
     if (lastMessage.role === 'assistant' && settings.voiceReplies && voiceStatus.data?.canSpeak) {
-      void voice.speak(lastMessage.content)
+      void voice.speak(lastMessage.content, undefined, orb?.id)
     }
-  }, [lastMessage, chat.isStreaming, settings.voiceReplies, voiceStatus.data?.canSpeak, voice])
+  }, [lastMessage, chat.isStreaming, settings.voiceReplies, voiceStatus.data?.canSpeak, voice, orb?.id])
 
   if (orbs.isPending || providers.isPending) return <Spinner />
   if (orbs.error) return <ErrorNotice error={orbs.error} />
