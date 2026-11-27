@@ -420,6 +420,33 @@ export interface Memory {
   updatedAt: string
 }
 
+// Orb templates
+
+/** An orb as one shareable file. Leaves out the model, context, chats and memories, which belong to one account. */
+export interface OrbTemplate {
+  format: 'orbs-template'
+  version: number
+  orb: Pick<
+    SaveOrbRequest,
+    'name' | 'description' | 'instructions' | 'appearance' | 'toolPermissions' | 'voice'
+  >
+  schedules?: {
+    name: string
+    prompt: string
+    trigger: TriggerKind
+    cron?: string
+    timeZone?: string
+    feedUrl?: string
+    isEnabled?: boolean
+  }[]
+}
+
+export interface OrbImportResult {
+  orb: Orb
+  /** How many of the template's schedules came with it. */
+  schedules: number
+}
+
 // Skills
 
 /** A routine every orb can follow, in the SKILL.md format. */

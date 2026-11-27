@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { Orb } from '@/api/types'
 import { DEFAULT_APPEARANCE } from '@/api/types'
 import { mockApi, renderPage } from '@/test/render'
@@ -55,5 +56,39 @@ describe('OrbsPage', () => {
     renderPage(<OrbsPage />)
 
     expect((await screen.findAllByRole('alert'))[0]).toHaveTextContent('Cannot reach the Orbs server')
+  })
+
+  it('imports an orb from a template file', async () => {
+    const importOrb = vi.fn<(init?: RequestInit) => unknown>(() => ({
+      orb: { ...pip, id: 'o2' },
+      schedules: 0,
+    }))
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [{ id: 'p1' }],
+      'GET /api/context-sources': [],
+      'POST /api/orbs/import': importOrb,
+    })
+    const user = userEvent.setup()
+    renderPage(<OrbsPage />)
+
+    const template = { format: 'orbs-template', version: 1, orb: { name: 'Chef' } }
+    await user.upload(
+      await screen.findByLabelText('Import orb'),
+      new File([JSON.stringify(template)], 'chef.orb.json'),
+    )
+
+    await vi.waitFor(() => expect(importOrb).toHaveBeenCalled())
+    expect(JSON.parse(String(importOrb.mock.calls[0]![0]?.body))).toEqual(template)
+  })
+
+  it('says so when a file is not a template', async () => {
+    mockApi({ 'GET /api/orbs': [pip], 'GET /api/providers': [{ id: 'p1' }], 'GET /api/context-sources': [] })
+    const user = userEvent.setup()
+    renderPage(<OrbsPage />)
+
+    await user.upload(await screen.findByLabelText('Import orb'), new File(['not json'], 'notes.json'))
+
+    expect(await screen.findByText('This file is not an orb template.')).toBeInTheDocument()
   })
 })

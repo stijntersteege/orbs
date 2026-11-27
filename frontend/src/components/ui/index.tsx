@@ -36,6 +36,40 @@ export function Button({
   )
 }
 
+/** A button that opens the file picker. */
+export function FileButton({
+  children,
+  accept,
+  onFile,
+  variant = 'secondary',
+  small,
+  disabled,
+}: {
+  children: ReactNode
+  accept?: string
+  onFile: (file: File) => void
+  variant?: Variant
+  small?: boolean
+  disabled?: boolean
+}) {
+  return (
+    <label className={buttonClass(variant, small)} aria-disabled={disabled}>
+      {children}
+      <input
+        type="file"
+        className="visually-hidden"
+        accept={accept}
+        disabled={disabled}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onFile(file)
+          e.target.value = ''
+        }}
+      />
+    </label>
+  )
+}
+
 interface ButtonLinkProps extends LinkProps {
   variant?: Variant
   small?: boolean

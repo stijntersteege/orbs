@@ -1,9 +1,11 @@
-import { Link } from 'react-router'
-import { useContextSources, useOrbs, useProviders } from '@/api/queries'
+import { Link, useNavigate } from 'react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { orbsApi } from '@/api/endpoints'
+import { keys, useContextSources, useOrbs, useProviders } from '@/api/queries'
 import type { Orb as OrbModel } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
 import { ORB_WASH } from '@/components/orb/palette'
-import { ButtonLink, Chip, EmptyState, ErrorNotice, PageHeader, Spinner } from '@/components/ui'
+import { ButtonLink, Chip, EmptyState, ErrorNotice, FileButton, PageHeader, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import { plural } from '@/lib/format'
 import styles from './orbs.module.css'
@@ -38,6 +40,23 @@ export function OrbsPage() {
   const orbs = useOrbs()
   const providers = useProviders()
   const sources = useContextSources()
+  const client = useQueryClient()
+  const navigate = useNavigate()
+  const importTemplate = useMutation({
+    mutationFn: async (file: File) => {
+      let template: unknown
+      try {
+        template = JSON.parse(await file.text())
+      } catch {
+        throw new Error('This file is not an orb template.')
+      }
+      return orbsApi.importTemplate(template)
+    },
+    onSuccess: async (result) => {
+      await client.invalidateQueries({ queryKey: keys.orbs })
+      void navigate(`/orbs/${result.orb.id}`)
+    },
+  })
 
   const summary = [
     plural(orbs.data?.length ?? 0, 'orb'),
@@ -51,11 +70,21 @@ export function OrbsPage() {
         title="Your orbs"
         subtitle={summary}
         actions={
-          <ButtonLink to="/orbs/new" variant="primary">
-            <Icon name="plus" size={18} /> New orb
-          </ButtonLink>
+          <>
+            <FileButton
+              accept=".json,application/json"
+              onFile={(file) => importTemplate.mutate(file)}
+              disabled={importTemplate.isPending}
+            >
+              Import orb
+            </FileButton>
+            <ButtonLink to="/orbs/new" variant="primary">
+              <Icon name="plus" size={18} /> New orb
+            </ButtonLink>
+          </>
         }
       />
+      <ErrorNotice error={importTemplate.error} />
 
       {providers.data && providers.data.length === 0 && (
         <div className={styles.banner}>

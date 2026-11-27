@@ -4,6 +4,8 @@
 // called: the demo has no server and must never send anyone's API key anywhere.
 
 import type {
+  OrbImportResult,
+  OrbTemplate,
   SaveSkillRequest,
   Skill,
   ChatEvent,
@@ -184,6 +186,8 @@ export class DemoServer {
           if (method === 'GET') return json((s.memories ?? []).filter((m) => m.shared || m.orbId === id))
           return json(this.addMemory(id, body), 201)
         }
+        if (id === 'import' && method === 'POST') return json(this.importOrb(body), 201)
+        if (action === 'template') return json(this.orbTemplate(id))
         if (method === 'GET') return json(this.find(s.orbs, id, 'orb'))
         if (method === 'PUT') return json(this.saveOrb(id, body))
         if (method === 'DELETE') return this.removeOrb(id)
@@ -482,6 +486,34 @@ export class DemoServer {
       : [...this.state.orbs, orb]
     this.save()
     return orb
+  }
+
+  /** The demo has no schedules, so its templates carry the orb alone. */
+  private orbTemplate(id: string): OrbTemplate {
+    const orb = this.find(this.state.orbs, id, 'orb')
+    const { name, description, instructions, appearance, toolPermissions, voice } = orb
+    return {
+      format: 'orbs-template',
+      version: 1,
+      orb: { name, description, instructions, appearance, toolPermissions, voice },
+      schedules: [],
+    }
+  }
+
+  private importOrb(body: unknown): OrbImportResult {
+    const template = body as Partial<OrbTemplate> | undefined
+    if (template?.format !== 'orbs-template' || !template.orb)
+      throw new HttpError(400, 'This is not an orb template.')
+    if ((template.schedules ?? []).length > 0)
+      throw new HttpError(
+        400,
+        'Schedules need a server that keeps running. Self-host Orbs to import this orb.',
+      )
+    const taken = new Set(this.state.orbs.map((o) => o.name.toLowerCase()))
+    const base = required(template.orb.name, 'name')
+    let name = base
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} ${n}`
+    return { orb: this.saveOrb(undefined, { ...template.orb, name }), schedules: 0 }
   }
 
   private removeOrb(id: string): Response {

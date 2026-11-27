@@ -21,6 +21,8 @@ import type {
   MessagePage,
   ToolInfo,
   Memory,
+  OrbImportResult,
+  OrbTemplate,
   SaveSkillRequest,
   Skill,
   McpServer,
@@ -48,6 +50,10 @@ export const orbsApi = {
   create: (body: SaveOrbRequest) => http.post<Orb>('/api/orbs', body),
   update: (id: string, body: SaveOrbRequest) => http.put<Orb>(`/api/orbs/${id}`, body),
   remove: (id: string) => http.delete(`/api/orbs/${id}`),
+  /** The orb as a template to share. */
+  template: (id: string) => http.get<OrbTemplate>(`/api/orbs/${id}/template`),
+  /** Creates a new orb from a template file's JSON. */
+  importTemplate: (template: unknown) => http.post<OrbImportResult>('/api/orbs/import', template),
 }
 
 export const providersApi = {

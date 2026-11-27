@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<CurrentUser>();
         services.AddScoped<AccountService>();
         services.AddScoped<OrbService>();
+        services.AddScoped<OrbTemplateService>();
         services.AddScoped<ProviderService>();
         services.AddScoped<ContextService>();
         services.AddScoped<ChatService>();
