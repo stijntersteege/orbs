@@ -12,6 +12,7 @@ import {
   schedulesApi,
   notificationsApi,
   channelsApi,
+  voiceApi,
   orbsApi,
   providersApi,
   usersApi,
@@ -40,6 +41,7 @@ export const keys = {
   schedules: ['schedules'] as const,
   notifications: ['account', 'notifications'] as const,
   channels: ['channels'] as const,
+  voice: ['voice'] as const,
   channelKinds: ['channels', 'kinds'] as const,
   integrationKinds: ['integrations', 'kinds'] as const,
 }
@@ -189,3 +191,6 @@ export const useChannels = () => useQuery({ queryKey: keys.channels, queryFn: ch
 
 export const useChannelKinds = () =>
   useQuery({ queryKey: keys.channelKinds, queryFn: channelsApi.kinds, staleTime: Infinity })
+
+export const useVoiceStatus = () =>
+  useQuery({ queryKey: keys.voice, queryFn: voiceApi.status, staleTime: 60_000 })

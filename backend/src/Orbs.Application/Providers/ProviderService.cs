@@ -94,6 +94,10 @@ public sealed class ProviderService(
         provider.PointAt(string.IsNullOrWhiteSpace(request.BaseUrl) ? adapter.DefaultBaseUrl?.ToString() : request.BaseUrl, now);
         provider.SetDefaultModel(request.DefaultModel, now);
         provider.SetEmbeddingModel(adapter is IEmbeddingAdapter ? request.EmbeddingModel : null, now);
+        provider.SetSpeechModels(
+            adapter is Voice.ISpeechToTextAdapter ? request.SpeechToTextModel : null,
+            adapter is Voice.ITextToSpeechAdapter ? request.TextToSpeechModel : null,
+            now);
 
         if (request.ApiKey is not null)
         {

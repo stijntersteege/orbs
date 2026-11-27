@@ -229,6 +229,13 @@ export class DemoServer {
         }
         throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
 
+      case 'voice':
+        if (method === 'GET' && !id) return json({ canListen: false, canSpeak: false, voices: [] })
+        throw new HttpError(
+          400,
+          'The live demo cannot listen or speak. Self-host Orbs and connect a speech model.',
+        )
+
       case 'channels':
         if (method === 'GET' && id === 'kinds') return json([])
         if (method === 'GET' && !id) return json([])

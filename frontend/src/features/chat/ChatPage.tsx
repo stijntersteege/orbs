@@ -7,6 +7,7 @@ import {
   useContextSources,
   useConversation,
   useConversations,
+  useVoiceStatus,
   useOrbs,
   useProviders,
   useSaveOrb,
@@ -18,6 +19,7 @@ import { Icon } from '@/components/ui/icons'
 import { useSettings } from '@/app/SettingsContext'
 import { ApprovalCard } from './ApprovalCard'
 import { useChat } from './useChat'
+import { recordingSupported, useVoice } from './useVoice'
 import { ModelPicker } from './ModelPicker'
 import { ActivityPanel, kindLabel } from './ActivityPanel'
 import { usePopover } from '@/lib/usePopover'
@@ -115,6 +117,14 @@ export function ChatPage() {
   const [error, setError] = useState<unknown>(null)
   const [activityOpen, setActivityOpen] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const voiceStatus = useVoiceStatus()
+  const formRef = useRef<HTMLFormElement>(null)
+  // What was said goes into the message box and is sent right away.
+  const voice = useVoice((text) => {
+    setDraft(text)
+    requestAnimationFrame(() => formRef.current?.requestSubmit())
+  })
+  const spokenUpTo = useRef<string | undefined>(undefined)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // A new chat starts with the orb you used last.
@@ -129,6 +139,21 @@ export function ChatPage() {
     if (lastActivity) endRef.current?.scrollIntoView?.({ block: 'end' })
   }, [lastActivity])
 
+  // Read each new reply aloud when voice replies are on. Replies already there when the chat opened stay quiet.
+  const lastMessage = chat.messages.at(-1)
+  useEffect(() => {
+    if (!lastMessage || chat.isStreaming) return
+    if (spokenUpTo.current === undefined) {
+      spokenUpTo.current = lastMessage.id
+      return
+    }
+    if (lastMessage.id === spokenUpTo.current) return
+    spokenUpTo.current = lastMessage.id
+    if (lastMessage.role === 'assistant' && settings.voiceReplies && voiceStatus.data?.canSpeak) {
+      void voice.speak(lastMessage.content)
+    }
+  }, [lastMessage, chat.isStreaming, settings.voiceReplies, voiceStatus.data?.canSpeak, voice])
+
   if (orbs.isPending || providers.isPending) return <Spinner />
   if (orbs.error) return <ErrorNotice error={orbs.error} />
   if (params.orbId && !orb) return <ErrorNotice error={new Error('Orb not found.')} />
@@ -140,6 +165,8 @@ export function ChatPage() {
   const name = orb?.name ?? 'Pip'
   const citations = new Map(chat.activity.map((a) => [a.id, a.sources]))
   const runningTool = chat.activity.at(-1)?.tools.find((t) => t.result === undefined)?.tool
+  const canListen = voiceStatus.data?.canListen && recordingSupported()
+  const canSpeak = !!voiceStatus.data?.canSpeak
   const empty = chat.messages.length === 0 && !chat.isStreaming && !conversation.isFetching
 
   const pickModel = (ref: ModelRef | null) => {
@@ -211,7 +238,7 @@ export function ChatPage() {
   }
 
   const composer = (
-    <form className={styles.composer} onSubmit={submit}>
+    <form ref={formRef} className={styles.composer} onSubmit={submit}>
       <label htmlFor="message" className="visually-hidden">
         Message {name}
       </label>
@@ -231,6 +258,34 @@ export function ChatPage() {
             ? `${orb.name} answers with ${chat.model ?? model?.model ?? 'Auto'}`
             : 'Your first orb is made when you send'}
         </span>
+        {canSpeak && (
+          <button
+            type="button"
+            className={styles.voiceButton}
+            aria-pressed={settings.voiceReplies}
+            aria-label="Read replies aloud"
+            title="Read replies aloud"
+            onClick={() => {
+              if (voice.state === 'speaking') voice.stopSpeaking()
+              update({ voiceReplies: !settings.voiceReplies })
+            }}
+          >
+            <Icon name="speaker" size={18} />
+          </button>
+        )}
+        {canListen && !chat.isStreaming && (
+          <button
+            type="button"
+            className={styles.voiceButton}
+            data-state={voice.state}
+            aria-pressed={voice.state === 'listening'}
+            aria-label={voice.state === 'listening' ? 'Stop and send' : 'Talk'}
+            disabled={voice.state === 'transcribing'}
+            onClick={() => (voice.state === 'listening' ? voice.stopListening() : void voice.listen())}
+          >
+            <Icon name="mic" size={18} />
+          </button>
+        )}
         {chat.isStreaming ? (
           <button type="button" className={styles.send} onClick={chat.stop} aria-label="Stop">
             <Icon name="stop" size={16} />
@@ -368,7 +423,11 @@ export function ChatPage() {
               </div>
             </div>
             <div className={styles.dock}>
-              <ErrorNotice error={error ?? (chat.error ? new Error(chat.error) : null)} />
+              <ErrorNotice
+                error={
+                  error ?? (chat.error ? new Error(chat.error) : voice.error ? new Error(voice.error) : null)
+                }
+              />
               {composer}
             </div>
           </>

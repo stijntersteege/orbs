@@ -141,4 +141,22 @@ describe('ChatPage', () => {
     expect(await screen.findByText('First')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Load earlier messages' })).not.toBeInTheDocument()
   })
+
+  it('offers to read replies aloud when a provider can speak', async () => {
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+      'GET /api/voice': { canListen: false, canSpeak: true, voices: ['alloy'] },
+    })
+    renderRoute(routes, '/orbs/o1/chat')
+
+    const toggle = await screen.findByRole('button', { name: 'Read replies aloud' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(toggle)
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Talk' })).not.toBeInTheDocument()
+  })
 })

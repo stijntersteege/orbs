@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<ContextSyncDispatcher>();
         services.AddScoped<IJobHandler, ContextSyncJob>();
         services.AddScoped<NotificationService>();
+        services.AddScoped<Voice.VoiceService>();
         services.AddScoped<ChannelService>();
         services.AddSingleton<ChannelRelay>();
         services.AddScoped<IJobHandler, NotificationJob>();

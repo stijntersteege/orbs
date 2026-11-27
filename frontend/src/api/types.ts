@@ -75,6 +75,8 @@ export interface ProviderKind {
   defaultBaseUrl?: string
   /** True when this kind can embed text for retrieval. */
   supportsEmbeddings?: boolean
+  /** True when this kind can listen (speech-to-text) or speak (text-to-speech). */
+  supportsSpeech?: boolean
 }
 
 export interface Provider {
@@ -89,6 +91,8 @@ export interface Provider {
   updatedAt: string
   /** The model that embeds context for retrieval. */
   embeddingModel?: string
+  speechToTextModel?: string
+  textToSpeechModel?: string
 }
 
 export interface SaveProviderRequest {
@@ -100,6 +104,8 @@ export interface SaveProviderRequest {
   defaultModel?: string
   isEnabled?: boolean
   embeddingModel?: string
+  speechToTextModel?: string
+  textToSpeechModel?: string
 }
 
 export interface ModelInfo {
@@ -472,4 +478,12 @@ export interface SaveChannelRequest {
   settings?: Record<string, string>
   secret?: string
   isEnabled?: boolean
+}
+
+// Voice
+
+export interface VoiceStatus {
+  canListen: boolean
+  canSpeak: boolean
+  voices: string[]
 }

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Orbs.Application.Abstractions;
+using Orbs.Application.Voice;
 
 namespace Orbs.Infrastructure.Models;
 
@@ -14,7 +15,7 @@ namespace Orbs.Infrastructure.Models;
 /// OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM, Groq, Mistral and many more.
 /// Supports function calling: tools go out as <c>tools</c>, calls come back as streamed <c>tool_calls</c>.
 /// </summary>
-internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter, IEmbeddingAdapter
+internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter, IEmbeddingAdapter, ISpeechToTextAdapter, ITextToSpeechAdapter
 {
     public const string HttpClientName = "openai-compatible";
 
@@ -115,6 +116,57 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         var list = await response.Content.ReadFromJsonAsync<ModelList>(Json, cancellationToken);
         return [.. (list?.Data ?? []).Select(m => new ModelInfo(m.Id, m.Name)).OrderBy(m => m.Id, StringComparer.OrdinalIgnoreCase)];
     }
+
+    public IReadOnlyList<string> SuggestedVoices { get; } = ["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"];
+
+    /// <summary>POST /audio/transcriptions with the recording as a file: OpenAI Whisper, faster-whisper servers, LocalAI.</summary>
+    public async Task<string> TranscribeAsync(ProviderConnection connection, string model, byte[] audio, string contentType, string? language, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        using var form = new MultipartFormDataContent();
+        var file = new ByteArrayContent(audio);
+        file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        form.Add(file, "file", "speech" + AudioExtension(contentType));
+        form.Add(new StringContent(model), "model");
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            form.Add(new StringContent(language), "language");
+        }
+
+        using var message = new HttpRequestMessage(HttpMethod.Post, Endpoint(connection, "audio/transcriptions")) { Content = form };
+        Authorize(message, connection);
+        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return doc.RootElement.TryGetProperty("text", out var text) ? text.GetString() ?? string.Empty : string.Empty;
+    }
+
+    /// <summary>POST /audio/speech: OpenAI TTS, Kokoro-FastAPI, openedai-speech (Piper) and friends. Answers MP3.</summary>
+    public async Task<SpokenAudio> SpeakAsync(ProviderConnection connection, string model, string voice, string text, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        var body = new JsonObject { ["model"] = model, ["voice"] = voice, ["input"] = text, ["response_format"] = "mp3" };
+        using var message = new HttpRequestMessage(HttpMethod.Post, Endpoint(connection, "audio/speech"))
+        {
+            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        Authorize(message, connection);
+        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return new SpokenAudio(await response.Content.ReadAsByteArrayAsync(cancellationToken), response.Content.Headers.ContentType?.MediaType ?? "audio/mpeg");
+    }
+
+    internal static string AudioExtension(string contentType) => contentType.Split(';')[0].Trim() switch
+    {
+        "audio/webm" => ".webm",
+        "audio/ogg" => ".ogg",
+        "audio/mp4" or "audio/m4a" or "audio/x-m4a" => ".m4a",
+        "audio/mpeg" => ".mp3",
+        "audio/wav" or "audio/x-wav" => ".wav",
+        _ => ".webm",
+    };
 
     /// <summary>POST /embeddings: one vector per input, put back in input order.</summary>
     public async Task<IReadOnlyList<float[]>> EmbedAsync(ProviderConnection connection, string model, IReadOnlyList<string> texts, CancellationToken cancellationToken = default)

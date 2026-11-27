@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Orbs.Application.Abstractions;
+using Orbs.Application.Voice;
 
 namespace Orbs.Infrastructure.Models;
 
@@ -9,7 +10,7 @@ namespace Orbs.Infrastructure.Models;
 /// It can also try tools: "/tool current_time" or "/tool calculator {"expression":"2+2"}" calls that tool
 /// and then repeats what it said.
 /// </summary>
-internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter
+internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter, ISpeechToTextAdapter, ITextToSpeechAdapter
 {
     public const string ToolCommand = "/tool ";
 
@@ -121,6 +122,43 @@ internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter
         }
 
         return vector;
+    }
+
+    public IReadOnlyList<string> SuggestedVoices { get; } = ["echo"];
+
+    /// <summary>Pretends the recording is UTF-8 text, so tests can "speak" words.</summary>
+    public Task<string> TranscribeAsync(ProviderConnection connection, string model, byte[] audio, string contentType, string? language, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(audio);
+        var text = System.Text.Encoding.UTF8.GetString(audio);
+        return Task.FromResult(text.All(c => !char.IsControl(c) || char.IsWhiteSpace(c)) ? text : "(I heard you, but Echo cannot understand speech.)");
+    }
+
+    /// <summary>A short silent WAV: enough to show that speaking works.</summary>
+    public Task<SpokenAudio> SpeakAsync(ProviderConnection connection, string model, string voice, string text, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new SpokenAudio(SilentWav(TimeSpan.FromMilliseconds(Math.Clamp(text.Length * 40, 200, 3000))), "audio/wav"));
+
+    internal static byte[] SilentWav(TimeSpan length)
+    {
+        const int rate = 8_000;
+        var samples = (int)(rate * length.TotalSeconds);
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write("RIFF"u8.ToArray());
+        writer.Write(36 + samples);
+        writer.Write("WAVEfmt "u8.ToArray());
+        writer.Write(16);
+        writer.Write((short)1);
+        writer.Write((short)1);
+        writer.Write(rate);
+        writer.Write(rate);
+        writer.Write((short)1);
+        writer.Write((short)8);
+        writer.Write("data"u8.ToArray());
+        writer.Write(samples);
+        writer.Write(Enumerable.Repeat((byte)128, samples).ToArray());
+        writer.Flush();
+        return stream.ToArray();
     }
 
     public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(ProviderConnection connection, CancellationToken cancellationToken = default) =>

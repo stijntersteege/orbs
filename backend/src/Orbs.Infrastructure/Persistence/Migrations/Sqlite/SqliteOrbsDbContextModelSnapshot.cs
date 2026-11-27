@@ -601,6 +601,14 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(4096)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SpeechToTextModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TextToSpeechModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 

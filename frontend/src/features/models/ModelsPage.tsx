@@ -34,6 +34,8 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
   const [defaultModel, setDefaultModel] = useState(provider?.defaultModel ?? preset?.defaultModel ?? '')
   const [isEnabled, setIsEnabled] = useState(provider?.isEnabled ?? true)
   const [embeddingModel, setEmbeddingModel] = useState(provider?.embeddingModel ?? '')
+  const [speechToTextModel, setSpeechToTextModel] = useState(provider?.speechToTextModel ?? '')
+  const [textToSpeechModel, setTextToSpeechModel] = useState(provider?.textToSpeechModel ?? '')
   const kindInfo = kinds.data?.find((k) => k.kind === kind)
 
   const submit = async (e: FormEvent) => {
@@ -49,6 +51,8 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
         defaultModel: defaultModel || undefined,
         isEnabled,
         embeddingModel: embeddingModel || undefined,
+        speechToTextModel: speechToTextModel || undefined,
+        textToSpeechModel: textToSpeechModel || undefined,
       },
     })
     onDone()
@@ -134,6 +138,24 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
             onChange={(e) => setEmbeddingModel(e.target.value)}
             hint="Optional. With an embedding model, big sources are split into passages and orbs read only the passages that match the question."
           />
+        )}
+        {kindInfo?.supportsSpeech && (
+          <div className={styles.grid2}>
+            <TextField
+              label="Speech-to-text model"
+              value={speechToTextModel}
+              placeholder="for example whisper-1"
+              onChange={(e) => setSpeechToTextModel(e.target.value)}
+              hint="Optional. Lets you talk to orbs."
+            />
+            <TextField
+              label="Text-to-speech model"
+              value={textToSpeechModel}
+              placeholder="for example tts-1 or kokoro"
+              onChange={(e) => setTextToSpeechModel(e.target.value)}
+              hint="Optional. Lets orbs answer out loud."
+            />
+          </div>
         )}
         <Switch
           label="Enabled"

@@ -78,6 +78,8 @@ internal sealed class ModelProviderConfiguration : IEntityTypeConfiguration<Mode
         builder.Property(p => p.ProtectedApiKey).HasMaxLength(4_096);
         builder.Property(p => p.DefaultModel).HasMaxLength(ModelProvider.MaxModelLength);
         builder.Property(p => p.EmbeddingModel).HasMaxLength(ModelProvider.MaxModelLength);
+        builder.Property(p => p.SpeechToTextModel).HasMaxLength(ModelProvider.MaxModelLength);
+        builder.Property(p => p.TextToSpeechModel).HasMaxLength(ModelProvider.MaxModelLength);
         builder.Ignore(p => p.HasApiKey);
     }
 }

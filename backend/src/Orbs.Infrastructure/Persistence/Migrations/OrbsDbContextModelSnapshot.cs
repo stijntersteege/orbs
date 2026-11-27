@@ -608,6 +608,14 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
+                    b.Property<string>("SpeechToTextModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TextToSpeechModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

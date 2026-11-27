@@ -16,6 +16,8 @@ export interface Settings {
   sessionToken: string
   /** The orb a new chat starts with. Empty means "the first orb". */
   lastOrbId: string
+  /** Read replies aloud. */
+  voiceReplies: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   apiToken: '',
   sessionToken: '',
   lastOrbId: '',
+  voiceReplies: false,
 }
 
 const STORAGE_KEY = 'orbs.settings.v1'
