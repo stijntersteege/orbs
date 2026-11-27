@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Starter tools, connected under **Tools > Connected apps**: **web search** (SearXNG or Brave), **calendar** over CalDAV (read events, add events), **email** (read the inbox over IMAP; send over SMTP, which orbs ask about first) and **Home Assistant** (list entities, call services). Passwords and tokens are stored encrypted. New `IIntegrationKind` plugins add more.
 - Native model adapters for **Anthropic** (Messages API) and **Google Gemini** (generateContent), both streaming and with tool calling. Presets under **Models > Add provider**.
 - Memory: orbs save lasting facts during chats with a built-in `remember` tool and drop them with `forget` (both run without asking; you can change that per orb). Memories go into the orb's prompt. A **Memory** tab next to Activity lists them; add, edit or forget any memory there. `/api/orbs/{id}/memories` and `/api/memories/{id}`.
+- Shared memories: choose per memory whether it is private to one orb or shared with all your orbs. The Memory tab shows and switches it; orbs can save a fact for all orbs with `remember` (`shared: true`).
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

@@ -7,13 +7,18 @@ namespace Orbs.Application.Memories;
 
 public interface IMemoryRepository : IRepository<Memory>
 {
-    /// <summary>What one orb remembers, newest first.</summary>
+    /// <summary>What one orb remembers (its own memories and the shared ones), newest first.</summary>
     Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default);
 }
 
-public sealed record MemoryDto(Guid Id, Guid OrbId, string Content, MemorySource Source, Guid? ConversationId, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>A memory. <see cref="Shared"/> memories belong to every orb; others to <see cref="OrbId"/>.</summary>
+public sealed record MemoryDto(Guid Id, Guid? OrbId, bool Shared, string Content, MemorySource Source, Guid? ConversationId, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
-public sealed record SaveMemoryRequest(string Content);
+/// <summary>
+/// Adds or changes a memory. <see cref="Shared"/>: true for every orb, false for one orb, null to keep it as it is
+/// (on add: private to the orb). Making a shared memory private needs <see cref="OrbId"/>.
+/// </summary>
+public sealed record SaveMemoryRequest(string Content, bool? Shared = null, Guid? OrbId = null);
 
 /// <summary>Use cases for an orb's memory: list, add, edit and forget.</summary>
 public sealed class MemoryService(IMemoryRepository memories, IOrbRepository orbs, IUnitOfWork unitOfWork, TimeProvider clock)
@@ -31,7 +36,7 @@ public sealed class MemoryService(IMemoryRepository memories, IOrbRepository orb
     {
         ArgumentNullException.ThrowIfNull(request);
         await EnsureOrbAsync(orbId, cancellationToken);
-        var memory = Memory.Create(orbId, request.Content, source, clock.GetUtcNow(), conversationId);
+        var memory = Memory.Create(request.Shared == true ? null : orbId, request.Content, source, clock.GetUtcNow(), conversationId);
         memories.Add(memory);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ToDto(memory);
@@ -41,7 +46,19 @@ public sealed class MemoryService(IMemoryRepository memories, IOrbRepository orb
     {
         ArgumentNullException.ThrowIfNull(request);
         var memory = await LoadAsync(id, cancellationToken);
-        memory.Edit(request.Content, clock.GetUtcNow());
+        var now = clock.GetUtcNow();
+        memory.Edit(request.Content, now);
+        if (request.Shared == true)
+        {
+            memory.Share(now);
+        }
+        else if (request.Shared == false && memory.IsShared)
+        {
+            var orbId = request.OrbId ?? throw new Domain.Common.DomainException("Say which orb keeps this memory.");
+            await EnsureOrbAsync(orbId, cancellationToken);
+            memory.KeepFor(orbId, now);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ToDto(memory);
     }
@@ -66,7 +83,7 @@ public sealed class MemoryService(IMemoryRepository memories, IOrbRepository orb
     private async Task<Memory> LoadAsync(Guid id, CancellationToken cancellationToken) =>
         await memories.FindAsync(id, cancellationToken) ?? throw new NotFoundException("Memory", id);
 
-    internal static MemoryDto ToDto(Memory m) => new(m.Id, m.OrbId, m.Content, m.Source, m.ConversationId, m.CreatedAt, m.UpdatedAt);
+    internal static MemoryDto ToDto(Memory m) => new(m.Id, m.OrbId, m.IsShared, m.Content, m.Source, m.ConversationId, m.CreatedAt, m.UpdatedAt);
 }
 
 /// <summary>Lets an orb save a fact it learned in a chat. Allowed by default: it only touches the orb's own memory, which the person can see and edit.</summary>
@@ -81,7 +98,7 @@ public sealed class RememberTool(MemoryService memories) : ITool
         "Do not save secrets or passing details.";
 
     public string ParametersSchema => """
-        {"type":"object","properties":{"fact":{"type":"string","description":"The fact, as one short sentence."}},"required":["fact"]}
+        {"type":"object","properties":{"fact":{"type":"string","description":"The fact, as one short sentence."},"shared":{"type":"boolean","description":"True when the fact is about the person and useful to all their orbs, such as their name or where they live."}},"required":["fact"]}
         """;
 
     public ToolRisk Risk => ToolRisk.Read;
@@ -92,8 +109,9 @@ public sealed class RememberTool(MemoryService memories) : ITool
     {
         ArgumentNullException.ThrowIfNull(invocation);
         var fact = ToolJson.String(invocation.Arguments, "fact") ?? throw new ArgumentException("Give the fact to remember.");
-        await memories.AddAsync(invocation.OrbId, new SaveMemoryRequest(fact), MemorySource.Learned, cancellationToken: cancellationToken);
-        return $"Remembered: {fact}";
+        var shared = ToolJson.Bool(invocation.Arguments, "shared");
+        await memories.AddAsync(invocation.OrbId, new SaveMemoryRequest(fact, shared), MemorySource.Learned, cancellationToken: cancellationToken);
+        return shared ? $"Remembered for all orbs: {fact}" : $"Remembered: {fact}";
     }
 }
 
@@ -133,6 +151,14 @@ public sealed class ForgetTool(IMemoryRepository repository, MemoryService memor
 /// <summary>Reads a string from tool arguments.</summary>
 internal static class ToolJson
 {
+    public static bool Bool(string json, string name)
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+        return doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+               && doc.RootElement.TryGetProperty(name, out var value)
+               && value.ValueKind == System.Text.Json.JsonValueKind.True;
+    }
+
     public static string? String(string json, string name)
     {
         using var doc = System.Text.Json.JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);

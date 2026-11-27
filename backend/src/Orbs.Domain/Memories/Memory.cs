@@ -14,13 +14,14 @@ public enum MemorySource
 
 /// <summary>
 /// Something an orb remembers about the person or their world, such as "Sam prefers mornings for meetings".
-/// Memories go into the orb's prompt, and the person can read, edit and forget every one of them.
+/// A memory is private to one orb, or shared with all of the person's orbs (no <see cref="OrbId"/>).
+/// Memories go into the prompt, and the person can read, edit, share and forget every one of them.
 /// </summary>
 public sealed class Memory : OwnedAggregateRoot
 {
     public const int MaxContentLength = 1_000;
 
-    private Memory(Guid id, Guid orbId, string content, MemorySource source, Guid? conversationId, DateTimeOffset now) : base(id, now)
+    private Memory(Guid id, Guid? orbId, string content, MemorySource source, Guid? conversationId, DateTimeOffset now) : base(id, now)
     {
         OrbId = orbId;
         Content = content;
@@ -34,8 +35,10 @@ public sealed class Memory : OwnedAggregateRoot
         Content = string.Empty;
     }
 
-    /// <summary>The orb that remembers this.</summary>
-    public Guid OrbId { get; private set; }
+    /// <summary>The orb that remembers this, or <c>null</c> when every orb does.</summary>
+    public Guid? OrbId { get; private set; }
+
+    public bool IsShared => OrbId is null;
 
     public string Content { get; private set; }
 
@@ -44,15 +47,35 @@ public sealed class Memory : OwnedAggregateRoot
     /// <summary>The chat a learned memory came from, if any.</summary>
     public Guid? ConversationId { get; private set; }
 
-    public static Memory Create(Guid orbId, string content, MemorySource source, DateTimeOffset now, Guid? conversationId = null)
+    /// <summary>A memory for one orb, or for all orbs when <paramref name="orbId"/> is null.</summary>
+    public static Memory Create(Guid? orbId, string content, MemorySource source, DateTimeOffset now, Guid? conversationId = null)
     {
-        Guard.NotEmpty(orbId, nameof(orbId));
+        if (orbId is { } id)
+        {
+            Guard.NotEmpty(id, nameof(orbId));
+        }
+
         return new Memory(Guid.NewGuid(), orbId, Guard.Text(content, nameof(Content), MaxContentLength), source, conversationId, now);
     }
 
     public void Edit(string content, DateTimeOffset now)
     {
         Content = Guard.Text(content, nameof(Content), MaxContentLength);
+        Touch(now);
+    }
+
+    /// <summary>Every orb remembers this from now on.</summary>
+    public void Share(DateTimeOffset now)
+    {
+        OrbId = null;
+        Touch(now);
+    }
+
+    /// <summary>Only <paramref name="orbId"/> remembers this from now on.</summary>
+    public void KeepFor(Guid orbId, DateTimeOffset now)
+    {
+        Guard.NotEmpty(orbId, nameof(orbId));
+        OrbId = orbId;
         Touch(now);
     }
 }

@@ -62,6 +62,36 @@ public sealed class MemoryApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Shared_memories_are_known_to_every_orb_and_can_be_made_private_again()
+    {
+        var pip = await _api.CreateOrbAsync(new SaveOrbRequest("Pip"));
+        var nova = await _api.CreateOrbAsync(new SaveOrbRequest("Nova"));
+        var shared = await ApiClient.ReadAsync<MemoryDto>(await _api.Http.PostAsJsonAsync($"/api/orbs/{pip.Id}/memories", new SaveMemoryRequest("Sam lives in Utrecht", Shared: true), ApiClient.Json));
+        await _api.Http.PostAsJsonAsync($"/api/orbs/{pip.Id}/memories", new SaveMemoryRequest("Pip's own note"), ApiClient.Json);
+
+        shared.Shared.ShouldBeTrue();
+        shared.OrbId.ShouldBeNull();
+        (await _api.GetAsync<List<MemoryDto>>($"/api/orbs/{nova.Id}/memories")).Select(m => m.Content).ShouldBe(["Sam lives in Utrecht"]);
+
+        await _api.Http.PutAsJsonAsync($"/api/memories/{shared.Id}", new SaveMemoryRequest("Sam lives in Utrecht", Shared: false, OrbId: pip.Id), ApiClient.Json);
+        (await _api.GetAsync<List<MemoryDto>>($"/api/orbs/{nova.Id}/memories")).ShouldBeEmpty();
+        (await _api.GetAsync<List<MemoryDto>>($"/api/orbs/{pip.Id}/memories")).Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task An_orb_can_remember_something_for_all_orbs()
+    {
+        await _api.ConnectEchoAsync();
+        var pip = await _api.CreateOrbAsync(new SaveOrbRequest("Pip"));
+        var nova = await _api.CreateOrbAsync(new SaveOrbRequest("Nova"));
+        var chat = await _api.StartConversationAsync(pip.Id);
+
+        await _api.SendAsync(chat.Id, """/tool remember {"fact":"Sam is vegetarian","shared":true}""");
+
+        (await _api.GetAsync<List<MemoryDto>>($"/api/orbs/{nova.Id}/memories")).Single().Content.ShouldBe("Sam is vegetarian");
+    }
+
+    [Fact]
     public async Task Other_people_cannot_see_an_orbs_memory()
     {
         var orb = await _api.CreateOrbAsync(new SaveOrbRequest("Pip"));

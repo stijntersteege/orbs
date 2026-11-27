@@ -166,7 +166,10 @@ export const integrationsApi = {
 
 export const memoriesApi = {
   list: (orbId: string) => http.get<Memory[]>(`/api/orbs/${orbId}/memories`),
-  add: (orbId: string, content: string) => http.post<Memory>(`/api/orbs/${orbId}/memories`, { content }),
-  edit: (id: string, content: string) => http.put<Memory>(`/api/memories/${id}`, { content }),
+  add: (orbId: string, content: string, shared = false) =>
+    http.post<Memory>(`/api/orbs/${orbId}/memories`, { content, shared }),
+  /** `shared`: true for all orbs; false keeps it for `orbId` only; undefined leaves it as it is. */
+  edit: (id: string, content: string, shared?: boolean, orbId?: string) =>
+    http.put<Memory>(`/api/memories/${id}`, { content, shared, orbId }),
   forget: (id: string) => http.delete(`/api/memories/${id}`),
 }

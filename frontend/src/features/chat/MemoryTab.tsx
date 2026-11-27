@@ -13,10 +13,12 @@ export function MemoryTab({ orb }: { orb: Orb }) {
   const client = useQueryClient()
   const refresh = () => client.invalidateQueries({ queryKey: keys.memories(orb.id) })
   const [draft, setDraft] = useState('')
+  const [shareNew, setShareNew] = useState(false)
   const add = useMutation({
-    mutationFn: () => memoriesApi.add(orb.id, draft),
+    mutationFn: () => memoriesApi.add(orb.id, draft, shareNew),
     onSuccess: () => {
       setDraft('')
+      setShareNew(false)
       void refresh()
     },
   })
@@ -36,7 +38,7 @@ export function MemoryTab({ orb }: { orb: Orb }) {
       )}
       <ul className={styles.memoryList} aria-label={`What ${orb.name} remembers`}>
         {memories?.map((m) => (
-          <MemoryItem key={m.id} memory={m} onChange={refresh} />
+          <MemoryItem key={m.id} memory={m} orbId={orb.id} onChange={refresh} />
         ))}
       </ul>
       <form onSubmit={submit} className={styles.memoryForm} aria-label="Add a memory">
@@ -52,11 +54,15 @@ export function MemoryTab({ orb }: { orb: Orb }) {
           Add
         </Button>
       </form>
+      <label className={styles.memoryShare}>
+        <input type="checkbox" checked={shareNew} onChange={(e) => setShareNew(e.target.checked)} />
+        Share new memories with all orbs
+      </label>
     </div>
   )
 }
 
-function MemoryItem({ memory, onChange }: { memory: Memory; onChange: () => void }) {
+function MemoryItem({ memory, orbId, onChange }: { memory: Memory; orbId: string; onChange: () => void }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(memory.content)
   const save = useMutation({
@@ -67,6 +73,10 @@ function MemoryItem({ memory, onChange }: { memory: Memory; onChange: () => void
     },
   })
   const forget = useMutation({ mutationFn: () => memoriesApi.forget(memory.id), onSuccess: onChange })
+  const share = useMutation({
+    mutationFn: () => memoriesApi.edit(memory.id, memory.content, !memory.shared, orbId),
+    onSuccess: onChange,
+  })
 
   return (
     <li className={styles.memoryItem}>
@@ -93,7 +103,21 @@ function MemoryItem({ memory, onChange }: { memory: Memory; onChange: () => void
           <span className={styles.memoryText}>
             {memory.content}
             {memory.source === 'learned' && <span className={styles.actDetail}> · learned in a chat</span>}
+            {memory.shared && <span className={styles.actDetail}> · all orbs</span>}
           </span>
+          <button
+            type="button"
+            className={styles.panelClose}
+            aria-label={
+              memory.shared
+                ? `Keep "${memory.content}" for this orb only`
+                : `Share "${memory.content}" with all orbs`
+            }
+            title={memory.shared ? 'Keep for this orb only' : 'Share with all orbs'}
+            onClick={() => share.mutate()}
+          >
+            <Icon name={memory.shared ? 'user' : 'users'} size={16} />
+          </button>
           <button
             type="button"
             className={styles.panelClose}

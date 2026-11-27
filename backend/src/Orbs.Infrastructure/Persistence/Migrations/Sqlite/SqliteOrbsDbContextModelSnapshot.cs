@@ -286,7 +286,7 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid>("OrbId")
+                    b.Property<Guid?>("OrbId")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("OwnerId")
@@ -681,8 +681,7 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.HasOne("Orbs.Domain.Orbs.Orb", null)
                         .WithMany()
                         .HasForeignKey("OrbId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>

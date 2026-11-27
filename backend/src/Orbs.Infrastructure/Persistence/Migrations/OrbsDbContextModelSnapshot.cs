@@ -293,7 +293,7 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("OrbId")
+                    b.Property<Guid?>("OrbId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("OwnerId")
@@ -688,8 +688,7 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.HasOne("Orbs.Domain.Orbs.Orb", null)
                         .WithMany()
                         .HasForeignKey("OrbId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>
