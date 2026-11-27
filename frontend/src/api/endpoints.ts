@@ -18,6 +18,7 @@ import type {
   CreateUserRequest,
   Job,
   MessagePage,
+  ToolInfo,
   Passkey,
   PasskeyOptions,
   SignInResult,
@@ -114,4 +115,8 @@ export const usersApi = {
 
 export const jobsApi = {
   list: () => http.get<Job[]>('/api/jobs'),
+}
+
+export const toolsApi = {
+  list: () => http.get<ToolInfo[]>('/api/tools'),
 }

@@ -13,6 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Web page sources refuse private, loopback and link-local addresses (SSRF protection). Admins can allow hosts with `Orbs:Network:AllowedHosts`, block hosts with `Orbs:Network:BlockedHosts`, or allow all private networks with `Orbs:Network:AllowPrivateNetworks`. Downloads are capped at 10 MB.
 - Background jobs: a job table and a worker inside the Orbs process that runs due work as the job's owner, with retries (30 s, 60 s, 120 s ...). Settings shows your recent background work. Expired sessions are cleaned up daily. `Orbs:Jobs:Enabled` and `Orbs:Jobs:PollSeconds` control the worker.
 - Long chats load their newest 50 messages and page back on request (**Load earlier messages**). `GET /api/conversations/{id}/messages?before=...&limit=...` pages through older ones; `GET /api/conversations/{id}` takes `limit` and says `hasMoreMessages`.
+- Tools: orbs can call tools while they answer. A new `ITool` port (next to `IModelAdapter` and `IContextConnector`), `IToolSource` for sets of tools, and function calling in the OpenAI-compatible adapter. Two built-in tools to start: **Current time** and **Calculator**. The Echo demo model tries a tool when you type `/tool <name> {json}`.
+- Every tool call, its input and its result streams to the app (`tool_call` and `tool_result` events), shows in the activity panel and is saved with the reply, together with the model that wrote it. `GET /api/tools` lists the tools.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

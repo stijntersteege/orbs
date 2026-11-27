@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Common;
 using Orbs.Application.Context;
@@ -7,6 +8,7 @@ using Orbs.Application.Demo;
 using Orbs.Application.Jobs;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
+using Orbs.Application.Tools;
 
 namespace Orbs.Application;
 
@@ -24,6 +26,9 @@ public static class DependencyInjection
         services.AddScoped<ProviderService>();
         services.AddScoped<ContextService>();
         services.AddScoped<ChatService>();
+        services.AddScoped<ToolCatalog>();
+        services.AddScoped<ToolRunner>();
+        services.AddScoped<IToolSource, BuiltInToolSource>();
         services.AddScoped<DemoSeeder>();
 
         services.AddScoped<JobScheduler>();

@@ -11,6 +11,7 @@ using Orbs.Infrastructure.Persistence;
 using Orbs.Infrastructure.Persistence.Repositories;
 using Orbs.Infrastructure.Persistence.Sqlite;
 using Orbs.Infrastructure.Security;
+using Orbs.Infrastructure.Tools;
 
 namespace Orbs.Infrastructure;
 
@@ -69,6 +70,8 @@ public static class DependencyInjection
         services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
         services.AddSingleton<IContextConnector, TextConnector>();
         services.AddSingleton<IContextConnector, UrlConnector>();
+        services.AddSingleton<ITool, CurrentTimeTool>();
+        services.AddSingleton<ITool, CalculatorTool>();
 
         return services;
     }

@@ -108,6 +108,9 @@ internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(m => m.Content).HasMaxLength(Message.MaxContentLength).IsRequired();
+        builder.Property(m => m.Model).HasMaxLength(Message.MaxModelLength);
+        builder.OwnsMany(m => m.ToolCalls, t => t.ToJson("tool_calls"));
+        builder.Navigation(m => m.ToolCalls).HasField("_toolCalls").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 

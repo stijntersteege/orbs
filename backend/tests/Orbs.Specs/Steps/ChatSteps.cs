@@ -85,6 +85,17 @@ public sealed class ChatSteps(SpecContext context)
         page.HasMore.ShouldBeFalse();
     }
 
+    [Then("the reply used the tool {string} with the result {string}")]
+    public void ThenTheReplyUsedTheTool(string tool, string result)
+    {
+        context.LastReply!.Events.ShouldContain(e => e.Type == ChatEvent.ToolCallType && e.Tool == tool);
+        context.LastReply.Events.ShouldContain(e => e.Type == ChatEvent.ToolResultType && e.Text == result);
+    }
+
+    [Then("the last saved reply lists the tool {string}")]
+    public async Task ThenTheLastSavedReplyListsTheTool(string tool) =>
+        (await ReloadConversation()).Messages[^1].ToolCalls.ShouldNotBeNull().Select(t => t.Tool).ShouldContain(tool);
+
     private Task<ConversationDto> ReloadConversation() =>
         context.Api.GetAsync<ConversationDto>($"/api/conversations/{context.Conversation!.Id}");
 }

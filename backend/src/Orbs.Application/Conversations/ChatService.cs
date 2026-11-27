@@ -3,6 +3,7 @@ using System.Text;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Common;
 using Orbs.Application.Providers;
+using Orbs.Application.Tools;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Orbs;
 
@@ -16,6 +17,7 @@ public sealed class ChatService(
     IContextSourceRepository contextSources,
     PluginRegistry<IModelAdapter> adapters,
     ProviderService providerService,
+    ToolRunner tools,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -68,6 +70,7 @@ public sealed class ChatService(
 
     /// <summary>
     /// Stores the user's message, then streams the orb's reply and stores it when complete.
+    /// When the model asks for tools, Orbs runs them, reports each call and result, and lets the model continue.
     /// Validation problems throw before streaming starts; provider failures arrive as an error event.
     /// </summary>
     public async Task<IAsyncEnumerable<ChatEvent>> SendAsync(Guid conversationId, SendMessageRequest request, CancellationToken cancellationToken = default)
@@ -78,62 +81,111 @@ public sealed class ChatService(
         var resolved = ModelResolver.Resolve(orb, await providers.ListAsync(cancellationToken));
         var adapter = adapters.Get(resolved.Provider.Kind);
         var context = await contextSources.ListAsync(orb.ContextSourceIds, cancellationToken);
+        var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
 
         conversation.AddUserMessage(request.Content, clock.GetUtcNow());
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var chatRequest = new ChatRequest(resolved.Model, PromptBuilder.Build(orb, context, conversation.Messages));
-        var connection = providerService.ConnectionFor(resolved.Provider);
+        var reply = new ReplyRun(
+            conversation,
+            orb,
+            adapter,
+            providerService.ConnectionFor(resolved.Provider),
+            resolved.Model,
+            [.. PromptBuilder.Build(orb, context, conversation.Messages)],
+            toolSet);
         var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context));
-        return StreamReplyAsync(conversation, adapter, connection, chatRequest, start, cancellationToken);
+        return StreamReplyAsync(reply, start, cancellationToken);
     }
 
-    private async IAsyncEnumerable<ChatEvent> StreamReplyAsync(
-        Conversation conversation,
-        IModelAdapter adapter,
-        ProviderConnection connection,
-        ChatRequest request,
-        ChatEvent start,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    /// <summary>Everything one reply needs while it goes back and forth between the model and tools.</summary>
+    private sealed record ReplyRun(
+        Conversation Conversation,
+        Orb Orb,
+        IModelAdapter Adapter,
+        ProviderConnection Connection,
+        string Model,
+        List<ChatTurn> Turns,
+        ToolSet Tools)
+    {
+        public List<ToolCallRecord> Records { get; } = [];
+    }
+
+    private async IAsyncEnumerable<ChatEvent> StreamReplyAsync(ReplyRun run, ChatEvent start, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         yield return start;
 
         var reply = new StringBuilder();
-        string? error = null;
-        var stream = adapter.StreamChatAsync(connection, request, cancellationToken).GetAsyncEnumerator(cancellationToken);
-        try
+        for (var round = 0; round <= ToolRunner.MaxRounds; round++)
         {
-            while (true)
+            var text = new StringBuilder();
+            var calls = new List<ToolCall>();
+            string? error = null;
+            var request = new ChatRequest(run.Model, run.Turns, run.Tools.Definitions);
+            var stream = run.Adapter.StreamAsync(run.Connection, request, cancellationToken).GetAsyncEnumerator(cancellationToken);
+            try
             {
-                string fragment;
-                try
+                while (true)
                 {
-                    if (!await stream.MoveNextAsync())
+                    ModelOutput output;
+                    try
                     {
+                        if (!await stream.MoveNextAsync())
+                        {
+                            break;
+                        }
+
+                        output = stream.Current;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        error = $"The model could not answer: {ex.Message}";
                         break;
                     }
 
-                    fragment = stream.Current;
+                    if (output is TextOutput { Text.Length: > 0 } t)
+                    {
+                        text.Append(t.Text);
+                        reply.Append(t.Text);
+                        yield return ChatEvent.Delta(t.Text);
+                    }
+                    else if (output is ToolCallOutput c)
+                    {
+                        calls.Add(c.Call);
+                    }
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    error = $"The model could not answer: {ex.Message}";
-                    break;
-                }
-
-                reply.Append(fragment);
-                yield return ChatEvent.Delta(fragment);
             }
-        }
-        finally
-        {
-            await stream.DisposeAsync();
-        }
+            finally
+            {
+                await stream.DisposeAsync();
+            }
 
-        if (error is not null)
-        {
-            yield return ChatEvent.Error(error);
-            yield break;
+            if (error is not null)
+            {
+                yield return ChatEvent.Error(error);
+                yield break;
+            }
+
+            if (calls.Count == 0)
+            {
+                break;
+            }
+
+            if (round == ToolRunner.MaxRounds)
+            {
+                yield return ChatEvent.Error($"The orb kept asking for tools; it was stopped after {ToolRunner.MaxRounds} rounds.");
+                yield break;
+            }
+
+            run.Turns.Add(new ChatTurn(ChatRole.Assistant, text.ToString(), calls));
+            foreach (var call in calls)
+            {
+                yield return ChatEvent.ToolCalled(call.Id, call.Name, call.Arguments);
+                var record = await tools.RunAsync(run.Tools, run.Orb, call, cancellationToken);
+                run.Records.Add(record);
+                yield return ChatEvent.ToolResult(call.Id, call.Name, record.Result, record.IsError, record.DurationMs);
+                run.Turns.Add(new ChatTurn(ChatRole.Tool, record.Result, ToolCallId: call.Id));
+            }
         }
 
         if (reply.Length == 0)
@@ -142,7 +194,7 @@ public sealed class ChatService(
             yield break;
         }
 
-        var message = conversation.AddAssistantMessage(reply.ToString(), clock.GetUtcNow());
+        var message = run.Conversation.AddAssistantMessage(reply.ToString(), clock.GetUtcNow(), run.Model, run.Records);
         await unitOfWork.SaveChangesAsync(CancellationToken.None);
         yield return ChatEvent.Done(message.Id);
     }

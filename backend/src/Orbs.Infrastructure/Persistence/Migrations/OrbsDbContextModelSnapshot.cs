@@ -145,6 +145,10 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Model")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -443,6 +447,40 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .WithMany("Messages")
                         .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.OwnsMany("Orbs.Domain.Conversations.ToolCallRecord", "ToolCalls", b1 =>
+                        {
+                            b1.Property<Guid>("MessageId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Arguments")
+                                .IsRequired();
+
+                            b1.Property<long>("DurationMs");
+
+                            b1.Property<bool>("IsError");
+
+                            b1.Property<string>("Result")
+                                .IsRequired();
+
+                            b1.Property<string>("Tool")
+                                .IsRequired();
+
+                            b1.HasKey("MessageId", "__synthesizedOrdinal");
+
+                            b1.ToTable("messages");
+
+                            b1
+                                .ToJson("tool_calls")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MessageId");
+                        });
+
+                    b.Navigation("ToolCalls");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>

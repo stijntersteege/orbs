@@ -61,6 +61,35 @@ export const CONTEXT_KINDS: ContextKind[] = [
   },
 ]
 
+const DEMO_TOOLS = [
+  {
+    name: 'calculator',
+    displayName: 'Calculator',
+    description: 'Evaluate an arithmetic expression.',
+    risk: 'read',
+  },
+  {
+    name: 'current_time',
+    displayName: 'Current time',
+    description: 'Get the current date and time.',
+    risk: 'read',
+  },
+]
+
+/** The demo's versions of the built-in tools. The calculator only does simple arithmetic. */
+function runDemoTool(name: string, args: string, now: Date): { result: string; isError: boolean } {
+  if (name === 'current_time') return { result: now.toUTCString(), isError: false }
+  try {
+    const expression = String((JSON.parse(args || '{}') as { expression?: string }).expression ?? '')
+    if (!/^[\d\s+\-*/().]+$/.test(expression)) throw new Error('Only numbers and + - * / ( ) here.')
+    const value = Function(`"use strict"; return (${expression})`)() as number
+    if (!Number.isFinite(value)) throw new Error('The result is not a finite number.')
+    return { result: String(value), isError: false }
+  } catch (error) {
+    return { result: error instanceof Error ? error.message : 'Failed.', isError: true }
+  }
+}
+
 const OFFLINE_REPLY =
   'This is the live demo, so real models are switched off and nothing leaves your browser. ' +
   'Run Orbs on your own server to connect this provider, or pick the Echo provider to keep playing here.'
@@ -158,6 +187,9 @@ export class DemoServer {
           return json(this.state.user)
         }
         throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
+
+      case 'tools':
+        return json(DEMO_TOOLS)
 
       case 'jobs':
         // The demo has no server, so nothing runs in the background.
@@ -415,16 +447,48 @@ export class DemoServer {
     const sources = this.sourcesUsed(orb)
 
     this.append(conversation, 'user', content)
-    const reply = provider.kind === ECHO_KIND ? `You said: ${content}` : OFFLINE_REPLY
+    const toolMatch = provider.kind === ECHO_KIND ? /^\/tool (\S+)\s*(.*)$/.exec(content) : null
+    const tool = toolMatch && DEMO_TOOLS.some((t) => t.name === toolMatch[1]) ? toolMatch : null
+    const ran = tool ? runDemoTool(tool[1]!, tool[2] ?? '', this.now()) : null
+    const reply = tool
+      ? `${tool[1]} said: ${ran!.result}`
+      : provider.kind === ECHO_KIND
+        ? `You said: ${content}`
+        : OFFLINE_REPLY
     const words = reply.split(' ').map((word, i) => (i === 0 ? word : ` ${word}`))
 
     const events = async function* (this: DemoServer): AsyncGenerator<ChatEvent> {
       yield { type: 'start', model, provider: provider.name, sources }
+      if (tool && ran) {
+        const args = tool[2] || '{}'
+        yield { type: 'tool_call', callId: 'demo-call', tool: tool[1]!, arguments: args }
+        await delay(this.wordDelay, signal)
+        yield {
+          type: 'tool_result',
+          callId: 'demo-call',
+          tool: tool[1]!,
+          text: ran.result,
+          isError: ran.isError,
+          durationMs: 1,
+        }
+      }
       for (const word of words) {
         await delay(this.wordDelay, signal)
         yield { type: 'delta', text: word }
       }
-      const message = this.append(conversation, 'assistant', reply)
+      const toolCalls =
+        tool && ran
+          ? [
+              {
+                tool: tool[1]!,
+                arguments: tool[2] || '{}',
+                result: ran.result,
+                isError: ran.isError,
+                durationMs: 1,
+              },
+            ]
+          : undefined
+      const message = this.append(conversation, 'assistant', reply, model, toolCalls)
       yield { type: 'done', messageId: message.id }
     }.call(this)
 
@@ -456,9 +520,15 @@ export class DemoServer {
     return { messages: older.slice(-limit), hasMore: older.length > limit }
   }
 
-  private append(conversation: Conversation, role: Message['role'], content: string): Message {
+  private append(
+    conversation: Conversation,
+    role: Message['role'],
+    content: string,
+    model?: string,
+    toolCalls?: Message['toolCalls'],
+  ): Message {
     const now = this.timestamp()
-    const message: Message = { id: newId(), role, content, createdAt: now }
+    const message: Message = { id: newId(), role, content, createdAt: now, model, toolCalls }
     const current = this.find(this.state.conversations, conversation.id, 'conversation')
     const title = current.title === 'New chat' && role === 'user' ? titleFrom(content) : current.title
     const updated = { ...current, title, updatedAt: now, messages: [...current.messages, message] }

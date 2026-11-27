@@ -134,6 +134,26 @@ export interface Message {
   role: MessageRole
   content: string
   createdAt: string
+  /** The model that wrote an assistant message. */
+  model?: string
+  /** Tools the orb used while writing this reply: the audit trail. */
+  toolCalls?: ToolCallRecord[]
+}
+
+export interface ToolCallRecord {
+  tool: string
+  /** The arguments as JSON. */
+  arguments: string
+  result: string
+  isError: boolean
+  durationMs: number
+}
+
+export interface ToolInfo {
+  name: string
+  displayName: string
+  description: string
+  risk: 'read' | 'write'
 }
 
 export interface ConversationSummary {
@@ -168,6 +188,15 @@ export interface ChatSource {
 export type ChatEvent =
   | { type: 'start'; model: string; provider?: string; sources?: ChatSource[] }
   | { type: 'delta'; text: string }
+  | { type: 'tool_call'; callId: string; tool: string; arguments: string }
+  | {
+      type: 'tool_result'
+      callId: string
+      tool: string
+      text: string
+      isError: boolean
+      durationMs: number
+    }
   | { type: 'done'; messageId: string }
   | { type: 'error'; text: string }
 

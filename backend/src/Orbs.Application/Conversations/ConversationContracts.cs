@@ -2,7 +2,16 @@ using Orbs.Domain.Conversations;
 
 namespace Orbs.Application.Conversations;
 
-public sealed record MessageDto(Guid Id, MessageRole Role, string Content, DateTimeOffset CreatedAt);
+public sealed record MessageDto(
+    Guid Id,
+    MessageRole Role,
+    string Content,
+    DateTimeOffset CreatedAt,
+    string? Model = null,
+    IReadOnlyList<ToolCallDto>? ToolCalls = null);
+
+/// <summary>A tool an orb used while writing a reply: the audit trail.</summary>
+public sealed record ToolCallDto(string Tool, string Arguments, string Result, bool IsError, long DurationMs);
 
 public sealed record ConversationSummaryDto(Guid Id, Guid OrbId, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
@@ -28,7 +37,7 @@ public sealed record ChatSourceDto(Guid Id, string Name, string Kind, int Charac
 
 /// <summary>
 /// One event in a streamed reply: the start (which model and provider answer, and which sources they read),
-/// a text fragment, the end, or an error.
+/// a text fragment, a tool call and its result, the end, or an error.
 /// </summary>
 public sealed record ChatEvent(
     string Type,
@@ -36,12 +45,25 @@ public sealed record ChatEvent(
     Guid? MessageId = null,
     string? Model = null,
     string? Provider = null,
-    IReadOnlyList<ChatSourceDto>? Sources = null)
+    IReadOnlyList<ChatSourceDto>? Sources = null,
+    string? CallId = null,
+    string? Tool = null,
+    string? Arguments = null,
+    bool? IsError = null,
+    long? DurationMs = null)
 {
     public const string StartType = "start";
     public const string DeltaType = "delta";
+    public const string ToolCallType = "tool_call";
+    public const string ToolResultType = "tool_result";
     public const string DoneType = "done";
     public const string ErrorType = "error";
+
+    public static ChatEvent ToolCalled(string callId, string tool, string arguments) =>
+        new(ToolCallType, CallId: callId, Tool: tool, Arguments: arguments);
+
+    public static ChatEvent ToolResult(string callId, string tool, string result, bool isError, long durationMs) =>
+        new(ToolResultType, Text: result, CallId: callId, Tool: tool, IsError: isError, DurationMs: durationMs);
 
     public static ChatEvent Start(string model, string? provider = null, IReadOnlyList<ChatSourceDto>? sources = null) =>
         new(StartType, Model: model, Provider: provider, Sources: sources ?? []);
@@ -65,7 +87,13 @@ internal static class ConversationMapping
         c.CreatedAt,
         c.UpdatedAt);
 
-    public static MessageDto ToDto(this Message m) => new(m.Id, m.Role, m.Content, m.CreatedAt);
+    public static MessageDto ToDto(this Message m) => new(
+        m.Id,
+        m.Role,
+        m.Content,
+        m.CreatedAt,
+        m.Model,
+        m.ToolCalls.Count == 0 ? null : [.. m.ToolCalls.Select(t => new ToolCallDto(t.Tool, t.Arguments, t.Result, t.IsError, t.DurationMs))]);
 
     /// <summary>Turns a newest-first page fetched with one extra row into an oldest-first page.</summary>
     public static (IReadOnlyList<MessageDto> Messages, bool HasMore) ToPage(this IReadOnlyList<Message> newestFirst, int limit) =>
