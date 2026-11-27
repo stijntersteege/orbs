@@ -52,11 +52,15 @@ public static class DependencyInjection
         services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
 
         services.AddHttpClient(OpenAiCompatibleModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
+        // Fetching on behalf of users goes through the network policy (no private addresses by default).
+        services.AddSingleton(NetworkPolicy.From(configuration));
         services.AddHttpClient(UrlConnector.HttpClientName, c =>
-        {
-            c.Timeout = TimeSpan.FromSeconds(30);
-            c.DefaultRequestHeaders.UserAgent.ParseAdd("Orbs/0.2.0 (+https://github.com/stijntersteege/orbs)");
-        });
+            {
+                c.Timeout = TimeSpan.FromSeconds(30);
+                c.MaxResponseContentBufferSize = SafeHttp.MaxResponseBytes;
+                c.DefaultRequestHeaders.UserAgent.ParseAdd("Orbs/0.2.0 (+https://github.com/stijntersteege/orbs)");
+            })
+            .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
 
         // Plugins: add a class here to support a new provider or context kind.
         services.AddSingleton<IModelAdapter, EchoModelAdapter>();

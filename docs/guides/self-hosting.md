@@ -47,6 +47,18 @@ orbs.example.com {
 
 With nginx, add `proxy_buffering off;` for `/api/` so streamed replies are not held back.
 
+## What Orbs may fetch
+
+Web page sources (and, later, tools) are fetched by the server. To keep that from being a way into your network, Orbs refuses private, loopback and link-local addresses, including cloud metadata endpoints.
+
+| Setting | What it does |
+| --- | --- |
+| `Orbs__Network__AllowedHosts` | Comma-separated hosts that may be on a private network, such as `wiki.lan,nas.lan`. Subdomains count too. |
+| `Orbs__Network__BlockedHosts` | Hosts Orbs never fetches, even public ones. |
+| `Orbs__Network__AllowPrivateNetworks` | `true` turns the private-network check off. Only for a server nobody else uses. |
+
+Model providers are not affected, so Ollama or LM Studio on your network keep working.
+
 ## Using local models
 
 Ollama on the Docker host is reachable from the container at `http://host.docker.internal:11434/v1` (Docker Desktop). On Linux, add this to the `orbs` service in `compose.yaml`:
