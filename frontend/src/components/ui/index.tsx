@@ -1,5 +1,6 @@
 import {
   useId,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
@@ -67,6 +68,30 @@ export function FileButton({
         }}
       />
     </label>
+  )
+}
+
+/**
+ * A form that stays out of the way until it is needed: a button that opens it, and Cancel to close it again.
+ * The form gets `close` to call once it has done its job.
+ */
+export function Reveal({ label, children }: { label: string; children: (close: () => void) => ReactNode }) {
+  const [open, setOpen] = useState(false)
+  if (!open)
+    return (
+      <div>
+        <Button onClick={() => setOpen(true)}>+ {label}</Button>
+      </div>
+    )
+  return (
+    <div className={styles.reveal}>
+      {children(() => setOpen(false))}
+      <div>
+        <Button small variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   )
 }
 

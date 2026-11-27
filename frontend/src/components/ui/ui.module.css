@@ -290,3 +290,11 @@ textarea.input {
   border-color: var(--text);
   background: var(--sel);
 }
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}

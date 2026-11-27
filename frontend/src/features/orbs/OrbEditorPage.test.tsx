@@ -50,6 +50,53 @@ describe('OrbEditorPage', () => {
 
     renderRoute(routes, '/orbs/new')
 
-    expect(await screen.findByRole('button', { name: 'Create Your orb' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Create orb' })).toBeDisabled()
+    expect(screen.getByText('Give it a name to continue.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'What your orb knows' })).toBeInTheDocument()
+  })
+
+  it('saves only when something changed, and can undo changes', async () => {
+    const user = userEvent.setup()
+    const pip = {
+      id: 'o1',
+      name: 'Pip',
+      description: '',
+      instructions: '',
+      appearance: DEFAULT_APPEARANCE,
+      contextSourceIds: [],
+      createdAt: '',
+      updatedAt: '',
+    }
+    mockApi({
+      'GET /api/orbs/o1': pip,
+      'GET /api/providers': [],
+      'GET /api/context-sources': [],
+      'GET /api/tools': [],
+    })
+    renderRoute([{ path: '/orbs/:orbId', element: <OrbEditorPage /> }], '/orbs/o1')
+
+    const save = await screen.findByRole('button', { name: 'Save changes' })
+    expect(save).toBeDisabled()
+    await user.type(screen.getByLabelText('Description'), 'Helper')
+    expect(save).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Undo changes' }))
+    expect(screen.getByLabelText('Description')).toHaveValue('')
+    expect(save).toBeDisabled()
+  })
+
+  it('asks before leaving with unsaved changes', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    mockApi({ 'GET /api/providers': [], 'GET /api/context-sources': [], 'GET /api/tools': [] })
+    const { router } = renderRoute(routes, '/orbs/new')
+
+    await user.type(screen.getByLabelText('Name'), 'Byte')
+    void router.navigate('/orbs/x/chat')
+
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalled())
+    expect(router.state.location.pathname).toBe('/orbs/new')
+    confirm.mockRestore()
   })
 })

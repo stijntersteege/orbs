@@ -40,6 +40,8 @@ public sealed class AskOrbTool(
         {"type":"object","properties":{"orb":{"type":"string","description":"The name of the orb to ask."},"question":{"type":"string","description":"The question, with everything the other orb needs to know: it cannot see this chat."}}}
         """;
 
+    public string Summary => "Asks one of your other orbs for help and uses its answer. The other orb only reads; it never acts.";
+
     public ToolRisk Risk => ToolRisk.Read;
 
     // It only reads the person's own orbs and their answers, and the specialist runs no tools.

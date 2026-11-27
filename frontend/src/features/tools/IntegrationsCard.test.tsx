@@ -23,6 +23,7 @@ describe('IntegrationsCard', () => {
     })
     renderPage(<IntegrationsCard onChange={() => {}} />)
 
+    await userEvent.click(await screen.findByRole('button', { name: '+ Connect an app' }))
     await userEvent.type(await screen.findByLabelText('Home Assistant address'), 'http://ha.local:8123')
     await userEvent.type(screen.getByLabelText('Long-lived access token'), 'abc')
     await userEvent.click(screen.getByRole('button', { name: 'Connect Home Assistant' }))

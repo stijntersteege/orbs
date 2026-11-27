@@ -274,6 +274,8 @@ public sealed class UseSkillTool(ISkillRepository skills) : ITool
         {"type":"object","properties":{"skill":{"type":"string","description":"The name of the skill."}}}
         """;
 
+    public string Summary => "Follows one of your saved skills, step by step.";
+
     public ToolRisk Risk => ToolRisk.Read;
 
     // It only reads text the person saved; whatever the steps do still goes through each tool's own permission.
