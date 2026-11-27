@@ -31,6 +31,10 @@ public static class DependencyInjection
         services.AddScoped<ToolRunner>();
         services.AddScoped<ReplyEngine>();
         services.AddScoped<MemoryService>();
+        services.AddScoped<EmbedderResolver>();
+        services.AddScoped<ContextIndexer>();
+        services.AddScoped<ContextRetriever>();
+        services.AddScoped<IJobHandler, ContextIndexJob>();
         services.AddScoped<ITool, RememberTool>();
         services.AddScoped<ITool, ForgetTool>();
         services.AddScoped<IToolSource, BuiltInToolSource>();

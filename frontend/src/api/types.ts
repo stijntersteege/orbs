@@ -73,6 +73,8 @@ export interface ProviderKind {
   requiresBaseUrl: boolean
   requiresApiKey: boolean
   defaultBaseUrl?: string
+  /** True when this kind can embed text for retrieval. */
+  supportsEmbeddings?: boolean
 }
 
 export interface Provider {
@@ -85,6 +87,8 @@ export interface Provider {
   isEnabled: boolean
   createdAt: string
   updatedAt: string
+  /** The model that embeds context for retrieval. */
+  embeddingModel?: string
 }
 
 export interface SaveProviderRequest {
@@ -95,6 +99,7 @@ export interface SaveProviderRequest {
   apiKey?: string
   defaultModel?: string
   isEnabled?: boolean
+  embeddingModel?: string
 }
 
 export interface ModelInfo {
@@ -124,6 +129,9 @@ export interface ContextSource {
   contentLength: number
   createdAt: string
   updatedAt: string
+  /** Passages embedded for retrieval; 0 until indexed. */
+  indexedChunks?: number
+  indexedAt?: string
 }
 
 export interface SaveContextSourceRequest {
@@ -204,6 +212,8 @@ export interface ChatSource {
   kind: string
   characters: number
   truncated: boolean
+  /** Set when retrieval picked passages from this source. */
+  passages?: number
 }
 
 export type ChatEvent =

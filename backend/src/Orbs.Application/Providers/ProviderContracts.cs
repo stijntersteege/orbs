@@ -9,7 +9,8 @@ public sealed record ProviderKindDto(
     string Description,
     bool RequiresBaseUrl,
     bool RequiresApiKey,
-    string? DefaultBaseUrl);
+    string? DefaultBaseUrl,
+    bool SupportsEmbeddings = false);
 
 /// <summary>A connected provider as the client sees it. The API key itself is never returned.</summary>
 public sealed record ProviderDto(
@@ -21,7 +22,9 @@ public sealed record ProviderDto(
     string? DefaultModel,
     bool IsEnabled,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? EmbeddingModel = null,
+    bool SupportsEmbeddings = false);
 
 /// <summary>
 /// Creates or updates a provider. On update, a <c>null</c> <see cref="ApiKey"/> keeps the stored key
@@ -33,13 +36,14 @@ public sealed record SaveProviderRequest(
     string? BaseUrl = null,
     string? ApiKey = null,
     string? DefaultModel = null,
-    bool IsEnabled = true);
+    bool IsEnabled = true,
+    string? EmbeddingModel = null);
 
 internal static class ProviderMapping
 {
-    public static ProviderDto ToDto(this ModelProvider p) => new(
-        p.Id, p.Name, p.Kind, p.BaseUrl?.ToString(), p.HasApiKey, p.DefaultModel, p.IsEnabled, p.CreatedAt, p.UpdatedAt);
+    public static ProviderDto ToDto(this ModelProvider p, bool supportsEmbeddings = false) => new(
+        p.Id, p.Name, p.Kind, p.BaseUrl?.ToString(), p.HasApiKey, p.DefaultModel, p.IsEnabled, p.CreatedAt, p.UpdatedAt, p.EmbeddingModel, supportsEmbeddings);
 
     public static ProviderKindDto ToDto(this IModelAdapter a) => new(
-        a.Kind, a.DisplayName, a.Description, a.RequiresBaseUrl, a.RequiresApiKey, a.DefaultBaseUrl?.ToString());
+        a.Kind, a.DisplayName, a.Description, a.RequiresBaseUrl, a.RequiresApiKey, a.DefaultBaseUrl?.ToString(), a is IEmbeddingAdapter);
 }

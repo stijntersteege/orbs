@@ -10,7 +10,7 @@ namespace Orbs.Infrastructure.Models;
 /// Talks to the Google Gemini API natively: <c>systemInstruction</c>, <c>contents</c> with user and model roles,
 /// <c>functionDeclarations</c> for tools, and <c>streamGenerateContent</c> over server-sent events.
 /// </summary>
-internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter
+internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter, IEmbeddingAdapter
 {
     public const string HttpClientName = "gemini";
 
@@ -83,6 +83,30 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
             .Where(m => m.TryGetProperty("supportedGenerationMethods", out var methods) && methods.EnumerateArray().Any(x => x.GetString() == "generateContent"))
             .Select(m => new ModelInfo(m.GetProperty("name").GetString()!.Replace("models/", string.Empty, StringComparison.Ordinal), m.TryGetProperty("displayName", out var d) ? d.GetString() : null))
             .OrderBy(m => m.Id, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>batchEmbedContents: one request for many texts.</summary>
+    public async Task<IReadOnlyList<float[]>> EmbedAsync(ProviderConnection connection, string model, IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(texts);
+        var name = model.StartsWith("models/", StringComparison.Ordinal) ? model : "models/" + model;
+        var body = new JsonObject
+        {
+            ["requests"] = new JsonArray([.. texts.Select(t => (JsonNode)new JsonObject
+            {
+                ["model"] = name,
+                ["content"] = new JsonObject { ["parts"] = new JsonArray(new JsonObject { ["text"] = t }) },
+            })]),
+        };
+        using var message = Request(connection, HttpMethod.Post, $"v1beta/{name}:batchEmbedContents");
+        message.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
+        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(message, cancellationToken);
+        await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return [.. doc.RootElement.GetProperty("embeddings").EnumerateArray()
+            .Select(e => e.GetProperty("values").EnumerateArray().Select(v => v.GetSingle()).ToArray())];
     }
 
     /// <summary>The generateContent body. Tool results become <c>functionResponse</c> parts named after their call.</summary>

@@ -397,6 +397,7 @@ export class DemoServer {
       hasApiKey: request.apiKey === undefined ? (existing?.hasApiKey ?? false) : request.apiKey !== '',
       defaultModel: request.defaultModel?.trim() || (request.kind === ECHO_KIND ? 'echo-1' : undefined),
       isEnabled: request.isEnabled ?? existing?.isEnabled ?? true,
+      embeddingModel: request.embeddingModel?.trim() || undefined,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     }

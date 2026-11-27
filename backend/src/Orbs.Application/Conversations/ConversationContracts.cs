@@ -41,7 +41,8 @@ public sealed record StartConversationRequest(Guid OrbId);
 public sealed record SendMessageRequest(string Content);
 
 /// <summary>A context source an orb read to answer, as reported in the start event.</summary>
-public sealed record ChatSourceDto(Guid Id, string Name, string Kind, int Characters, bool Truncated);
+/// <summary>A context source an orb read to answer. <see cref="Passages"/> is set when retrieval picked passages from it.</summary>
+public sealed record ChatSourceDto(Guid Id, string Name, string Kind, int Characters, bool Truncated, int? Passages = null);
 
 /// <summary>
 /// One event in a streamed reply: the start (which model and provider answer, and which sources they read),

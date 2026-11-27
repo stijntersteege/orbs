@@ -81,6 +81,13 @@ public interface IModelAdapter : IPlugin
     }
 }
 
+/// <summary>A model adapter that can also turn text into embeddings, for retrieval.</summary>
+public interface IEmbeddingAdapter
+{
+    /// <summary>One vector per text, in the same order.</summary>
+    Task<IReadOnlyList<float[]>> EmbedAsync(ProviderConnection connection, string model, IReadOnlyList<string> texts, CancellationToken cancellationToken = default);
+}
+
 // ---------- Tools ----------
 
 /// <summary>How careful Orbs is with a tool by default. Per-orb permissions can override it.</summary>

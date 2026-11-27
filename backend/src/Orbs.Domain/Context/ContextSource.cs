@@ -48,6 +48,11 @@ public sealed class ContextSource : OwnedAggregateRoot
 
     public DateTimeOffset? LastSyncedAt { get; private set; }
 
+    /// <summary>How many passages of the current content are embedded for retrieval. Zero until indexed.</summary>
+    public int IndexedChunks { get; private set; }
+
+    public DateTimeOffset? IndexedAt { get; private set; }
+
     public static ContextSource Create(string name, string kind, DateTimeOffset now, Guid? id = null) =>
         new(id ?? Guid.NewGuid(), Guard.Text(name, nameof(Name), MaxNameLength), Slug.Normalize(kind, nameof(Kind)), now);
 
@@ -74,6 +79,14 @@ public sealed class ContextSource : OwnedAggregateRoot
         Status = ContextSourceStatus.Ready;
         LastError = null;
         LastSyncedAt = now;
+        IndexedChunks = 0; // The content may have changed; the old passages no longer count.
+        Touch(now);
+    }
+
+    public void MarkIndexed(int chunks, DateTimeOffset now)
+    {
+        IndexedChunks = Math.Max(0, chunks);
+        IndexedAt = now;
         Touch(now);
     }
 

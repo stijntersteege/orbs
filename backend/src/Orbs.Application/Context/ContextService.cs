@@ -10,6 +10,7 @@ public sealed class ContextService(
     IContextSourceRepository sources,
     IOrbRepository orbs,
     PluginRegistry<IContextConnector> connectors,
+    ContextIndexer indexer,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -34,6 +35,7 @@ public sealed class ContextService(
         sources.Add(source);
         await SyncAsync(source, connector, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await indexer.QueueAsync(source, cancellationToken);
         return source.ToDto();
     }
 
@@ -51,6 +53,7 @@ public sealed class ContextService(
         Configure(source, connector, request);
         await SyncAsync(source, connector, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await indexer.QueueAsync(source, cancellationToken);
         return source.ToDto();
     }
 
@@ -59,8 +62,13 @@ public sealed class ContextService(
         var source = await LoadAsync(id, cancellationToken);
         await SyncAsync(source, connectors.Get(source.Kind), cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await indexer.QueueAsync(source, cancellationToken);
         return source.ToDto();
     }
+
+    /// <summary>Embeds the source again for retrieval, in the background.</summary>
+    public async Task<bool> IndexAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await indexer.QueueAsync(await LoadAsync(id, cancellationToken), cancellationToken);
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {

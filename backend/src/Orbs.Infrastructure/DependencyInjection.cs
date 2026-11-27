@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IMemoryRepository, MemoryRepository>();
+        services.AddScoped<IContextChunkRepository, ContextChunkRepository>();
         services.AddSingleton<IIntegrationKind, WebSearchIntegration>();
         services.AddSingleton<IIntegrationKind, CalDavIntegration>();
         services.AddSingleton<IIntegrationKind, EmailIntegration>();

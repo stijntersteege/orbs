@@ -37,6 +37,9 @@ public sealed class ModelProvider : OwnedAggregateRoot
     /// <summary>The model used when an orb is on Auto and this provider is the default.</summary>
     public string? DefaultModel { get; private set; }
 
+    /// <summary>The model that turns context into embeddings for retrieval, or <c>null</c> for none.</summary>
+    public string? EmbeddingModel { get; private set; }
+
     public bool IsEnabled { get; private set; } = true;
 
     public bool HasApiKey => ProtectedApiKey is not null;
@@ -67,6 +70,13 @@ public sealed class ModelProvider : OwnedAggregateRoot
     {
         var value = Guard.Text(model, nameof(DefaultModel), MaxModelLength, required: false);
         DefaultModel = value.Length == 0 ? null : value;
+        Touch(now);
+    }
+
+    public void SetEmbeddingModel(string? model, DateTimeOffset now)
+    {
+        var value = Guard.Text(model, nameof(EmbeddingModel), MaxModelLength, required: false);
+        EmbeddingModel = value.Length == 0 ? null : value;
         Touch(now);
     }
 

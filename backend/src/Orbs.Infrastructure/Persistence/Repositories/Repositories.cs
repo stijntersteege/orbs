@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
@@ -131,4 +132,16 @@ internal sealed class MemoryRepository(OrbsDbContext db) : EfRepository<Memory>(
 {
     public async Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default) =>
         await Query.Where(m => m.OrbId == orbId || m.OrbId == null).OrderByDescending(m => m.UpdatedAt).ToListAsync(cancellationToken);
+}
+
+internal sealed class ContextChunkRepository(OrbsDbContext db) : EfRepository<ContextChunk>(db), IContextChunkRepository
+{
+    public async Task<IReadOnlyList<ContextChunk>> ListForSourcesAsync(IReadOnlyCollection<Guid> sourceIds, string model, CancellationToken cancellationToken = default)
+    {
+        var ids = sourceIds.ToList();
+        return await Query.AsNoTracking().Where(c => ids.Contains(c.SourceId) && c.Model == model).ToListAsync(cancellationToken);
+    }
+
+    public Task DeleteForSourceAsync(Guid sourceId, CancellationToken cancellationToken = default) =>
+        Query.Where(c => c.SourceId == sourceId).ExecuteDeleteAsync(cancellationToken);
 }

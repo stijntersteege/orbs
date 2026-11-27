@@ -1,5 +1,6 @@
 using Orbs.Application.Abstractions;
 using Orbs.Application.Common;
+using Orbs.Application.Context;
 using Orbs.Application.Memories;
 using Orbs.Application.Providers;
 using Orbs.Application.Tools;
@@ -20,6 +21,7 @@ public sealed class ChatService(
     ReplyEngine engine,
     IToolApprovalRepository approvals,
     MemoryService memories,
+    ContextRetriever retriever,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -101,14 +103,15 @@ public sealed class ChatService(
         conversation.AddUserMessage(request.Content, clock.GetUtcNow());
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var retrieved = await retriever.RetrieveAsync(context, request.Content, cancellationToken);
         var state = new ReplyState
         {
             ProviderId = resolved.Provider.Id,
             Model = resolved.Model,
-            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken))],
+            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken), retrieved: retrieved)],
         };
         var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(resolved.Provider), toolSet);
-        var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context));
+        var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context, retrieved: retrieved));
         return engine.RunAsync(reply, state, start, cancellationToken);
     }
 

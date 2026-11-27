@@ -1,6 +1,7 @@
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Common;
+using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Memories;
 using Orbs.Application.Providers;
@@ -25,7 +26,8 @@ public class ChatServiceTests
         var tools = new ToolRunner(new ToolCatalog([]), new CurrentUser());
         var engine = new ReplyEngine(tools, _store.Approvals, _store, _clock);
         var memories = new MemoryService(_store.Memories, _store.Orbs, _store, _clock);
-        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, engine, _store.Approvals, memories, _store, _clock);
+        var retriever = new ContextRetriever(_store.Chunks, new EmbedderResolver(_store.Providers, registry, providerService));
+        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, engine, _store.Approvals, memories, retriever, _store, _clock);
     }
 
     private (Orb Orb, Conversation Chat) GivenAnOrbWithAChat(string providerKind = "scripted")

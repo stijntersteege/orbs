@@ -163,6 +163,11 @@ export function ContextPage() {
                     {s.lastError && <span className={styles.error}>{s.lastError}</span>}
                   </span>
                   {statusChip(s)}
+                  {(s.indexedChunks ?? 0) > 0 && (
+                    <Chip tone="mono">
+                      {s.indexedChunks} {s.indexedChunks === 1 ? 'passage' : 'passages'}
+                    </Chip>
+                  )}
                   <Button
                     small
                     variant="ghost"

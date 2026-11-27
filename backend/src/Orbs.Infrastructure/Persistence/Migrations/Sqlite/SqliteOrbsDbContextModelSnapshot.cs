@@ -35,6 +35,49 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("DataProtectionKeys");
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Vector")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("SourceId", "Index");
+
+                    b.ToTable("context_chunks", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Context.ContextSource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -45,6 +88,12 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasColumnType("TEXT");
 
                     b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("IndexedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("IndexedChunks")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Input")
@@ -418,6 +467,10 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("EmbeddingModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("INTEGER");
 
@@ -612,6 +665,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
+                {
+                    b.HasOne("Orbs.Domain.Context.ContextSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>
