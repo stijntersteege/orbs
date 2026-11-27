@@ -27,6 +27,9 @@ import type {
   Integration,
   Schedule,
   NotificationSettings,
+  Channel,
+  ChannelKind,
+  SaveChannelRequest,
   SaveScheduleRequest,
   IntegrationKind,
   SaveIntegrationRequest,
@@ -206,4 +209,23 @@ export const notificationsApi = {
   settings: () => http.get<NotificationSettings>('/api/account/notifications'),
   saveSettings: (body: { quietFrom?: string; quietUntil?: string; timeZone?: string }) =>
     http.put<NotificationSettings>('/api/account/notifications', body),
+}
+
+export const channelsApi = {
+  kinds: () => http.get<ChannelKind[]>('/api/channels/kinds'),
+  list: () => http.get<Channel[]>('/api/channels'),
+  create: (body: SaveChannelRequest) => http.post<Channel>('/api/channels', body),
+  pairingCode: (id: string) => http.post<Channel>(`/api/channels/${id}/pairing-code`),
+  unpair: (id: string, chatId: string) => http.delete(`/api/channels/${id}/chats/${chatId}`),
+  remove: (id: string) => http.delete(`/api/channels/${id}`),
+  avatar: async (id: string, png: Blob) =>
+    (
+      await request(`/api/channels/${id}/avatar`, {
+        method: 'PUT',
+        body: png,
+        headers: { 'Content-Type': 'image/png' },
+      })
+    ).json() as Promise<{
+      note?: string
+    }>,
 }

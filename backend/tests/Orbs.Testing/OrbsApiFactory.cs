@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Channels;
 using Orbs.Application.Jobs;
 using Orbs.Application.Notifications;
 using Orbs.Application.Schedules;
@@ -41,6 +42,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     /// <summary>The server's clock: real time, but tests can move it forward.</summary>
     public TestClock Clock { get; } = new();
+
+    /// <summary>The in-memory messaging app every test channel uses.</summary>
+    public FakeChannel Chat { get; } = new();
 
     /// <summary>Every push message the server sent.</summary>
     public FakePushSender Push { get; } = new();
@@ -81,6 +85,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Runs whatever background work is due, as the worker would.</summary>
     public Task<int> RunJobsAsync() => Services.GetRequiredService<JobRunner>().RunDueAsync();
+
+    /// <summary>Lets the worker poll every channel once, as it does every few seconds.</summary>
+    public Task<int> RunChannelsAsync() => Services.GetRequiredService<ChannelRelay>().PollAllAsync();
 
     /// <summary>Lets the worker look at due schedules and then run the resulting jobs.</summary>
     public async Task RunSchedulesAsync()
@@ -158,6 +165,7 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
+            services.AddSingleton<IChannelAdapter>(Chat);
             services.RemoveAll<IPushSender>();
             services.AddSingleton<IPushSender>(Push);
             services.RemoveAll<IFeedReader>();

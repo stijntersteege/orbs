@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Domain.Channels;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
@@ -58,6 +59,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
+    public DbSet<Channel> Channels => Set<Channel>();
+
     public DbSet<Notifications.ServerSetting> ServerSettings => Set<Notifications.ServerSetting>();
 
     public DbSet<User> Users => Set<User>();
@@ -103,6 +106,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<ContextFile>(modelBuilder);
         FilterOwned<Schedule>(modelBuilder);
         FilterOwned<PushSubscription>(modelBuilder);
+        FilterOwned<Channel>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

@@ -42,6 +42,65 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.ToTable("DataProtectionKeys");
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Channels.Channel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Cursor")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PairingCodeHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ProtectedSecret")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrbId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("channels", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
                 {
                     b.Property<Guid>("Id")
@@ -862,6 +921,51 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("server_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Channels.Channel", b =>
+                {
+                    b.HasOne("Orbs.Domain.Orbs.Orb", null)
+                        .WithMany()
+                        .HasForeignKey("OrbId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Orbs.Domain.Channels.ChannelChat", "Chats", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("ChannelId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid?>("ConversationId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ExternalChatId")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<DateTimeOffset>("PairedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ChannelId");
+
+                            b1.ToTable("channel_chats", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelId");
+                        });
+
+                    b.Navigation("Chats");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>

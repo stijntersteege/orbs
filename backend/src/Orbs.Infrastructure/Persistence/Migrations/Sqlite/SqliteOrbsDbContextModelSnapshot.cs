@@ -35,6 +35,65 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("DataProtectionKeys");
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Channels.Channel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cursor")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PairingCodeHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProtectedSecret")
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrbId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("channels", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
                 {
                     b.Property<Guid>("Id")
@@ -855,6 +914,51 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.HasKey("Key");
 
                     b.ToTable("server_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Channels.Channel", b =>
+                {
+                    b.HasOne("Orbs.Domain.Orbs.Orb", null)
+                        .WithMany()
+                        .HasForeignKey("OrbId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Orbs.Domain.Channels.ChannelChat", "Chats", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("ChannelId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid?>("ConversationId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("ExternalChatId")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<long>("PairedAt")
+                                .HasColumnType("INTEGER");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ChannelId");
+
+                            b1.ToTable("channel_chats", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelId");
+                        });
+
+                    b.Navigation("Chats");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
