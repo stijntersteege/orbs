@@ -213,7 +213,11 @@ export class DemoServer {
         if (id === 'sign-out') return new Response(null, { status: 204 })
         throw new HttpError(400, 'The live demo has no sign-in: you are always the demo user.')
 
+      case 'push':
+        throw new HttpError(400, 'The live demo cannot send notifications. Self-host Orbs to get them.')
+
       case 'account':
+        if (id === 'notifications') return json({ timeZone: 'UTC', devices: 0 })
         if (!id && method === 'GET') return json(this.account())
         if (!id && method === 'PUT') {
           this.state.user = {

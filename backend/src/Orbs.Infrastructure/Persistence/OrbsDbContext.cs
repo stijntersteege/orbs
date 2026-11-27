@@ -56,6 +56,10 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<Schedule> Schedules => Set<Schedule>();
 
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+
+    public DbSet<Notifications.ServerSetting> ServerSettings => Set<Notifications.ServerSetting>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -98,6 +102,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<ContextChunk>(modelBuilder);
         FilterOwned<ContextFile>(modelBuilder);
         FilterOwned<Schedule>(modelBuilder);
+        FilterOwned<PushSubscription>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

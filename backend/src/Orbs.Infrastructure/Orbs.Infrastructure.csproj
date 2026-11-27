@@ -14,6 +14,7 @@
     <PackageReference Include="MailKit" />
     <PackageReference Include="PdfPig" />
     <PackageReference Include="Cronos" />
+    <PackageReference Include="Lib.Net.Http.WebPush" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>

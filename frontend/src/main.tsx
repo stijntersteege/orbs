@@ -21,4 +21,8 @@ if (import.meta.env.MODE === 'demo') {
   })
 } else {
   render()
+  // Notifications from orbs arrive through the service worker.
+  void import('./lib/push').then(({ registerServiceWorker }) =>
+    registerServiceWorker().catch(() => undefined),
+  )
 }

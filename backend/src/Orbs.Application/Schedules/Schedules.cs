@@ -328,7 +328,7 @@ public sealed class ScheduleRunJob(IScheduleRepository schedules, ScheduleRunner
 }
 
 /// <summary>Has the orb answer a schedule's prompt in the schedule's own chat, as if the person had asked.</summary>
-public sealed class ScheduleRunner(ChatService chat, IUnitOfWork unitOfWork, TimeProvider clock)
+public sealed class ScheduleRunner(ChatService chat, IOrbRepository orbs, Notifications.NotificationService notifications, IUnitOfWork unitOfWork, TimeProvider clock)
 {
     public async Task<string> RunAsync(Schedule schedule, string? input, CancellationToken cancellationToken)
     {
@@ -365,13 +365,16 @@ public sealed class ScheduleRunner(ChatService chat, IUnitOfWork unitOfWork, Tim
             }
         }
 
-        if (outcome is not null)
-        {
-            return outcome;
-        }
-
         var text = reply.ToString();
-        return text.Length <= 200 ? text : string.Concat(text.AsSpan(0, 197), "...");
+        var summary = outcome ?? (text.Length <= 200 ? text : string.Concat(text.AsSpan(0, 197), "..."));
+
+        // Proactive: the orb reaches out with what it wrote, or with what it needs.
+        var orb = await orbs.FindAsync(schedule.OrbId, cancellationToken);
+        await notifications.NotifyAsync(
+            schedule.OwnerId,
+            new Notifications.Notification($"{orb?.Name ?? "Your orb"}: {schedule.Name}", summary, $"/orbs/{schedule.OrbId}/chat/{conversationId}"),
+            cancellationToken);
+        return summary;
     }
 
     private async Task<bool> ExistsAsync(Guid conversationId, CancellationToken cancellationToken)

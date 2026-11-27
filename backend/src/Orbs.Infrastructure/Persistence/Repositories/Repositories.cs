@@ -5,6 +5,7 @@ using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
+using Orbs.Application.Notifications;
 using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 using Orbs.Domain.Common;
@@ -167,4 +168,13 @@ internal sealed class ScheduleRepository(OrbsDbContext db) : EfRepository<Schedu
 {
     public async Task<IReadOnlyList<Schedule>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
         await Query.Where(s => s.IsEnabled && s.NextCheckAt != null && s.NextCheckAt <= now).OrderBy(s => s.NextCheckAt).Take(limit).ToListAsync(cancellationToken);
+}
+
+internal sealed class PushSubscriptionRepository(OrbsDbContext db) : EfRepository<PushSubscription>(db), IPushSubscriptionRepository
+{
+    public Task<PushSubscription?> FindByEndpointAsync(string endpoint, CancellationToken cancellationToken = default) =>
+        Query.FirstOrDefaultAsync(s => s.Endpoint == endpoint, cancellationToken);
+
+    public async Task<IReadOnlyList<PushSubscription>> ListForUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await Db.PushSubscriptions.IgnoreQueryFilters().Where(s => s.OwnerId == userId).ToListAsync(cancellationToken);
 }

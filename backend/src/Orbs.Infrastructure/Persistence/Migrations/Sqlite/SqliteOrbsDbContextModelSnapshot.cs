@@ -721,6 +721,50 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("mcp_servers", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Users.PushSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Device")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("push_subscriptions", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
                 {
                     b.Property<Guid>("Id")
@@ -795,6 +839,22 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Infrastructure.Notifications.ServerSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("server_settings", (string)null);
                 });
 
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
@@ -1011,9 +1071,38 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                                 .HasForeignKey("UserId");
                         });
 
+                    b.OwnsOne("Orbs.Domain.Users.QuietHours", "QuietHours", b1 =>
+                        {
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<TimeOnly>("From")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("quiet_from");
+
+                            b1.Property<string>("TimeZone")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("quiet_time_zone");
+
+                            b1.Property<TimeOnly>("Until")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("quiet_until");
+
+                            b1.HasKey("UserId");
+
+                            b1.ToTable("users");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
                     b.Navigation("ExternalLogins");
 
                     b.Navigation("Passkeys");
+
+                    b.Navigation("QuietHours");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>
