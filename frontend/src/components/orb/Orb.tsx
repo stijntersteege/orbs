@@ -2,7 +2,12 @@ import type { CSSProperties } from 'react'
 import { DEFAULT_APPEARANCE, type OrbAppearance } from '@/api/types'
 import { ORB_PALETTE } from './palette'
 
+/** What the orb is doing, shown on its face. */
+export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'waiting'
+
 interface OrbProps {
+  /** Listening (wide eyes, a pulsing ring), thinking (a pulsing glow), speaking (a moving mouth), waiting for approval (a question mark). */
+  state?: OrbState
   appearance?: Partial<OrbAppearance>
   /** Rendered width and height in px. */
   size?: number
@@ -196,8 +201,18 @@ function FrontAccessory({
 }
 
 /** The orb mascot: a model, its context and a face, drawn as a friendly SVG. */
-export function Orb({ appearance, size = 64, thinking = false, label }: OrbProps) {
-  const look = { ...DEFAULT_APPEARANCE, ...appearance }
+export function Orb({ appearance, size = 64, thinking = false, state = 'idle', label }: OrbProps) {
+  const mood: OrbState = thinking ? 'thinking' : state
+  const base = { ...DEFAULT_APPEARANCE, ...appearance }
+  // Each state changes the face a little: wide eyes to listen, an open mouth to speak.
+  const look = {
+    ...base,
+    eyes: mood === 'listening' ? ('wide' as const) : base.eyes,
+    mouth:
+      mood === 'speaking' && (base.mouth === 'none' || base.mouth === 'flat')
+        ? ('open' as const)
+        : base.mouth,
+  }
   const { tint, highlight, face } = ORB_PALETTE[look.color]
   const wrapper: CSSProperties = { position: 'relative', width: size, height: size, flexShrink: 0 }
   const glow: CSSProperties = {
@@ -207,23 +222,41 @@ export function Orb({ appearance, size = 64, thinking = false, label }: OrbProps
     background: tint,
     opacity: 0.55,
     filter: `blur(${Math.max(4, Math.round(size / 7))}px)`,
-    animation: thinking ? 'orb-think 1.2s ease-in-out infinite' : undefined,
+    animation: mood === 'thinking' ? 'orb-think 1.2s ease-in-out infinite' : undefined,
+  }
+  const ring: CSSProperties = {
+    position: 'absolute',
+    inset: '4%',
+    borderRadius: '50%',
+    border: `${Math.max(2, Math.round(size / 24))}px solid ${tint}`,
+    animation: 'orb-listen 1.4s ease-out infinite',
   }
   const svg: CSSProperties = {
     position: 'absolute',
     inset: 0,
     overflow: 'visible',
-    animation: look.floating ? 'orb-bob 2.8s ease-in-out infinite' : undefined,
+    animation:
+      mood === 'waiting'
+        ? 'orb-wait 1.6s ease-in-out infinite'
+        : look.floating
+          ? 'orb-bob 2.8s ease-in-out infinite'
+          : undefined,
   }
+  const mouth: CSSProperties | undefined =
+    mood === 'speaking'
+      ? { transformOrigin: '60px 80px', animation: 'orb-speak 0.32s ease-in-out infinite alternate' }
+      : undefined
 
   return (
     <span
       style={wrapper}
+      data-state={mood}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      {(look.glow || thinking) && <span style={glow} data-testid="orb-glow" />}
+      {(look.glow || mood === 'thinking') && <span style={glow} data-testid="orb-glow" />}
+      {mood === 'listening' && <span style={ring} data-testid="orb-ring" />}
       <svg viewBox="0 0 120 120" width="100%" height="100%" style={svg} aria-hidden="true">
         <BackAccessory accessory={look.accessory} highlight={highlight} />
         {BODY[look.shape](tint)}
@@ -244,8 +277,26 @@ export function Orb({ appearance, size = 64, thinking = false, label }: OrbProps
           </>
         )}
         <Eyes eyes={look.eyes} face={face} highlight={highlight} />
-        <Mouth mouth={look.mouth} face={face} />
+        <g style={mouth} data-testid="orb-mouth">
+          <Mouth mouth={look.mouth} face={face} />
+        </g>
         <FrontAccessory accessory={look.accessory} highlight={highlight} />
+        {mood === 'waiting' && (
+          <g data-testid="orb-question">
+            <circle cx="98" cy="22" r="13" fill={face} />
+            <text
+              x="98"
+              y="27.5"
+              textAnchor="middle"
+              fontSize="16"
+              fontWeight="700"
+              fill="#FFFFFF"
+              fontFamily="system-ui, sans-serif"
+            >
+              ?
+            </text>
+          </g>
+        )}
       </svg>
     </span>
   )

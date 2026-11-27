@@ -32,6 +32,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - More channels: **Matrix** (joins rooms it is invited to; sets its name and face), **Discord** (one text channel, read over REST), **Signal** (through your own signal-cli REST API) and **email** (its own mailbox, answers by SMTP). The pairing code may now sit anywhere in a message.
 - Voice mode: give a provider a speech-to-text and a text-to-speech model, then tap the microphone to talk to an orb and the speaker to have replies read aloud. Works with OpenAI and anything that speaks its audio API, such as a local Whisper server, Kokoro or Piper (openedai-speech). The Echo demo can pretend. `/api/voice`, `/api/voice/transcribe`, `/api/voice/speak`.
 - A voice per orb, chosen in the orb editor next to its face, with a preview. Replies read aloud use the orb's voice.
+- Animated faces: an orb shows what it is doing. Wide eyes and a pulsing ring while it listens, a pulsing glow while it thinks, a moving mouth while it speaks, and a question mark while it waits for your approval. Reduced-motion settings stop the movement.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

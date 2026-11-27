@@ -13,7 +13,7 @@ import {
   useSaveOrb,
 } from '@/api/queries'
 import { DEFAULT_APPEARANCE, type ChatSource, type ModelRef, type Orb as OrbModel } from '@/api/types'
-import { Orb } from '@/components/orb/Orb'
+import { Orb, type OrbState } from '@/components/orb/Orb'
 import { Button, ErrorNotice, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import { useSettings } from '@/app/SettingsContext'
@@ -166,6 +166,17 @@ export function ChatPage() {
   const citations = new Map(chat.activity.map((a) => [a.id, a.sources]))
   const runningTool = chat.activity.at(-1)?.tools.find((t) => t.result === undefined)?.tool
   const canListen = voiceStatus.data?.canListen && recordingSupported()
+  // The orb's face shows what it is doing right now.
+  const faceState: OrbState =
+    voice.state === 'listening' || voice.state === 'transcribing'
+      ? 'listening'
+      : voice.state === 'speaking'
+        ? 'speaking'
+        : chat.approval
+          ? 'waiting'
+          : chat.isStreaming
+            ? 'thinking'
+            : 'idle'
   const canSpeak = !!voiceStatus.data?.canSpeak
   const empty = chat.messages.length === 0 && !chat.isStreaming && !conversation.isFetching
 
@@ -306,6 +317,8 @@ export function ChatPage() {
           {orb && (
             <Orb
               size={28}
+              state={faceState}
+              label={faceState === 'idle' ? undefined : `${orb.name} is ${faceState}`}
               appearance={{ ...orb.appearance, glow: false, floating: false, accessory: 'none' }}
             />
           )}
@@ -396,7 +409,7 @@ export function ChatPage() {
                   <div className={styles.assistantRow}>
                     <Orb
                       size={28}
-                      thinking
+                      state={faceState === 'idle' ? 'thinking' : faceState}
                       appearance={{
                         ...(orb?.appearance ?? DEFAULT_APPEARANCE),
                         floating: false,
