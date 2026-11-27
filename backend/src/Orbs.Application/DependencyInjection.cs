@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Orbs.Application.Accounts;
 using Orbs.Application.Common;
 using Orbs.Application.Context;
 using Orbs.Application.Conversations;
@@ -16,6 +17,8 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(typeof(PluginRegistry<>));
 
+        services.AddScoped<CurrentUser>();
+        services.AddScoped<AccountService>();
         services.AddScoped<OrbService>();
         services.AddScoped<ProviderService>();
         services.AddScoped<ContextService>();

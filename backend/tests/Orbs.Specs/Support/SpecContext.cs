@@ -8,14 +8,19 @@ namespace Orbs.Specs.Support;
 /// <summary>
 /// Per-scenario state: a fresh in-memory Orbs server plus what the scenario created.
 /// Reqnroll injects one instance into every step class of a scenario and disposes it afterwards.
+/// <see cref="Api"/> is signed in as the server's first account, created on first use.
 /// </summary>
 public sealed class SpecContext : IDisposable
 {
-    private readonly OrbsApiFactory _factory = new();
+    private OrbsApiFactory _factory = new();
+    private ApiClient? _api;
 
-    public SpecContext() => Api = new ApiClient(_factory.CreateClient());
+    public OrbsApiFactory Factory => _factory;
 
-    public ApiClient Api { get; }
+    public ApiClient Api => _api ??= new ApiClient(_factory.CreateClient());
+
+    /// <summary>Other signed-in accounts, by email.</summary>
+    public Dictionary<string, ApiClient> Users { get; } = new(StringComparer.Ordinal);
 
     public Dictionary<string, OrbDto> Orbs { get; } = new(StringComparer.Ordinal);
 
@@ -27,6 +32,15 @@ public sealed class SpecContext : IDisposable
 
     public ConversationDto? Conversation { get; set; }
 
+    /// <summary>Swaps in a differently configured server. Call before anything uses <see cref="Api"/>.</summary>
+    public void UseServer(OrbsApiFactory factory)
+    {
+        _factory.Dispose();
+        _factory = factory;
+        _api = null;
+    }
+
+    public void SignInAsOwner() => _ = Api;
+
     public void Dispose() => _factory.Dispose();
 }
-

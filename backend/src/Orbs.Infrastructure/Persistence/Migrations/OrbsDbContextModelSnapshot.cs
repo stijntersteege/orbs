@@ -80,6 +80,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -89,6 +92,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("context_sources", (string)null);
                 });
@@ -104,6 +109,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrbId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -113,6 +121,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
 
                     b.HasIndex("OrbId", "UpdatedAt");
 
@@ -169,6 +179,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -227,6 +240,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("orbs", (string)null);
                 });
 
@@ -259,6 +274,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ProtectedApiKey")
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
@@ -268,7 +286,85 @@ namespace Orbs.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("providers", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>
@@ -314,6 +410,100 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
+                {
+                    b.HasOne("Orbs.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.User", b =>
+                {
+                    b.OwnsMany("Orbs.Domain.Users.ExternalLogin", "ExternalLogins", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset>("CreatedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Issuer")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)");
+
+                            b1.Property<string>("Subject")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("UserId");
+
+                            b1.HasIndex("Issuer", "Subject")
+                                .IsUnique();
+
+                            b1.ToTable("external_logins", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.OwnsMany("Orbs.Domain.Users.Passkey", "Passkeys", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset>("CreatedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<byte[]>("CredentialId")
+                                .IsRequired()
+                                .HasMaxLength(1024)
+                                .HasColumnType("bytea");
+
+                            b1.Property<DateTimeOffset?>("LastUsedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(80)
+                                .HasColumnType("character varying(80)");
+
+                            b1.Property<byte[]>("PublicKey")
+                                .IsRequired()
+                                .HasColumnType("bytea");
+
+                            b1.Property<long>("SignCount")
+                                .HasColumnType("bigint");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("CredentialId")
+                                .IsUnique();
+
+                            b1.HasIndex("UserId");
+
+                            b1.ToTable("passkeys", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("ExternalLogins");
+
+                    b.Navigation("Passkeys");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>

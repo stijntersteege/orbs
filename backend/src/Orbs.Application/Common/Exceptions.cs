@@ -32,3 +32,13 @@ public sealed class ExternalServiceException : Exception
 
     public ExternalServiceException() { }
 }
+
+/// <summary>The request clashes with the current state, such as a duplicate.</summary>
+public sealed class ConflictException : Exception
+{
+    public ConflictException(string message) : base(message) { }
+
+    public ConflictException(string message, Exception innerException) : base(message, innerException) { }
+
+    public ConflictException() { }
+}

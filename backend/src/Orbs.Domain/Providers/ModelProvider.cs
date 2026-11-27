@@ -6,7 +6,7 @@ namespace Orbs.Domain.Providers;
 /// A connected source of models: a hosted API, a local runtime or any compatible endpoint.
 /// <see cref="Kind"/> names the adapter that talks to it, so new kinds plug in without domain changes.
 /// </summary>
-public sealed class ModelProvider : AggregateRoot
+public sealed class ModelProvider : OwnedAggregateRoot
 {
     public const int MaxNameLength = 80;
     public const int MaxModelLength = 200;

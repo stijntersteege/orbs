@@ -168,3 +168,61 @@ export interface ProblemDetails {
   detail?: string
   status?: number
 }
+
+// Accounts
+
+export interface AuthStatus {
+  setupRequired: boolean
+  passwordSignIn: boolean
+  passkeys: boolean
+  oidc?: { displayName: string }
+}
+
+export interface User {
+  id: string
+  email: string
+  displayName: string
+  isAdmin: boolean
+  hasPassword: boolean
+  createdAt: string
+}
+
+export interface SignInResult {
+  token: string
+  expiresAt: string
+  user: User
+}
+
+export interface Passkey {
+  id: string
+  name: string
+  createdAt: string
+  lastUsedAt?: string
+}
+
+export interface Session {
+  id: string
+  description: string
+  createdAt: string
+  lastSeenAt: string
+  current: boolean
+}
+
+export interface Account {
+  user: User
+  passkeys: Passkey[]
+  sessions: Session[]
+  hasExternalLogin: boolean
+}
+
+export interface PasskeyOptions {
+  ceremonyId: string
+  options: string
+}
+
+export interface CreateUserRequest {
+  email: string
+  displayName?: string
+  password: string
+  isAdmin?: boolean
+}

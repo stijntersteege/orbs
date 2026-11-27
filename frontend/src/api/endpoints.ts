@@ -13,6 +13,13 @@ import type {
   SaveContextSourceRequest,
   SaveOrbRequest,
   SaveProviderRequest,
+  Account,
+  AuthStatus,
+  CreateUserRequest,
+  Passkey,
+  PasskeyOptions,
+  SignInResult,
+  User,
 } from './types'
 
 export const orbsApi = {
@@ -62,4 +69,38 @@ export const conversationsApi = {
     if (!response.body) throw new Error('The server sent no reply stream.')
     yield* readServerSentEvents<ChatEvent>(response.body)
   },
+}
+
+export const authApi = {
+  status: () => http.get<AuthStatus>('/api/auth/status'),
+  setup: (body: { email: string; displayName?: string; password: string }) =>
+    http.post<SignInResult>('/api/auth/setup', body),
+  signIn: (body: { email: string; password: string }) => http.post<SignInResult>('/api/auth/sign-in', body),
+  passkeyOptions: () => http.post<PasskeyOptions>('/api/auth/passkeys/sign-in/options'),
+  passkeySignIn: (body: { ceremonyId: string; response: string }) =>
+    http.post<SignInResult>('/api/auth/passkeys/sign-in', body),
+  signOut: async () => {
+    await request('/api/auth/sign-out', { method: 'POST' })
+  },
+  /** Where the browser goes to sign in with the configured OpenID Connect provider. */
+  oidcUrl: (returnTo = '/') => `/api/auth/oidc/start?returnTo=${encodeURIComponent(returnTo)}`,
+}
+
+export const accountApi = {
+  get: () => http.get<Account>('/api/account'),
+  update: (displayName: string) => http.put<User>('/api/account', { displayName }),
+  changePassword: async (body: { currentPassword?: string; newPassword: string }) => {
+    await request('/api/account/password', { method: 'POST', body: JSON.stringify(body) })
+  },
+  revokeSession: (id: string) => http.delete(`/api/account/sessions/${id}`),
+  passkeyOptions: () => http.post<PasskeyOptions>('/api/account/passkeys/options'),
+  addPasskey: (body: { ceremonyId: string; response: string; name?: string }) =>
+    http.post<Passkey>('/api/account/passkeys', body),
+  removePasskey: (id: string) => http.delete(`/api/account/passkeys/${id}`),
+}
+
+export const usersApi = {
+  list: () => http.get<User[]>('/api/users'),
+  create: (body: CreateUserRequest) => http.post<User>('/api/users', body),
+  remove: (id: string) => http.delete(`/api/users/${id}`),
 }

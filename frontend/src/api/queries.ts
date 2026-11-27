@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { contextApi, conversationsApi, orbsApi, providersApi } from './endpoints'
+import {
+  accountApi,
+  authApi,
+  contextApi,
+  conversationsApi,
+  orbsApi,
+  providersApi,
+  usersApi,
+} from './endpoints'
 import type { SaveContextSourceRequest, SaveOrbRequest, SaveProviderRequest } from './types'
 
 /** One place for cache keys, so invalidation stays consistent. */
@@ -13,6 +21,9 @@ export const keys = {
   contextKinds: ['context', 'kinds'] as const,
   conversations: (orbId?: string) => ['conversations', orbId ?? 'all'] as const,
   conversation: (id: string) => ['conversation', id] as const,
+  authStatus: ['auth', 'status'] as const,
+  account: ['account'] as const,
+  users: ['users'] as const,
 }
 
 export const useOrbs = () => useQuery({ queryKey: keys.orbs, queryFn: orbsApi.list })
@@ -111,3 +122,16 @@ export const useConversations = (orbId?: string) =>
 
 export const useConversation = (id: string | undefined) =>
   useQuery({ queryKey: keys.conversation(id ?? ''), queryFn: () => conversationsApi.get(id!), enabled: !!id })
+
+export const useAuthStatus = () => useQuery({ queryKey: keys.authStatus, queryFn: authApi.status })
+
+/** The signed-in account. Fails with a 401 ApiError when nobody is signed in. */
+export const useAccount = () => useQuery({ queryKey: keys.account, queryFn: accountApi.get, retry: false })
+
+export const useUsers = () => useQuery({ queryKey: keys.users, queryFn: usersApi.list })
+
+/** Refreshes everything after signing in or out: what you can see depends on who you are. */
+export function useResetSession() {
+  const client = useQueryClient()
+  return () => client.resetQueries()
+}

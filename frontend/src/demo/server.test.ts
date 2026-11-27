@@ -11,6 +11,16 @@ async function call<T>(server: DemoServer, method: string, path: string, body?: 
 }
 
 describe('DemoServer', () => {
+  it('is always signed in as one demo admin', async () => {
+    const server = new DemoServer()
+    expect(
+      (await call<{ setupRequired: boolean }>(server, 'GET', '/api/auth/status')).body.setupRequired,
+    ).toBe(false)
+    const account = await call<{ user: { isAdmin: boolean; email: string } }>(server, 'GET', '/api/account')
+    expect(account.body.user).toMatchObject({ isAdmin: true, email: 'demo@orbs.local' })
+    expect((await call(server, 'POST', '/api/auth/sign-in', {})).status).toBe(400)
+  })
+
   it('starts with sample orbs, a provider and a note', async () => {
     const server = new DemoServer()
     const orbs = await call<Orb[]>(server, 'GET', '/api/orbs')

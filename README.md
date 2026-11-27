@@ -53,6 +53,7 @@ Orbs runs on your server, keeps your data there, and works the same in the brows
 - 🧠 **Any model**: an OpenAI-compatible adapter covers OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM and more; per-orb model or "Auto"
 - 🔗 **Context**: notes and web pages out of the box; connect once, share with the orbs you pick
 - 💬 **Streaming chat** over server-sent events, with history per orb
+- 👥 **Accounts**: sign in with a password, a passkey or your OpenID Connect provider; everyone sees only their own orbs
 - 🔐 **Secrets stay secret**: API keys are encrypted at rest and never returned by the API
 - 🌗 **Light and dark themes**, reduced-motion support, keyboard and screen-reader friendly
 - 📱 **Web and mobile** from one codebase (responsive web app, PWA manifest, Capacitor for iOS and Android)
@@ -69,11 +70,11 @@ Orbs runs on your server, keeps your data there, and works the same in the brows
 ```bash
 git clone https://github.com/stijntersteege/orbs.git
 cd orbs
-cp .env.example .env     # optional: change the password, set an API token
+cp .env.example .env     # optional: change the password, set your public URL
 docker compose up -d
 ```
 
-Open **http://localhost:8080**. A demo orb called **Pip** and a demo model called **Echo** are ready, so you can try everything without an API key. Then go to **Models** and connect a real provider.
+Open **http://localhost:8080** and create the first account. A demo orb called **Pip** and a demo model called **Echo** are ready, so you can try everything without an API key. Then go to **Models** and connect a real provider.
 
 ### Just the container (SQLite)
 

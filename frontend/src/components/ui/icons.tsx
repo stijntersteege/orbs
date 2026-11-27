@@ -26,6 +26,8 @@ const PATHS = {
   up: 'M12 19V5 M5 12l7-7 7 7',
   more: 'M5 12h.01 M12 12h.01 M19 12h.01',
   pulse: 'M3 12h4l3-8 4 16 3-8h4',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21a8 8 0 0 1 16 0',
+  users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21a7 7 0 0 1 14 0 M16 3.5a4 4 0 0 1 0 7 M18 14a6 6 0 0 1 4 7',
 } as const
 
 export type IconName = keyof typeof PATHS

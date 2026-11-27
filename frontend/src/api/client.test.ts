@@ -1,5 +1,5 @@
 import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings'
-import { apiBase, ApiError, http } from './client'
+import { apiBase, ApiError, http, SIGNED_OUT_EVENT } from './client'
 
 describe('api client', () => {
   it('uses the page origin unless a server is configured', () => {
@@ -32,9 +32,20 @@ describe('api client', () => {
     await expect(http.post('/api/orbs', {})).rejects.toEqual(new ApiError(400, 'Name is required.'))
   })
 
-  it('explains a 401 in terms of the API token', async () => {
+  it('turns a 401 into a sign-in prompt and tells the app', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response('', { status: 401 })))
+    const signedOut = vi.fn<() => void>()
+    globalThis.addEventListener(SIGNED_OUT_EVENT, signedOut)
 
-    await expect(http.get('/api/orbs')).rejects.toThrow(/API token/)
+    await expect(http.get('/api/orbs')).rejects.toThrow(/Sign in/)
+    expect(signedOut).toHaveBeenCalledOnce()
+    globalThis.removeEventListener(SIGNED_OUT_EVENT, signedOut)
+  })
+
+  it('keeps the reason when signing in itself fails', async () => {
+    const body = JSON.stringify({ detail: 'That email and password do not match.' })
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response(body, { status: 401 })))
+
+    await expect(http.post('/api/auth/sign-in', {})).rejects.toThrow(/do not match/)
   })
 })

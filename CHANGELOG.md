@@ -5,8 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Accounts. Everyone signs in with a password, a passkey or an OpenID Connect provider (Authentik, Authelia, Keycloak, Google, ...). Orbs, models, context and chats belong to one account and nobody else sees them.
+- First-run setup: the first account becomes the admin and keeps everything already on the server.
+- Account page: display name, password, passkeys and signed-in devices. Admins manage people under **Accounts**.
+- Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
+
 ### Changed
 
+- Every `/api` call needs a signed-in session. `Orbs:ApiToken` still works for scripts and now acts as the first admin.
 - SQLite databases now use migrations too, so future versions can change the schema without losing data. Databases from 0.1 and 0.2 are upgraded in place on start.
 
 ## [0.2.0] - 2026-11-26

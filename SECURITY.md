@@ -37,7 +37,8 @@ Please give me reasonable time to fix the problem before you share details publi
 - **Self-hosted**: your orbs, context and chats stay in your own database.
 - **API keys** of model providers are encrypted at rest with ASP.NET Core Data Protection and are never returned by the API.
 - **Least exposure**: an orb only sends a model the context sources you linked to it.
-- **Optional API token**: set `Orbs__ApiToken` to require a bearer token on every `/api` call.
+- **Accounts**: everyone signs in with a password, a passkey or an OpenID Connect provider. Each account only sees its own orbs, models, context and chats. Passwords are hashed with PBKDF2-SHA512; sessions are random tokens stored only as a hash, sent in an HttpOnly, SameSite cookie.
+- **API token for scripts**: `Orbs__ApiToken` lets scripts call the API as the first admin.
 - **Containers** run as a non-root user.
 - **Supply chain**: Dependabot, CodeQL and locked dependency versions (central package management, pnpm lockfile).
 - **No telemetry**: Orbs doesn't send usage data to me or anyone else.
@@ -45,7 +46,9 @@ Please give me reasonable time to fix the problem before you share details publi
 ## Hardening checklist for self-hosting
 
 - Put Orbs behind HTTPS (a reverse proxy such as Caddy, Traefik or nginx).
-- Set `Orbs__ApiToken` before exposing Orbs to the internet. Orbs has no user accounts yet.
+- Set `Orbs__PublicUrl` to the address people open Orbs on (for example `https://orbs.example.com`), so passkeys work and are bound to it.
+- Create the first account right after starting Orbs: until then anyone who reaches the server can claim it.
+- Only set `Orbs__ApiToken` when a script needs it, and keep it long and secret: it acts as the first admin.
 - Change the default PostgreSQL password in `.env` and do not publish the database port.
 - Back up the database volume; it also holds the keys that decrypt your provider API keys.
 - The web page connector fetches URLs from the server. If your server can reach internal services, only let trusted people add sources.

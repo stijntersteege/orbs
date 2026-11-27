@@ -12,7 +12,16 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL, trace: 'on-first-retry' },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    {
+      name: 'desktop',
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/state.json' },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/state.json' },
+      dependencies: ['setup'],
+    },
   ],
 })
