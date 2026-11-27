@@ -12,6 +12,7 @@
     <PackageReference Include="Fido2" />
     <PackageReference Include="ModelContextProtocol.Core" />
     <PackageReference Include="MailKit" />
+    <PackageReference Include="PdfPig" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>

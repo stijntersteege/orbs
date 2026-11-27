@@ -37,6 +37,8 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
     public bool SupportsTools => true;
 
+    public bool SupportsImages => true;
+
     public async IAsyncEnumerable<string> StreamChatAsync(
         ProviderConnection connection,
         ChatRequest request,
@@ -155,7 +157,15 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
             var item = new JsonObject
             {
                 ["role"] = turn.Role.ToString().ToLowerInvariant(),
-                ["content"] = turn.Content,
+                ["content"] = turn.Images is { Count: > 0 } images
+                    ? new JsonArray([
+                        new JsonObject { ["type"] = "text", ["text"] = turn.Content },
+                        .. images.Select(i => (JsonNode)new JsonObject
+                        {
+                            ["type"] = "image_url",
+                            ["image_url"] = new JsonObject { ["url"] = $"data:{i.MediaType};base64,{i.Base64}" },
+                        })])
+                    : turn.Content,
             };
             if (turn.ToolCalls is { Count: > 0 } calls)
             {

@@ -57,6 +57,16 @@ export const contextApi = {
   update: (id: string, body: SaveContextSourceRequest) =>
     http.put<ContextSource>(`/api/context-sources/${id}`, body),
   sync: (id: string) => http.post<ContextSource>(`/api/context-sources/${id}/sync`),
+  /** Uploads a PDF, Word, Markdown or text document, or an image. */
+  upload: async (file: File, name?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (name) form.append('name', name)
+    return (
+      await request('/api/context-sources/files', { method: 'POST', body: form })
+    ).json() as Promise<ContextSource>
+  },
+  fileUrl: (id: string) => `/api/context-sources/${id}/file`,
   remove: (id: string) => http.delete(`/api/context-sources/${id}`),
 }
 

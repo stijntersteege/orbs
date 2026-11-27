@@ -26,7 +26,8 @@ public static class PromptBuilder
         IReadOnlyList<Message> history,
         PromptBudget? budget = null,
         IReadOnlyList<Memory>? memories = null,
-        IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null)
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null,
+        IReadOnlyList<ChatImage>? images = null)
     {
         ArgumentNullException.ThrowIfNull(orb);
         ArgumentNullException.ThrowIfNull(context);
@@ -38,6 +39,13 @@ public static class PromptBuilder
             .OrderBy(m => m.CreatedAt)
             .TakeLast(budget.MaxHistoryMessages)
             .Select(m => new ChatTurn(m.Role == MessageRole.User ? ChatRole.User : ChatRole.Assistant, m.Content)));
+
+        // Pictures among the orb's sources go with the latest question, where every API accepts them.
+        if (images is { Count: > 0 } && turns.FindLastIndex(t => t.Role == ChatRole.User) is var last and >= 0)
+        {
+            turns[last] = turns[last] with { Images = images };
+        }
+
         return turns;
     }
 

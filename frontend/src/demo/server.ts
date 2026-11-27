@@ -68,6 +68,13 @@ export const CONTEXT_KINDS: ContextKind[] = [
     usesInput: true,
   },
   {
+    kind: 'file',
+    displayName: 'File',
+    description: 'Upload a PDF, a Word or Markdown document, or an image.',
+    usesLocation: false,
+    usesInput: false,
+  },
+  {
     kind: 'url',
     displayName: 'Web page',
     description: 'Paste a link. Orbs reads the page and keeps its text in sync when you ask.',
@@ -191,6 +198,11 @@ export class DemoServer {
         if (id === 'kinds') return json(CONTEXT_KINDS)
         if (!id)
           return method === 'GET' ? json(s.contextSources) : json(this.saveSource(undefined, body), 201)
+        if (id === 'files')
+          throw new HttpError(
+            400,
+            'The live demo cannot read files. Self-host Orbs to upload documents and pictures.',
+          )
         if (action === 'sync') return json(this.syncSource(id))
         if (method === 'PUT') return json(this.saveSource(id, body))
         if (method === 'DELETE') return this.removeSource(id)

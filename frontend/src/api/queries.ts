@@ -117,6 +117,14 @@ export function useSyncContextSource() {
   })
 }
 
+export function useUploadContextFile() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ file, name }: { file: File; name?: string }) => contextApi.upload(file, name),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.context }),
+  })
+}
+
 export function useDeleteContextSource() {
   const client = useQueryClient()
   return useMutation({

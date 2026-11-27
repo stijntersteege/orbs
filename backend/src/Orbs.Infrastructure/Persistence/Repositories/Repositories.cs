@@ -145,3 +145,15 @@ internal sealed class ContextChunkRepository(OrbsDbContext db) : EfRepository<Co
     public Task DeleteForSourceAsync(Guid sourceId, CancellationToken cancellationToken = default) =>
         Query.Where(c => c.SourceId == sourceId).ExecuteDeleteAsync(cancellationToken);
 }
+
+internal sealed class ContextFileRepository(OrbsDbContext db) : EfRepository<ContextFile>(db), IContextFileRepository
+{
+    public Task<ContextFile?> FindBySourceAsync(Guid sourceId, CancellationToken cancellationToken = default) =>
+        Query.FirstOrDefaultAsync(f => f.SourceId == sourceId, cancellationToken);
+
+    public async Task<IReadOnlyList<ContextFile>> ListImagesAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default)
+    {
+        var ids = sourceIds.ToList();
+        return await Query.AsNoTracking().Where(f => ids.Contains(f.SourceId) && f.ContentType.StartsWith("image/")).ToListAsync(cancellationToken);
+    }
+}

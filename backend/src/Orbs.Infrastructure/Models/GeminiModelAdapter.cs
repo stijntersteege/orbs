@@ -31,6 +31,8 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
 
     public bool SupportsTools => true;
 
+    public bool SupportsImages => true;
+
     public async IAsyncEnumerable<string> StreamChatAsync(ProviderConnection connection, ChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var output in StreamAsync(connection, request, cancellationToken))
@@ -137,6 +139,11 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
                 if (turn.Content.Length > 0)
                 {
                     parts.Add(new JsonObject { ["text"] = turn.Content });
+                }
+
+                foreach (var image in turn.Images ?? [])
+                {
+                    parts.Add(new JsonObject { ["inlineData"] = new JsonObject { ["mimeType"] = image.MediaType, ["data"] = image.Base64 } });
                 }
 
                 foreach (var call in turn.ToolCalls ?? [])

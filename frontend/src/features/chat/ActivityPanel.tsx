@@ -6,7 +6,7 @@ import type { ActivityEntry, ToolActivity } from './useChat'
 import styles from './chat.module.css'
 import { MemoryTab } from './MemoryTab'
 
-const KIND_LABEL: Record<string, string> = { text: 'Note', url: 'Web page' }
+const KIND_LABEL: Record<string, string> = { text: 'Note', url: 'Web page', file: 'File' }
 
 export const kindLabel = (kind: string) => KIND_LABEL[kind] ?? kind
 

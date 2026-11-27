@@ -6,6 +6,7 @@ import {
   useOrbs,
   useSaveContextSource,
   useSyncContextSource,
+  useUploadContextFile,
 } from '@/api/queries'
 import type { ContextKind, ContextSource } from '@/api/types'
 import {
@@ -22,7 +23,7 @@ import {
 import { Icon, type IconName } from '@/components/ui/icons'
 import styles from '../shared.module.css'
 
-const KIND_ICON: Record<string, IconName> = { text: 'note', url: 'globe' }
+const KIND_ICON: Record<string, IconName> = { text: 'note', url: 'globe', file: 'file' }
 
 function statusChip(source: ContextSource) {
   if (source.status === 'ready') return <Chip tone="ok">● Synced</Chip>
@@ -35,14 +36,22 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [input, setInput] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const save = useSaveContextSource()
+  const upload = useUploadContextFile()
   const selected = kinds.find((k) => k.kind === kind)
+  const isFile = kind === 'file'
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    await save.mutateAsync({
-      body: { name, kind, location: location || undefined, input: input || undefined },
-    })
+    if (isFile) {
+      if (!file) return
+      await upload.mutateAsync({ file, name: name || undefined })
+    } else {
+      await save.mutateAsync({
+        body: { name, kind, location: location || undefined, input: input || undefined },
+      })
+    }
     onDone()
   }
 
@@ -67,10 +76,22 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
             </label>
           ))}
         </fieldset>
+        {isFile && (
+          <label className={styles.fileDrop}>
+            <span>{file ? file.name : 'Choose a PDF, Word or Markdown document, or a picture'}</span>
+            <input
+              type="file"
+              aria-label="File"
+              accept=".pdf,.docx,.md,.markdown,.txt,.csv,.json,.html,.png,.jpg,.jpeg,.gif,.webp"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        )}
         <TextField
           label="Name"
           value={name}
-          required
+          required={!isFile}
+          hint={isFile ? 'Optional. Defaults to the file name.' : undefined}
           maxLength={80}
           onChange={(e) => setName(e.target.value)}
           placeholder="Team handbook"
@@ -95,10 +116,14 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
             placeholder="Anything your orbs should know."
           />
         )}
-        <ErrorNotice error={save.error} />
+        <ErrorNotice error={save.error ?? upload.error} />
         <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={save.isPending}>
-            {save.isPending ? 'Connecting…' : 'Connect'}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={save.isPending || upload.isPending || (isFile && !file)}
+          >
+            {save.isPending || upload.isPending ? 'Connecting…' : isFile ? 'Upload' : 'Connect'}
           </Button>
           <Button variant="ghost" onClick={onDone}>
             Cancel

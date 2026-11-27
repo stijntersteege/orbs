@@ -285,3 +285,21 @@ internal sealed class ContextChunkConfiguration : IEntityTypeConfiguration<Conte
         builder.HasOne<ContextSource>().WithMany().HasForeignKey(c => c.SourceId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class ContextFileConfiguration : IEntityTypeConfiguration<ContextFile>
+{
+    public void Configure(EntityTypeBuilder<ContextFile> builder)
+    {
+        builder.ToTable("context_files");
+        builder.HasKey(f => f.Id);
+        builder.Property(f => f.Id).ValueGeneratedNever();
+        builder.HasIndex(f => f.OwnerId);
+        builder.HasIndex(f => f.SourceId).IsUnique();
+        builder.Property(f => f.FileName).HasMaxLength(ContextFile.MaxFileNameLength).IsRequired();
+        builder.Property(f => f.ContentType).HasMaxLength(100).IsRequired();
+        builder.Property(f => f.Data).IsRequired();
+        builder.Ignore(f => f.Size);
+        builder.Ignore(f => f.IsImage);
+        builder.HasOne<ContextSource>().WithMany().HasForeignKey(f => f.SourceId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

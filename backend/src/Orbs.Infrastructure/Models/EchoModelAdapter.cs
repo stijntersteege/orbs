@@ -30,6 +30,8 @@ internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter
 
     public bool SupportsTools => true;
 
+    public bool SupportsImages => true;
+
     /// <summary>Pause between words so the UI shows real streaming. Zero in tests.</summary>
     internal TimeSpan WordDelay { get; init; } = TimeSpan.FromMilliseconds(25);
 
@@ -81,7 +83,9 @@ internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter
             }
         }
 
-        await foreach (var word in Words($"You said: {lastUserMessage}", cancellationToken))
+        var pictures = request.Messages.LastOrDefault(m => m.Role == ChatRole.User)?.Images?.Count ?? 0;
+        var echo = pictures == 0 ? $"You said: {lastUserMessage}" : $"You said: {lastUserMessage} (and showed me {pictures} {(pictures == 1 ? "picture" : "pictures")})";
+        await foreach (var word in Words(echo, cancellationToken))
         {
             yield return new TextOutput(word);
         }
