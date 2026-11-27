@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IJobHandler, ContextIndexJob>();
         services.AddScoped<ITool, RememberTool>();
         services.AddScoped<ITool, ForgetTool>();
+        services.AddScoped<ITool, Orbs.AskOrbTool>();
         services.AddScoped<IToolSource, BuiltInToolSource>();
         services.AddScoped<IToolSource, McpToolSource>();
         services.AddScoped<IToolSource, IntegrationToolSource>();

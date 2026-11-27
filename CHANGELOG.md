@@ -34,6 +34,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - A voice per orb, chosen in the orb editor next to its face, with a preview. Replies read aloud use the orb's voice.
 - Animated faces: an orb shows what it is doing. Wide eyes and a pulsing ring while it listens, a pulsing glow while it thinks, a moving mouth while it speaks, and a question mark while it waits for your approval. Reduced-motion settings stop the movement.
 - Group chats: type `@Name` to hand a question to another orb. It joins the chat and answers; mention several and they answer in turn, each seeing what the others said. Every reply shows the face and name of the orb that wrote it, and typing `@` suggests orbs. `POST /api/conversations` takes `with` to start a group chat.
+- Coordinator orbs: the built-in `ask_orb` tool lets an orb hand a question to one of your other orbs, a specialist, and use its answer in its reply. The specialist answers with its own brief, context and memories but without tools, so a delegated question never acts on anything. Called without an orb, it lists your orbs and what each one does. Runs without asking by default; change that per orb.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed
