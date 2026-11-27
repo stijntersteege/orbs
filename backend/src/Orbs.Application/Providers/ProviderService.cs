@@ -12,7 +12,8 @@ public sealed class ProviderService(
     PluginRegistry<IModelAdapter> adapters,
     ISecretProtector secrets,
     IUnitOfWork unitOfWork,
-    TimeProvider clock)
+    TimeProvider clock,
+    Accounts.CurrentUser currentUser)
 {
     public IReadOnlyList<ProviderKindDto> ListKinds() => [.. adapters.All.Select(a => a.ToDto())];
 
@@ -82,7 +83,7 @@ public sealed class ProviderService(
     {
         ArgumentNullException.ThrowIfNull(provider);
         var apiKey = provider.ProtectedApiKey is null ? null : secrets.Unprotect(provider.ProtectedApiKey);
-        return new ProviderConnection(provider.BaseUrl, apiKey);
+        return new ProviderConnection(provider.BaseUrl, apiKey, RestrictNetwork: !currentUser.IsAdmin);
     }
 
     private async Task<ModelProvider> LoadAsync(Guid id, CancellationToken cancellationToken) =>

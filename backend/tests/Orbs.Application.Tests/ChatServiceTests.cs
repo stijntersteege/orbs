@@ -22,7 +22,7 @@ public class ChatServiceTests
     private ChatService CreateService(params IModelAdapter[] adapters)
     {
         var registry = new PluginRegistry<IModelAdapter>(adapters);
-        var providerService = new ProviderService(_store.Providers, _store.Orbs, registry, new FakeSecretProtector(), _store, _clock);
+        var providerService = new ProviderService(_store.Providers, _store.Orbs, registry, new FakeSecretProtector(), _store, _clock, new CurrentUser());
         var tools = new ToolRunner(new ToolCatalog([]), new CurrentUser());
         var engine = new ReplyEngine(tools, _store.Approvals, _store, _clock);
         var memories = new MemoryService(_store.Memories, _store.Orbs, _store, _clock);

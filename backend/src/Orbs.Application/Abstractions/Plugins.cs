@@ -49,7 +49,11 @@ public sealed record TextOutput(string Text) : ModelOutput;
 public sealed record ToolCallOutput(ToolCall Call) : ModelOutput;
 
 /// <summary>What an adapter needs to reach a provider. The API key is already decrypted.</summary>
-public sealed record ProviderConnection(Uri? BaseUrl, string? ApiKey);
+/// <summary>
+/// Where and how to reach a provider. <paramref name="RestrictNetwork"/> is true for providers that people other
+/// than admins add: their requests may not reach private or local addresses.
+/// </summary>
+public sealed record ProviderConnection(Uri? BaseUrl, string? ApiKey, bool RestrictNetwork = false);
 
 public sealed record ModelInfo(string Id, string? DisplayName = null);
 

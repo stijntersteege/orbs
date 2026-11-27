@@ -45,7 +45,7 @@ internal static class ContextEndpoints
         group.MapGet("/{id:guid}/file", async (Guid id, FileContextService files, CancellationToken ct) =>
             {
                 var file = await files.DownloadAsync(id, ct);
-                return TypedResults.File(file.Data, file.ContentType, file.FileName);
+                return TypedResults.File(file.Data, SafeDownloadType(file.ContentType), file.FileName);
             })
             .WithSummary("Download the file behind a file source");
 
@@ -62,4 +62,25 @@ internal static class ContextEndpoints
             })
             .WithSummary("Remove a context source from every orb and delete it");
     }
+
+    private static readonly HashSet<string> PassiveTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/json",
+        "text/plain",
+        "text/markdown",
+        "text/csv",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+    };
+
+    /// <summary>
+    /// Uploaded files keep their type only when it cannot run in a browser. HTML, SVG and anything unknown
+    /// download as plain bytes, so an upload can never act as a page on the Orbs address.
+    /// </summary>
+    internal static string SafeDownloadType(string contentType) =>
+        PassiveTypes.Contains(contentType) ? contentType : "application/octet-stream";
 }

@@ -40,6 +40,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     public bool SeedDemoData { get; init; }
 
+    /// <summary>Sign-in attempts allowed per minute. High by default so tests that sign in a lot are not slowed down.</summary>
+    public int SignInPerMinute { get; init; } = 10_000;
+
     /// <summary>The server's clock: real time, but tests can move it forward.</summary>
     public TestClock Clock { get; } = new();
 
@@ -152,6 +155,7 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Orbs:SeedDemoData", SeedDemoData ? "true" : "false");
         builder.UseSetting("Orbs:ApiToken", ApiToken);
         builder.UseSetting("Orbs:Jobs:Enabled", "false"); // tests run jobs by hand with JobRunner
+        builder.UseSetting("Orbs:RateLimits:SignInPerMinute", SignInPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         builder.ConfigureTestServices(services =>
         {
