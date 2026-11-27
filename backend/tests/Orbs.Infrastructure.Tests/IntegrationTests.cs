@@ -12,7 +12,7 @@ public class IntegrationTests
     private static IntegrationConfig Config(Dictionary<string, string> settings, string? secret = "secret") =>
         new(Guid.NewGuid(), "Test", settings, secret, RestrictNetwork: false);
 
-    private static JsonElement Args(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Args(string json) => JsonElement.Parse(json);
 
     [Fact]
     public async Task Web_search_reads_searxng_results()
