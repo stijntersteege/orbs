@@ -29,6 +29,7 @@ internal sealed class OwnershipMaintenance(OrbsDbContext db) : IOwnershipMainten
     private IEnumerable<IQueryable<OwnedAggregateRoot>> OwnedSets()
     {
         yield return db.Jobs;
+        yield return db.ToolApprovals;
         yield return db.Conversations;
         yield return db.Orbs;
         yield return db.ContextSources;

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
@@ -110,4 +111,10 @@ internal sealed class JobRepository(OrbsDbContext db) : EfRepository<Job>(db), I
 
     public Task<bool> AnyPendingAsync(string kind, CancellationToken cancellationToken = default) =>
         Query.AnyAsync(j => j.Kind == kind && j.Status == JobStatus.Pending, cancellationToken);
+}
+
+internal sealed class ToolApprovalRepository(OrbsDbContext db) : EfRepository<ToolApproval>(db), IToolApprovalRepository
+{
+    public async Task<IReadOnlyList<ToolApproval>> ListPendingAsync(Guid conversationId, CancellationToken cancellationToken = default) =>
+        await Query.Where(a => a.ConversationId == conversationId && a.Status == ApprovalStatus.Pending).ToListAsync(cancellationToken);
 }

@@ -15,6 +15,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Long chats load their newest 50 messages and page back on request (**Load earlier messages**). `GET /api/conversations/{id}/messages?before=...&limit=...` pages through older ones; `GET /api/conversations/{id}` takes `limit` and says `hasMoreMessages`.
 - Tools: orbs can call tools while they answer. A new `ITool` port (next to `IModelAdapter` and `IContextConnector`), `IToolSource` for sets of tools, and function calling in the OpenAI-compatible adapter. Two built-in tools to start: **Current time** and **Calculator**. The Echo demo model tries a tool when you type `/tool <name> {json}`.
 - Every tool call, its input and its result streams to the app (`tool_call` and `tool_result` events), shows in the activity panel and is saved with the reply, together with the model that wrote it. `GET /api/tools` lists the tools.
+- Tool permissions per orb: **Allow**, **Ask first** (the default) or **Block**, set in the orb editor under "What it can do". Blocked tools are not offered to the model at all.
+- Approval cards: when an orb wants a tool that asks first, the reply pauses and the chat shows what it wants to do. **Allow once**, **Always allow** or **Decline**; the reply then continues. Waiting requests survive a reload. `POST /api/conversations/{id}/approvals/{approvalId}` answers one and streams the rest of the reply.
+- The audit trail records who let each tool call happen: allowed by the orb settings, approved or declined by you.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

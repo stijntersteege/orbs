@@ -38,8 +38,18 @@ internal static class ConversationEndpoints
                 var events = await chat.SendAsync(id, request, ct);
                 return TypedResults.ServerSentEvents(ToSse(events, ct));
             })
-            .WithSummary("Send a message and stream the reply as server-sent events (start with model, provider and sources read; delta; done; error)");
+            .WithSummary("Send a message and stream the reply as server-sent events (start, delta, tool_call, tool_result, approval_required, done, error)");
+
+        MapApprovals(group);
     }
+
+    private static void MapApprovals(RouteGroupBuilder group) =>
+        group.MapPost("/{id:guid}/approvals/{approvalId:guid}", async (Guid id, Guid approvalId, DecideRequest request, ChatService chat, CancellationToken ct) =>
+            {
+                var events = await chat.DecideAsync(id, approvalId, request, ct);
+                return TypedResults.ServerSentEvents(ToSse(events, ct));
+            })
+            .WithSummary("Answer a tool call that waits for approval (approve, deny or always) and stream the rest of the reply");
 
     private static async IAsyncEnumerable<SseItem<ChatEvent>> ToSse(
         IAsyncEnumerable<ChatEvent> events,

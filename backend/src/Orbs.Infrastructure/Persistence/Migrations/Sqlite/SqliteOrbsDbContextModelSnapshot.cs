@@ -154,6 +154,61 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Conversations.ToolApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Arguments")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CallId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("DecidedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tool")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("ConversationId", "Status");
+
+                    b.ToTable("tool_approvals", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Jobs.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -248,6 +303,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("context_source_ids");
+
+                    b.Property<string>("_toolPermissions")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tool_permissions");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Appearance", "Orbs.Domain.Orbs.Orb.Appearance#OrbAppearance", b1 =>
                         {
@@ -451,6 +511,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                             b1.Property<string>("Arguments")
                                 .IsRequired();
 
+                            b1.Property<string>("Decision");
+
                             b1.Property<long>("DurationMs");
 
                             b1.Property<bool>("IsError");
@@ -474,6 +536,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         });
 
                     b.Navigation("ToolCalls");
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Conversations.ToolApproval", b =>
+                {
+                    b.HasOne("Orbs.Domain.Conversations.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>

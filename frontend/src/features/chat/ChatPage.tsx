@@ -16,6 +16,7 @@ import { Orb } from '@/components/orb/Orb'
 import { Button, ErrorNotice, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import { useSettings } from '@/app/SettingsContext'
+import { ApprovalCard } from './ApprovalCard'
 import { useChat } from './useChat'
 import { ModelPicker } from './ModelPicker'
 import { ActivityPanel, kindLabel } from './ActivityPanel'
@@ -103,7 +104,12 @@ export function ChatPage() {
     (params.orbId ? undefined : (orbs.data?.find((o) => o.id === settings.lastOrbId) ?? orbs.data?.[0]))
   const conversationId = params.conversationId
   const conversation = useConversation(conversationId)
-  const chat = useChat(conversationId, conversation.data?.messages, conversation.data?.hasMoreMessages)
+  const chat = useChat(
+    conversationId,
+    conversation.data?.messages,
+    conversation.data?.hasMoreMessages,
+    conversation.data?.pendingApproval ?? null,
+  )
   const [draft, setDraft] = useState('')
   const [pendingModel, setPendingModel] = useState<ModelRef | undefined>()
   const [error, setError] = useState<unknown>(null)
@@ -350,6 +356,13 @@ export function ChatPage() {
                       )}
                     </div>
                   </div>
+                )}
+                {chat.approval && (
+                  <ApprovalCard
+                    orbName={name}
+                    approval={chat.approval}
+                    onDecide={(d) => void chat.decide(d)}
+                  />
                 )}
                 <div ref={endRef} />
               </div>

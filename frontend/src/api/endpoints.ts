@@ -1,6 +1,7 @@
 import { http, request } from './client'
 import { readServerSentEvents } from './sse'
 import type {
+  ApprovalDecision,
   ChatEvent,
   ContextKind,
   ContextSource,
@@ -71,6 +72,23 @@ export const conversationsApi = {
     const response = await request(`/api/conversations/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ content }),
+      headers: { Accept: 'text/event-stream' },
+      signal,
+    })
+    if (!response.body) throw new Error('The server sent no reply stream.')
+    yield* readServerSentEvents<ChatEvent>(response.body)
+  },
+
+  /** Answers a tool call that waits for approval and yields the rest of the reply. */
+  async *decide(
+    id: string,
+    approvalId: string,
+    decision: ApprovalDecision,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ChatEvent> {
+    const response = await request(`/api/conversations/${id}/approvals/${approvalId}`, {
+      method: 'POST',
+      body: JSON.stringify({ decision }),
       headers: { Accept: 'text/event-stream' },
       signal,
     })

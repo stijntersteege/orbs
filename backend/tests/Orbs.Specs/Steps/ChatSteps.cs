@@ -1,6 +1,7 @@
 using System.Net;
 using Orbs.Application.Conversations;
 using Orbs.Application.Providers;
+using Orbs.Domain.Orbs;
 using Orbs.Specs.Support;
 using Orbs.Testing;
 using Reqnroll;
@@ -90,6 +91,44 @@ public sealed class ChatSteps(SpecContext context)
     {
         context.LastReply!.Events.ShouldContain(e => e.Type == ChatEvent.ToolCallType && e.Tool == tool);
         context.LastReply.Events.ShouldContain(e => e.Type == ChatEvent.ToolResultType && e.Text == result);
+    }
+
+    [Given("{string} may use {string} without asking")]
+    public async Task GivenMayUseWithoutAsking(string orb, string tool) =>
+        context.Orbs[orb] = await context.Api.SetToolAccessAsync(context.Orbs[orb], tool, ToolAccess.Allow);
+
+    [Given("{string} may never use {string}")]
+    public async Task GivenMayNeverUse(string orb, string tool) =>
+        context.Orbs[orb] = await context.Api.SetToolAccessAsync(context.Orbs[orb], tool, ToolAccess.Block);
+
+    [Then("{string} asks to use {string}")]
+    public void ThenAsksToUse(string orb, string tool)
+    {
+        var last = context.LastReply!.Events[^1];
+        last.Type.ShouldBe(ChatEvent.ApprovalType, $"{orb} should wait for an answer");
+        last.Tool.ShouldBe(tool);
+    }
+
+    [When("I approve the tool call")]
+    public async Task WhenIApprove() =>
+        context.LastReply = await context.Api.DecideAsync(context.Conversation!.Id, context.LastReply!.Events[^1].ApprovalId!.Value, ApprovalDecision.Approve);
+
+    [When("I decline the tool call")]
+    public async Task WhenIDecline() =>
+        context.LastReply = await context.Api.DecideAsync(context.Conversation!.Id, context.LastReply!.Events[^1].ApprovalId!.Value, ApprovalDecision.Deny);
+
+    [Then("{string} replies without having run {string}")]
+    public void ThenRepliesWithoutRunning(string orb, string tool)
+    {
+        context.LastReply!.Events[^1].Type.ShouldBe(ChatEvent.DoneType, $"{orb} should finish");
+        context.LastReply.Events.Single(e => e.Type == ChatEvent.ToolResultType && e.Tool == tool).Decision.ShouldBe("denied");
+    }
+
+    [Then("the reply finishes and the last saved reply lists the tool {string}")]
+    public async Task ThenTheReplyFinishesAndLists(string tool)
+    {
+        context.LastReply!.Events[^1].Type.ShouldBe(ChatEvent.DoneType);
+        await ThenTheLastSavedReplyListsTheTool(tool);
     }
 
     [Then("the last saved reply lists the tool {string}")]

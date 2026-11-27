@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
@@ -38,6 +40,18 @@ internal sealed class OrbConfiguration : IEntityTypeConfiguration<Orb>
             m.Property(x => x.ProviderId).HasColumnName("model_provider_id");
             m.Property(x => x.Model).HasMaxLength(ModelRef.MaxModelLength).HasColumnName("model_name");
         });
+
+        builder.Property<Dictionary<string, ToolAccess>>("_toolPermissions")
+            .HasColumnName("tool_permissions")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<Dictionary<string, ToolAccess>>(v, (JsonSerializerOptions?)null) ?? new Dictionary<string, ToolAccess>(),
+                new ValueComparer<Dictionary<string, ToolAccess>>(
+                    (a, b) => a!.Count == b!.Count && !a.Except(b).Any(),
+                    v => v.Aggregate(0, (hash, pair) => HashCode.Combine(hash, pair.Key, pair.Value)),
+                    v => new Dictionary<string, ToolAccess>(v, StringComparer.Ordinal)))
+            .IsRequired();
+        builder.Ignore(o => o.ToolPermissions);
 
         builder.PrimitiveCollection<List<Guid>>("_contextSourceIds")
             .HasColumnName("context_source_ids")
@@ -183,5 +197,23 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.LastError).HasMaxLength(Job.MaxErrorLength);
         builder.Property(j => j.Result).HasMaxLength(Job.MaxResultLength);
         builder.HasIndex(j => new { j.Status, j.RunAt });
+    }
+}
+
+internal sealed class ToolApprovalConfiguration : IEntityTypeConfiguration<ToolApproval>
+{
+    public void Configure(EntityTypeBuilder<ToolApproval> builder)
+    {
+        builder.ToTable("tool_approvals");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+        builder.HasIndex(a => a.OwnerId);
+        builder.HasIndex(a => new { a.ConversationId, a.Status });
+        builder.Property(a => a.CallId).HasMaxLength(200).IsRequired();
+        builder.Property(a => a.Tool).HasMaxLength(200).IsRequired();
+        builder.Property(a => a.Arguments).IsRequired();
+        builder.Property(a => a.State).IsRequired();
+        builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<Conversation>().WithMany().HasForeignKey(a => a.ConversationId).OnDelete(DeleteBehavior.Cascade);
     }
 }

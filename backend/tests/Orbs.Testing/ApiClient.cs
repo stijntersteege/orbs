@@ -5,6 +5,7 @@ using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
+using Orbs.Domain.Orbs;
 
 namespace Orbs.Testing;
 
@@ -30,12 +31,33 @@ public sealed class ApiClient(HttpClient http)
     public async Task<ConversationDto> StartConversationAsync(Guid orbId) =>
         await ReadAsync<ConversationDto>(await Http.PostAsJsonAsync("/api/conversations", new StartConversationRequest(orbId), Json));
 
+    /// <summary>Sets one tool's permission on an orb, keeping everything else.</summary>
+    public async Task<OrbDto> SetToolAccessAsync(OrbDto orb, string tool, ToolAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(orb);
+        var permissions = new Dictionary<string, ToolAccess>(orb.ToolPermissions ?? new Dictionary<string, ToolAccess>()) { [tool] = access };
+        var request = new SaveOrbRequest(orb.Name, orb.Description, orb.Instructions, orb.Appearance, orb.Model, orb.ContextSourceIds, permissions);
+        return await ReadAsync<OrbDto>(await Http.PutAsJsonAsync($"/api/orbs/{orb.Id}", request, Json));
+    }
+
+    /// <summary>Answers a waiting tool call and collects the rest of the reply.</summary>
+    public async Task<SendResult> DecideAsync(Guid conversationId, Guid approvalId, ApprovalDecision decision)
+    {
+        var response = await Http.PostAsJsonAsync($"/api/conversations/{conversationId}/approvals/{approvalId}", new DecideRequest(decision), Json);
+        return await CollectAsync(response);
+    }
+
     public async Task<T> GetAsync<T>(string path) => await ReadAsync<T>(await Http.GetAsync(new Uri(path, UriKind.Relative)));
 
     /// <summary>Sends a message and collects every server-sent event of the reply.</summary>
     public async Task<SendResult> SendAsync(Guid conversationId, string content)
     {
         var response = await Http.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest(content), Json);
+        return await CollectAsync(response);
+    }
+
+    private static async Task<SendResult> CollectAsync(HttpResponseMessage response)
+    {
         if (!response.IsSuccessStatusCode)
         {
             return new SendResult(response, []);

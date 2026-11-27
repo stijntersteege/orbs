@@ -11,7 +11,14 @@ public sealed record MessageDto(
     IReadOnlyList<ToolCallDto>? ToolCalls = null);
 
 /// <summary>A tool an orb used while writing a reply: the audit trail.</summary>
-public sealed record ToolCallDto(string Tool, string Arguments, string Result, bool IsError, long DurationMs);
+public sealed record ToolCallDto(string Tool, string Arguments, string Result, bool IsError, long DurationMs, string? Decision = null);
+
+/// <summary>A tool call waiting for the person's yes or no.</summary>
+public sealed record ApprovalDto(Guid Id, string CallId, string Tool, string Arguments);
+
+public enum ApprovalDecision { Approve, Deny, Always }
+
+public sealed record DecideRequest(ApprovalDecision Decision);
 
 public sealed record ConversationSummaryDto(Guid Id, Guid OrbId, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
@@ -23,7 +30,8 @@ public sealed record ConversationDto(
     IReadOnlyList<MessageDto> Messages,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    bool HasMoreMessages = false);
+    bool HasMoreMessages = false,
+    ApprovalDto? PendingApproval = null);
 
 /// <summary>A page of older messages, oldest first.</summary>
 public sealed record MessagePageDto(IReadOnlyList<MessageDto> Messages, bool HasMore);
@@ -50,20 +58,32 @@ public sealed record ChatEvent(
     string? Tool = null,
     string? Arguments = null,
     bool? IsError = null,
-    long? DurationMs = null)
+    long? DurationMs = null,
+    Guid? ApprovalId = null,
+    string? Decision = null,
+    bool? Resumed = null)
 {
     public const string StartType = "start";
     public const string DeltaType = "delta";
     public const string ToolCallType = "tool_call";
     public const string ToolResultType = "tool_result";
+    public const string ApprovalType = "approval_required";
     public const string DoneType = "done";
     public const string ErrorType = "error";
 
     public static ChatEvent ToolCalled(string callId, string tool, string arguments) =>
         new(ToolCallType, CallId: callId, Tool: tool, Arguments: arguments);
 
-    public static ChatEvent ToolResult(string callId, string tool, string result, bool isError, long durationMs) =>
-        new(ToolResultType, Text: result, CallId: callId, Tool: tool, IsError: isError, DurationMs: durationMs);
+    public static ChatEvent ToolResult(string callId, string tool, string result, bool isError, long durationMs, string? decision = null) =>
+        new(ToolResultType, Text: result, CallId: callId, Tool: tool, IsError: isError, DurationMs: durationMs, Decision: decision);
+
+    /// <summary>The reply stops here until the person answers <c>POST .../approvals/{approvalId}</c>.</summary>
+    public static ChatEvent ApprovalRequired(Guid approvalId, string callId, string tool, string arguments) =>
+        new(ApprovalType, ApprovalId: approvalId, CallId: callId, Tool: tool, Arguments: arguments);
+
+    /// <summary>The start of a reply that continues after an approval.</summary>
+    public static ChatEvent Resume(string model, string? provider) =>
+        new(StartType, Model: model, Provider: provider, Sources: [], Resumed: true);
 
     public static ChatEvent Start(string model, string? provider = null, IReadOnlyList<ChatSourceDto>? sources = null) =>
         new(StartType, Model: model, Provider: provider, Sources: sources ?? []);
@@ -93,7 +113,9 @@ internal static class ConversationMapping
         m.Content,
         m.CreatedAt,
         m.Model,
-        m.ToolCalls.Count == 0 ? null : [.. m.ToolCalls.Select(t => new ToolCallDto(t.Tool, t.Arguments, t.Result, t.IsError, t.DurationMs))]);
+        m.ToolCalls.Count == 0 ? null : [.. m.ToolCalls.Select(ToDto)]);
+
+    public static ToolCallDto ToDto(this ToolCallRecord t) => new(t.Tool, t.Arguments, t.Result, t.IsError, t.DurationMs, t.Decision);
 
     /// <summary>Turns a newest-first page fetched with one extra row into an oldest-first page.</summary>
     public static (IReadOnlyList<MessageDto> Messages, bool HasMore) ToPage(this IReadOnlyList<Message> newestFirst, int limit) =>

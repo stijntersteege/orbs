@@ -39,6 +39,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<Job> Jobs => Set<Job>();
 
+    public DbSet<ToolApproval> ToolApprovals => Set<ToolApproval>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -74,6 +76,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<ContextSource>(modelBuilder);
         FilterOwned<Conversation>(modelBuilder);
         FilterOwned<Job>(modelBuilder);
+        FilterOwned<ToolApproval>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Text;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Common;
 using Orbs.Application.Providers;
@@ -18,6 +16,8 @@ public sealed class ChatService(
     PluginRegistry<IModelAdapter> adapters,
     ProviderService providerService,
     ToolRunner tools,
+    ReplyEngine engine,
+    IToolApprovalRepository approvals,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -37,7 +37,13 @@ public sealed class ChatService(
         var conversation = await LoadAsync(id, cancellationToken);
         var size = PageSize(limit);
         var (messages, hasMore) = (await conversations.ListMessagesAsync(id, null, size + 1, cancellationToken)).ToPage(size);
-        return conversation.ToDto() with { Messages = messages, HasMoreMessages = hasMore };
+        var pending = (await approvals.ListPendingAsync(id, cancellationToken)).OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+        return conversation.ToDto() with
+        {
+            Messages = messages,
+            HasMoreMessages = hasMore,
+            PendingApproval = pending is null ? null : new ApprovalDto(pending.Id, pending.CallId, pending.Tool, pending.Arguments),
+        };
     }
 
     /// <summary>Messages written before <paramref name="before"/>, oldest first, for scrolling back.</summary>
@@ -70,8 +76,9 @@ public sealed class ChatService(
 
     /// <summary>
     /// Stores the user's message, then streams the orb's reply and stores it when complete.
-    /// When the model asks for tools, Orbs runs them, reports each call and result, and lets the model continue.
-    /// Validation problems throw before streaming starts; provider failures arrive as an error event.
+    /// When the model asks for tools, Orbs runs them (or asks the person first), reports each call and result,
+    /// and lets the model continue. Validation problems throw before streaming starts; provider failures arrive
+    /// as an error event.
     /// </summary>
     public async Task<IAsyncEnumerable<ChatEvent>> SendAsync(Guid conversationId, SendMessageRequest request, CancellationToken cancellationToken = default)
     {
@@ -83,120 +90,59 @@ public sealed class ChatService(
         var context = await contextSources.ListAsync(orb.ContextSourceIds, cancellationToken);
         var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
 
+        // A new message moves on from any tool call still waiting for an answer.
+        foreach (var pending in await approvals.ListPendingAsync(conversation.Id, cancellationToken))
+        {
+            pending.Expire(clock.GetUtcNow());
+        }
+
         conversation.AddUserMessage(request.Content, clock.GetUtcNow());
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var reply = new ReplyRun(
-            conversation,
-            orb,
-            adapter,
-            providerService.ConnectionFor(resolved.Provider),
-            resolved.Model,
-            [.. PromptBuilder.Build(orb, context, conversation.Messages)],
-            toolSet);
+        var state = new ReplyState
+        {
+            ProviderId = resolved.Provider.Id,
+            Model = resolved.Model,
+            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages)],
+        };
+        var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(resolved.Provider), toolSet);
         var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context));
-        return StreamReplyAsync(reply, start, cancellationToken);
+        return engine.RunAsync(reply, state, start, cancellationToken);
     }
 
-    /// <summary>Everything one reply needs while it goes back and forth between the model and tools.</summary>
-    private sealed record ReplyRun(
-        Conversation Conversation,
-        Orb Orb,
-        IModelAdapter Adapter,
-        ProviderConnection Connection,
-        string Model,
-        List<ChatTurn> Turns,
-        ToolSet Tools)
+    /// <summary>
+    /// Answers a tool call that waits for approval, then continues the paused reply as a new stream.
+    /// "Always" also allows the tool for this orb from now on.
+    /// </summary>
+    public async Task<IAsyncEnumerable<ChatEvent>> DecideAsync(Guid conversationId, Guid approvalId, DecideRequest request, CancellationToken cancellationToken = default)
     {
-        public List<ToolCallRecord> Records { get; } = [];
-    }
-
-    private async IAsyncEnumerable<ChatEvent> StreamReplyAsync(ReplyRun run, ChatEvent start, [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        yield return start;
-
-        var reply = new StringBuilder();
-        for (var round = 0; round <= ToolRunner.MaxRounds; round++)
+        ArgumentNullException.ThrowIfNull(request);
+        var conversation = await LoadAsync(conversationId, cancellationToken);
+        var approval = await approvals.FindAsync(approvalId, cancellationToken);
+        if (approval is null || approval.ConversationId != conversationId)
         {
-            var text = new StringBuilder();
-            var calls = new List<ToolCall>();
-            string? error = null;
-            var request = new ChatRequest(run.Model, run.Turns, run.Tools.Definitions);
-            var stream = run.Adapter.StreamAsync(run.Connection, request, cancellationToken).GetAsyncEnumerator(cancellationToken);
-            try
-            {
-                while (true)
-                {
-                    ModelOutput output;
-                    try
-                    {
-                        if (!await stream.MoveNextAsync())
-                        {
-                            break;
-                        }
-
-                        output = stream.Current;
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        error = $"The model could not answer: {ex.Message}";
-                        break;
-                    }
-
-                    if (output is TextOutput { Text.Length: > 0 } t)
-                    {
-                        text.Append(t.Text);
-                        reply.Append(t.Text);
-                        yield return ChatEvent.Delta(t.Text);
-                    }
-                    else if (output is ToolCallOutput c)
-                    {
-                        calls.Add(c.Call);
-                    }
-                }
-            }
-            finally
-            {
-                await stream.DisposeAsync();
-            }
-
-            if (error is not null)
-            {
-                yield return ChatEvent.Error(error);
-                yield break;
-            }
-
-            if (calls.Count == 0)
-            {
-                break;
-            }
-
-            if (round == ToolRunner.MaxRounds)
-            {
-                yield return ChatEvent.Error($"The orb kept asking for tools; it was stopped after {ToolRunner.MaxRounds} rounds.");
-                yield break;
-            }
-
-            run.Turns.Add(new ChatTurn(ChatRole.Assistant, text.ToString(), calls));
-            foreach (var call in calls)
-            {
-                yield return ChatEvent.ToolCalled(call.Id, call.Name, call.Arguments);
-                var record = await tools.RunAsync(run.Tools, run.Orb, call, cancellationToken);
-                run.Records.Add(record);
-                yield return ChatEvent.ToolResult(call.Id, call.Name, record.Result, record.IsError, record.DurationMs);
-                run.Turns.Add(new ChatTurn(ChatRole.Tool, record.Result, ToolCallId: call.Id));
-            }
+            throw new NotFoundException("Approval", approvalId);
         }
 
-        if (reply.Length == 0)
+        var orb = await LoadOrbAsync(approval.OrbId, cancellationToken);
+        var state = ReplyState.Deserialize(approval.State);
+        var provider = await providers.FindAsync(state.ProviderId, cancellationToken)
+            ?? throw new ModelUnavailableException("The provider that started this reply is gone.");
+        var adapter = adapters.Get(provider.Kind);
+
+        var now = clock.GetUtcNow();
+        approval.Decide(request.Decision != ApprovalDecision.Deny, now);
+        if (request.Decision == ApprovalDecision.Always)
         {
-            yield return ChatEvent.Error("The model returned an empty reply.");
-            yield break;
+            orb.SetToolPermission(approval.Tool, ToolAccess.Allow, now);
         }
 
-        var message = run.Conversation.AddAssistantMessage(reply.ToString(), clock.GetUtcNow(), run.Model, run.Records);
-        await unitOfWork.SaveChangesAsync(CancellationToken.None);
-        yield return ChatEvent.Done(message.Id);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        state.Approved = request.Decision != ApprovalDecision.Deny;
+        var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
+        var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(provider), toolSet);
+        return engine.RunAsync(reply, state, ChatEvent.Resume(state.Model, provider.Name), cancellationToken);
     }
 
     private async Task<Conversation> LoadAsync(Guid id, CancellationToken cancellationToken) =>

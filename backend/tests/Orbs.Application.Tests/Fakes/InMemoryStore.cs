@@ -1,4 +1,5 @@
 using Orbs.Application.Abstractions;
+using Orbs.Application.Conversations;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
@@ -17,6 +18,10 @@ internal sealed class InMemoryStore : IUnitOfWork
     public InMemoryRepo<ContextSource> ContextItems { get; } = new();
 
     public InMemoryRepo<Conversation> ConversationItems { get; } = new();
+
+    public InMemoryRepo<ToolApproval> ApprovalItems { get; } = new();
+
+    public IToolApprovalRepository Approvals => new ApprovalRepo(ApprovalItems);
 
     public int Saves { get; private set; }
 
@@ -45,6 +50,12 @@ internal sealed class InMemoryStore : IUnitOfWork
             var set = ids.ToHashSet();
             return Task.FromResult<IReadOnlyList<ContextSource>>([.. Inner.Items.Where(s => set.Contains(s.Id))]);
         }
+    }
+
+    private sealed class ApprovalRepo(InMemoryRepo<ToolApproval> inner) : Delegating<ToolApproval>(inner), IToolApprovalRepository
+    {
+        public Task<IReadOnlyList<ToolApproval>> ListPendingAsync(Guid conversationId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ToolApproval>>([.. Inner.Items.Where(a => a.ConversationId == conversationId && a.Status == ApprovalStatus.Pending)]);
     }
 
     private sealed class ConversationRepo(InMemoryRepo<Conversation> inner) : Delegating<Conversation>(inner), IConversationRepository

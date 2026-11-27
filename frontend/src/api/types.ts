@@ -39,6 +39,8 @@ export interface ModelRef {
   model: string
 }
 
+export type ToolAccess = 'allow' | 'ask' | 'block'
+
 export interface Orb {
   id: string
   name: string
@@ -49,6 +51,8 @@ export interface Orb {
   contextSourceIds: string[]
   createdAt: string
   updatedAt: string
+  /** Tools not listed here ask first. */
+  toolPermissions?: Record<string, ToolAccess>
 }
 
 export interface SaveOrbRequest {
@@ -58,6 +62,8 @@ export interface SaveOrbRequest {
   appearance?: OrbAppearance
   model?: ModelRef | null
   contextSourceIds?: string[]
+  /** Omit to keep the current permissions. */
+  toolPermissions?: Record<string, ToolAccess>
 }
 
 export interface ProviderKind {
@@ -147,7 +153,19 @@ export interface ToolCallRecord {
   result: string
   isError: boolean
   durationMs: number
+  /** "allowed" by the orb's settings, "approved" or "denied" by you, or "blocked". */
+  decision?: string
 }
+
+/** A tool call waiting for your yes or no. */
+export interface Approval {
+  id: string
+  callId: string
+  tool: string
+  arguments: string
+}
+
+export type ApprovalDecision = 'approve' | 'deny' | 'always'
 
 export interface ToolInfo {
   name: string
@@ -169,6 +187,7 @@ export interface Conversation extends ConversationSummary {
   messages: Message[]
   /** True when older messages can be loaded with `conversationsApi.messages`. */
   hasMoreMessages?: boolean
+  pendingApproval?: Approval
 }
 
 export interface MessagePage {
@@ -186,7 +205,8 @@ export interface ChatSource {
 }
 
 export type ChatEvent =
-  | { type: 'start'; model: string; provider?: string; sources?: ChatSource[] }
+  | { type: 'start'; model: string; provider?: string; sources?: ChatSource[]; resumed?: boolean }
+  | { type: 'approval_required'; approvalId: string; callId: string; tool: string; arguments: string }
   | { type: 'delta'; text: string }
   | { type: 'tool_call'; callId: string; tool: string; arguments: string }
   | {
@@ -196,6 +216,7 @@ export type ChatEvent =
       text: string
       isError: boolean
       durationMs: number
+      decision?: string
     }
   | { type: 'done'; messageId: string }
   | { type: 'error'; text: string }
