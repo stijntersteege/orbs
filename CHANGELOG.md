@@ -33,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Voice mode: give a provider a speech-to-text and a text-to-speech model, then tap the microphone to talk to an orb and the speaker to have replies read aloud. Works with OpenAI and anything that speaks its audio API, such as a local Whisper server, Kokoro or Piper (openedai-speech). The Echo demo can pretend. `/api/voice`, `/api/voice/transcribe`, `/api/voice/speak`.
 - A voice per orb, chosen in the orb editor next to its face, with a preview. Replies read aloud use the orb's voice.
 - Animated faces: an orb shows what it is doing. Wide eyes and a pulsing ring while it listens, a pulsing glow while it thinks, a moving mouth while it speaks, and a question mark while it waits for your approval. Reduced-motion settings stop the movement.
+- Group chats: type `@Name` to hand a question to another orb. It joins the chat and answers; mention several and they answer in turn, each seeing what the others said. Every reply shows the face and name of the orb that wrote it, and typing `@` suggests orbs. `POST /api/conversations` takes `with` to start a group chat.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

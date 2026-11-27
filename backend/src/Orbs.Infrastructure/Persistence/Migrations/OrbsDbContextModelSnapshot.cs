@@ -279,6 +279,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.PrimitiveCollection<List<Guid>>("_guestOrbIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("guest_orb_ids");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
@@ -307,6 +312,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<string>("Model")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("OrbId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Role")
                         .IsRequired()

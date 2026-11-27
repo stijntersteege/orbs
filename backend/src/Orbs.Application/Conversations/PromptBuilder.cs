@@ -27,18 +27,27 @@ public static class PromptBuilder
         PromptBudget? budget = null,
         IReadOnlyList<Memory>? memories = null,
         IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null,
-        IReadOnlyList<ChatImage>? images = null)
+        IReadOnlyList<ChatImage>? images = null,
+        IReadOnlyDictionary<Guid, string>? groupNames = null)
     {
         ArgumentNullException.ThrowIfNull(orb);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(history);
         budget ??= PromptBudget.Default;
 
-        var turns = new List<ChatTurn> { new(ChatRole.System, SystemPrompt(orb, context, budget, memories ?? [], retrieved)) };
+        var system = SystemPrompt(orb, context, budget, memories ?? [], retrieved);
+        if (groupNames is { Count: > 1 })
+        {
+            var others = groupNames.Where(p => p.Key != orb.Id).Select(p => p.Value);
+            system += $"\n\n## Group chat\nYou are in a group chat with the person and {string.Join(", ", others)}. "
+                      + "Messages that start with a name and \"said:\" come from those orbs. Answer as yourself, and only for your part.";
+        }
+
+        var turns = new List<ChatTurn> { new(ChatRole.System, system) };
         turns.AddRange(history
             .OrderBy(m => m.CreatedAt)
             .TakeLast(budget.MaxHistoryMessages)
-            .Select(m => new ChatTurn(m.Role == MessageRole.User ? ChatRole.User : ChatRole.Assistant, m.Content)));
+            .Select(m => ToTurn(m, orb, groupNames)));
 
         // Pictures among the orb's sources go with the latest question, where every API accepts them.
         if (images is { Count: > 0 } && turns.FindLastIndex(t => t.Role == ChatRole.User) is var last and >= 0)
@@ -47,6 +56,20 @@ public static class PromptBuilder
         }
 
         return turns;
+    }
+
+    /// <summary>The orb's own replies are assistant turns; another orb's reply reads like a message from someone else.</summary>
+    private static ChatTurn ToTurn(Message message, Orb self, IReadOnlyDictionary<Guid, string>? names)
+    {
+        if (message.Role == MessageRole.User)
+        {
+            return new ChatTurn(ChatRole.User, message.Content);
+        }
+
+        var author = message.OrbId ?? self.Id;
+        return author == self.Id
+            ? new ChatTurn(ChatRole.Assistant, message.Content)
+            : new ChatTurn(ChatRole.User, $"{(names is not null && names.TryGetValue(author, out var name) ? name : "Another orb")} said: {message.Content}");
     }
 
     internal static string SystemPrompt(

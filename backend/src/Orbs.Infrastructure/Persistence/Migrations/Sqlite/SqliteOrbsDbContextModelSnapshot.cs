@@ -272,6 +272,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 
+                    b.PrimitiveCollection<string>("_guestOrbIds")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("guest_orb_ids");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
@@ -299,6 +304,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
 
                     b.Property<string>("Model")
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("OrbId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Role")

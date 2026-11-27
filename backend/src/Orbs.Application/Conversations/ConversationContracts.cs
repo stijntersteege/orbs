@@ -8,7 +8,8 @@ public sealed record MessageDto(
     string Content,
     DateTimeOffset CreatedAt,
     string? Model = null,
-    IReadOnlyList<ToolCallDto>? ToolCalls = null);
+    IReadOnlyList<ToolCallDto>? ToolCalls = null,
+    Guid? OrbId = null);
 
 /// <summary>A tool an orb used while writing a reply: the audit trail.</summary>
 public sealed record ToolCallDto(string Tool, string Arguments, string Result, bool IsError, long DurationMs, string? Decision = null);
@@ -20,7 +21,7 @@ public enum ApprovalDecision { Approve, Deny, Always }
 
 public sealed record DecideRequest(ApprovalDecision Decision);
 
-public sealed record ConversationSummaryDto(Guid Id, Guid OrbId, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+public sealed record ConversationSummaryDto(Guid Id, Guid OrbId, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, IReadOnlyList<Guid>? OrbIds = null);
 
 /// <summary>A conversation with its newest messages. <see cref="HasMoreMessages"/> says whether older ones exist.</summary>
 public sealed record ConversationDto(
@@ -31,12 +32,14 @@ public sealed record ConversationDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     bool HasMoreMessages = false,
-    ApprovalDto? PendingApproval = null);
+    ApprovalDto? PendingApproval = null,
+    IReadOnlyList<Guid>? OrbIds = null);
 
 /// <summary>A page of older messages, oldest first.</summary>
 public sealed record MessagePageDto(IReadOnlyList<MessageDto> Messages, bool HasMore);
 
-public sealed record StartConversationRequest(Guid OrbId);
+/// <summary>Starts a chat with one orb, or a group chat with others too.</summary>
+public sealed record StartConversationRequest(Guid OrbId, IReadOnlyList<Guid>? With = null);
 
 public sealed record SendMessageRequest(string Content);
 
@@ -62,7 +65,9 @@ public sealed record ChatEvent(
     long? DurationMs = null,
     Guid? ApprovalId = null,
     string? Decision = null,
-    bool? Resumed = null)
+    bool? Resumed = null,
+    Guid? OrbId = null,
+    string? OrbName = null)
 {
     public const string StartType = "start";
     public const string DeltaType = "delta";
@@ -89,6 +94,10 @@ public sealed record ChatEvent(
     public static ChatEvent Start(string model, string? provider = null, IReadOnlyList<ChatSourceDto>? sources = null) =>
         new(StartType, Model: model, Provider: provider, Sources: sources ?? []);
 
+    /// <summary>The start of one orb's reply; in a group chat several follow each other in one stream.</summary>
+    public static ChatEvent StartFor(Guid orbId, string orbName, string model, string? provider, IReadOnlyList<ChatSourceDto> sources) =>
+        new(StartType, Model: model, Provider: provider, Sources: sources, OrbId: orbId, OrbName: orbName);
+
     public static ChatEvent Delta(string text) => new(DeltaType, Text: text);
 
     public static ChatEvent Done(Guid messageId) => new(DoneType, MessageId: messageId);
@@ -98,7 +107,7 @@ public sealed record ChatEvent(
 
 internal static class ConversationMapping
 {
-    public static ConversationSummaryDto ToSummary(this Conversation c) => new(c.Id, c.OrbId, c.Title, c.CreatedAt, c.UpdatedAt);
+    public static ConversationSummaryDto ToSummary(this Conversation c) => new(c.Id, c.OrbId, c.Title, c.CreatedAt, c.UpdatedAt, c.OrbIds);
 
     public static ConversationDto ToDto(this Conversation c) => new(
         c.Id,
@@ -106,7 +115,8 @@ internal static class ConversationMapping
         c.Title,
         [.. c.Messages.OrderBy(m => m.CreatedAt).Select(ToDto)],
         c.CreatedAt,
-        c.UpdatedAt);
+        c.UpdatedAt,
+        OrbIds: c.OrbIds);
 
     public static MessageDto ToDto(this Message m) => new(
         m.Id,
@@ -114,7 +124,8 @@ internal static class ConversationMapping
         m.Content,
         m.CreatedAt,
         m.Model,
-        m.ToolCalls.Count == 0 ? null : [.. m.ToolCalls.Select(ToDto)]);
+        m.ToolCalls.Count == 0 ? null : [.. m.ToolCalls.Select(ToDto)],
+        m.OrbId);
 
     public static ToolCallDto ToDto(this ToolCallRecord t) => new(t.Tool, t.Arguments, t.Result, t.IsError, t.DurationMs, t.Decision);
 

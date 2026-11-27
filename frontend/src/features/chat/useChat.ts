@@ -53,6 +53,8 @@ export interface ChatState {
   hasMore: boolean
   /** A tool call that waits for your answer; the reply continues once you give it. */
   approval: Approval | null
+  /** The orb writing the reply that streams right now. */
+  replyingOrbId?: string
 }
 
 const current = (state: ChatState) => state.activity.at(-1)
@@ -80,6 +82,7 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
       if (event.resumed && current(state)) return { ...state, streaming: '', error: null, approval: null }
       return {
         ...state,
+        replyingOrbId: event.orbId,
         streaming: '',
         model: event.model,
         error: null,
@@ -140,6 +143,7 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
             role: 'assistant',
             content: state.streaming ?? '',
             createdAt: now.toISOString(),
+            orbId: state.replyingOrbId,
           },
         ],
       }

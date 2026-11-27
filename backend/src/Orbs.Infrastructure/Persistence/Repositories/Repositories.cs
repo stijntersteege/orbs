@@ -67,7 +67,7 @@ internal sealed class ConversationRepository(OrbsDbContext db) : EfRepository<Co
         var query = Db.Conversations.AsNoTracking();
         if (orbId is { } id)
         {
-            query = query.Where(c => c.OrbId == id);
+            query = query.Where(c => c.OrbId == id || EF.Property<List<Guid>>(c, "_guestOrbIds").Contains(id));
         }
 
         return await query.OrderByDescending(c => c.UpdatedAt).Take(limit).ToListAsync(cancellationToken);

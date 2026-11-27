@@ -165,6 +165,20 @@ export function ChatPage() {
   const name = orb?.name ?? 'Pip'
   const citations = new Map(chat.activity.map((a) => [a.id, a.sources]))
   const runningTool = chat.activity.at(-1)?.tools.find((t) => t.result === undefined)?.tool
+  const orbById = (id?: string) => (id ? orbs.data?.find((o) => o.id === id) : undefined)
+  const chatOrbIds = new Set([
+    ...(conversation.data?.orbIds ?? []),
+    ...chat.messages.flatMap((m) => (m.orbId ? [m.orbId] : [])),
+  ])
+  const isGroup = chatOrbIds.size > 1
+  // "@" at the end of the message box suggests orbs to hand the question to.
+  const mentionQuery = /(?:^|\s)@([\w-]*)$/.exec(draft)?.[1]
+  const mentionChoices =
+    mentionQuery === undefined
+      ? []
+      : (orbs.data ?? [])
+          .filter((o) => o.name.toLowerCase().startsWith(mentionQuery.toLowerCase()))
+          .slice(0, 5)
   const canListen = voiceStatus.data?.canListen && recordingSupported()
   // The orb's face shows what it is doing right now.
   const faceState: OrbState =
@@ -250,6 +264,28 @@ export function ChatPage() {
 
   const composer = (
     <form ref={formRef} className={styles.composer} onSubmit={submit}>
+      {mentionChoices.length > 0 && (
+        <div className={styles.mentions}>
+          {mentionChoices.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              aria-label={`Mention ${o.name}`}
+              className={styles.mention}
+              onClick={() => {
+                setDraft(draft.replace(/@([\w-]*)$/, `@${o.name} `))
+                inputRef.current?.focus()
+              }}
+            >
+              <Orb
+                size={18}
+                appearance={{ ...o.appearance, glow: false, floating: false, accessory: 'none' }}
+              />
+              {o.name}
+            </button>
+          ))}
+        </div>
+      )}
       <label htmlFor="message" className="visually-hidden">
         Message {name}
       </label>
@@ -259,7 +295,7 @@ export function ChatPage() {
         className={styles.input}
         rows={1}
         value={draft}
-        placeholder={hasModel ? `Message ${name}` : 'Connect a model to start'}
+        placeholder={hasModel ? `Message ${name}, or @mention another orb` : 'Connect a model to start'}
         onChange={(e) => onDraft(e.target)}
         onKeyDown={onKeyDown}
       />
@@ -323,6 +359,20 @@ export function ChatPage() {
             />
           )}
           <h1 className={styles.orbTitle}>{name}</h1>
+          {isGroup &&
+            [...chatOrbIds]
+              .filter((id) => id !== orb?.id)
+              .map((id) => orbById(id))
+              .filter((o) => !!o)
+              .map((o) => (
+                <span key={o!.id} title={o!.name} className={styles.guest}>
+                  <Orb
+                    size={22}
+                    appearance={{ ...o!.appearance, glow: false, floating: false, accessory: 'none' }}
+                  />
+                  <span className="visually-hidden">{o!.name} is in this chat</span>
+                </span>
+              ))}
           <ModelPicker
             providers={allProviders}
             value={model}
@@ -383,40 +433,48 @@ export function ChatPage() {
                     {chat.loadingEarlier ? 'Loading…' : 'Load earlier messages'}
                   </Button>
                 )}
-                {chat.messages.map((m) =>
-                  m.role === 'user' ? (
-                    <div key={m.id} className={styles.user}>
-                      {m.content}
-                    </div>
-                  ) : (
+                {chat.messages.map((m) => {
+                  if (m.role === 'user') {
+                    return (
+                      <div key={m.id} className={styles.user}>
+                        {m.content}
+                      </div>
+                    )
+                  }
+                  const author = orbById(m.orbId) ?? orb
+                  return (
                     <div key={m.id} className={styles.assistantRow}>
                       <Orb
                         size={28}
                         appearance={{
-                          ...(orb?.appearance ?? DEFAULT_APPEARANCE),
+                          ...(author?.appearance ?? DEFAULT_APPEARANCE),
                           floating: false,
                           glow: false,
                         }}
                       />
                       <div className={styles.assistant}>
+                        {isGroup && author && <span className={styles.author}>{author.name}</span>}
                         {m.content}
                         <Cites sources={citations.get(m.id)} />
                       </div>
                     </div>
-                  ),
-                )}
+                  )
+                })}
                 {chat.streaming !== null && (
                   <div className={styles.assistantRow}>
                     <Orb
                       size={28}
                       state={faceState === 'idle' ? 'thinking' : faceState}
                       appearance={{
-                        ...(orb?.appearance ?? DEFAULT_APPEARANCE),
+                        ...((orbById(chat.replyingOrbId) ?? orb)?.appearance ?? DEFAULT_APPEARANCE),
                         floating: false,
                         glow: false,
                       }}
                     />
                     <div className={styles.assistant} aria-busy="true">
+                      {isGroup && orbById(chat.replyingOrbId) && (
+                        <span className={styles.author}>{orbById(chat.replyingOrbId)!.name}</span>
+                      )}
                       {chat.streaming || (
                         <span className={styles.thinking}>
                           {runningTool ? `Using ${runningTool}…` : 'Thinking…'}
