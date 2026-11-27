@@ -128,6 +128,8 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IModelAdapter>();
             services.AddSingleton<IModelAdapter>(new EchoModelAdapter { WordDelay = TimeSpan.Zero });
             services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
+            services.AddSingleton<IModelAdapter, AnthropicModelAdapter>();
+            services.AddSingleton<IModelAdapter, GeminiModelAdapter>();
             services.AddSingleton<IModelAdapter>(new FailingModelAdapter());
 
             services.RemoveAll<IMcpClient>();
