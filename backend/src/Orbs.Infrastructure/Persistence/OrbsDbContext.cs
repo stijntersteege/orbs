@@ -7,6 +7,7 @@ using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
+using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Tools;
@@ -46,6 +47,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<Integration> Integrations => Set<Integration>();
 
+    public DbSet<Memory> Memories => Set<Memory>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -84,6 +87,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<ToolApproval>(modelBuilder);
         FilterOwned<McpServer>(modelBuilder);
         FilterOwned<Integration>(modelBuilder);
+        FilterOwned<Memory>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

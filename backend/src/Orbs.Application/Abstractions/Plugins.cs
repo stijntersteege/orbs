@@ -107,6 +107,12 @@ public interface ITool : IPlugin
 
     ToolRisk Risk { get; }
 
+    /// <summary>
+    /// True for tools that only touch the orb's own, visible state (such as its memory): they run without asking
+    /// unless the person changes the orb's setting. Everything else asks first.
+    /// </summary>
+    bool AllowedByDefault => false;
+
     /// <summary>Runs the tool and returns what the model should read. Throw to report a failure to the model.</summary>
     Task<string> InvokeAsync(ToolInvocation invocation, CancellationToken cancellationToken = default);
 }

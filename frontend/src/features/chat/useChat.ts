@@ -217,6 +217,8 @@ export function useChat(
         abort.current = null
         void client.invalidateQueries({ queryKey: ['conversations'] })
         void client.invalidateQueries({ queryKey: keys.conversation(targetId) })
+        // The orb may have remembered or forgotten something.
+        void client.invalidateQueries({ queryKey: ['memories'] })
       }
     },
     [client],

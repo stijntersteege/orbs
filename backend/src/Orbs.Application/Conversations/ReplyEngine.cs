@@ -68,9 +68,10 @@ public sealed class ReplyEngine(ToolRunner tools, IToolApprovalRepository approv
             if (state.PendingCalls.Count > 0)
             {
                 var call = state.PendingCalls[0];
-                var permission = context.Orb.PermissionFor(call.Name);
+                var found = context.Tools.Find(call.Name);
+                var permission = context.Orb.PermissionFor(call.Name, found?.AllowedByDefault == true ? ToolAccess.Allow : Orb.DefaultToolPermission);
                 ToolCallRecord record;
-                if (context.Tools.Find(call.Name) is null)
+                if (found is null)
                 {
                     record = new ToolCallRecord(call.Name, call.Arguments, $"There is no tool called '{call.Name}' for this orb.", true, 0, "blocked");
                 }

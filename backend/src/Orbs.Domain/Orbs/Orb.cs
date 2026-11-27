@@ -106,21 +106,14 @@ public sealed class Orb : OwnedAggregateRoot
     /// <summary>Per-tool permissions. Tools that are not listed use <see cref="DefaultToolPermission"/>.</summary>
     public IReadOnlyDictionary<string, ToolAccess> ToolPermissions => _toolPermissions;
 
-    public ToolAccess PermissionFor(string tool) =>
-        _toolPermissions.TryGetValue(tool, out var permission) ? permission : DefaultToolPermission;
+    /// <summary>The orb's setting for a tool, or <paramref name="fallback"/> (normally ask first) when it has none.</summary>
+    public ToolAccess PermissionFor(string tool, ToolAccess fallback = DefaultToolPermission) =>
+        _toolPermissions.TryGetValue(tool, out var permission) ? permission : fallback;
 
     public void SetToolPermission(string tool, ToolAccess permission, DateTimeOffset now)
     {
-        var name = Guard.Text(tool, nameof(tool), MaxToolNameLength);
-        if (permission == DefaultToolPermission)
-        {
-            _toolPermissions.Remove(name);
-        }
-        else
-        {
-            _toolPermissions[name] = permission;
-        }
-
+        // Explicit rules are kept, even "ask": some tools run without asking unless the orb says otherwise.
+        _toolPermissions[Guard.Text(tool, nameof(tool), MaxToolNameLength)] = permission;
         Touch(now);
     }
 

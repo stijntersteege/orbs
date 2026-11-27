@@ -6,6 +6,7 @@ using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
+using Orbs.Application.Memories;
 using Orbs.Application.Tools;
 using Orbs.Infrastructure.Context;
 using Orbs.Infrastructure.Integrations;
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IToolApprovalRepository, ToolApprovalRepository>();
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
+        services.AddScoped<IMemoryRepository, MemoryRepository>();
         services.AddSingleton<IIntegrationKind, WebSearchIntegration>();
         services.AddSingleton<IIntegrationKind, CalDavIntegration>();
         services.AddSingleton<IIntegrationKind, EmailIntegration>();

@@ -3,11 +3,13 @@ using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
+using Orbs.Application.Memories;
 using Orbs.Application.Tools;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
+using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Tools;
@@ -124,3 +126,9 @@ internal sealed class ToolApprovalRepository(OrbsDbContext db) : EfRepository<To
 internal sealed class McpServerRepository(OrbsDbContext db) : EfRepository<McpServer>(db), IMcpServerRepository;
 
 internal sealed class IntegrationRepository(OrbsDbContext db) : EfRepository<Integration>(db), IIntegrationRepository;
+
+internal sealed class MemoryRepository(OrbsDbContext db) : EfRepository<Memory>(db), IMemoryRepository
+{
+    public async Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default) =>
+        await Query.Where(m => m.OrbId == orbId).OrderByDescending(m => m.UpdatedAt).ToListAsync(cancellationToken);
+}

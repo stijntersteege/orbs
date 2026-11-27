@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
+using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Tools;
@@ -249,5 +250,20 @@ internal sealed class IntegrationConfiguration : IEntityTypeConfiguration<Integr
         builder.Property(i => i.Settings).HasMaxLength(Integration.MaxSettingsLength).IsRequired();
         builder.Property(i => i.ProtectedSecret).HasMaxLength(4_096);
         builder.Ignore(i => i.HasSecret);
+    }
+}
+
+internal sealed class MemoryConfiguration : IEntityTypeConfiguration<Memory>
+{
+    public void Configure(EntityTypeBuilder<Memory> builder)
+    {
+        builder.ToTable("memories");
+        builder.HasKey(m => m.Id);
+        builder.Property(m => m.Id).ValueGeneratedNever();
+        builder.HasIndex(m => m.OwnerId);
+        builder.HasIndex(m => new { m.OrbId, m.UpdatedAt });
+        builder.Property(m => m.Content).HasMaxLength(Memory.MaxContentLength).IsRequired();
+        builder.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<Orb>().WithMany().HasForeignKey(m => m.OrbId).OnDelete(DeleteBehavior.Cascade);
     }
 }

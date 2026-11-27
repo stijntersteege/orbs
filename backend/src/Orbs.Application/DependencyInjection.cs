@@ -6,6 +6,7 @@ using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Demo;
 using Orbs.Application.Jobs;
+using Orbs.Application.Memories;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
 using Orbs.Application.Tools;
@@ -29,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<ToolCatalog>();
         services.AddScoped<ToolRunner>();
         services.AddScoped<ReplyEngine>();
+        services.AddScoped<MemoryService>();
+        services.AddScoped<ITool, RememberTool>();
+        services.AddScoped<ITool, ForgetTool>();
         services.AddScoped<IToolSource, BuiltInToolSource>();
         services.AddScoped<IToolSource, McpToolSource>();
         services.AddScoped<IToolSource, IntegrationToolSource>();

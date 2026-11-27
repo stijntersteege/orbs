@@ -270,6 +270,45 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("jobs", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Memories.Memory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("OrbId", "UpdatedAt");
+
+                    b.ToTable("memories", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>
                 {
                     b.Property<Guid>("Id")
@@ -633,6 +672,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.HasOne("Orbs.Domain.Conversations.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Memories.Memory", b =>
+                {
+                    b.HasOne("Orbs.Domain.Orbs.Orb", null)
+                        .WithMany()
+                        .HasForeignKey("OrbId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

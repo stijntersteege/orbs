@@ -20,6 +20,7 @@ import type {
   Job,
   MessagePage,
   ToolInfo,
+  Memory,
   McpServer,
   McpServerTools,
   SaveMcpServerRequest,
@@ -161,4 +162,11 @@ export const integrationsApi = {
     http.put<Integration>(`/api/integrations/${id}`, body),
   remove: (id: string) => http.delete(`/api/integrations/${id}`),
   test: (id: string) => http.post<{ ok: boolean; error?: string }>(`/api/integrations/${id}/test`),
+}
+
+export const memoriesApi = {
+  list: (orbId: string) => http.get<Memory[]>(`/api/orbs/${orbId}/memories`),
+  add: (orbId: string, content: string) => http.post<Memory>(`/api/orbs/${orbId}/memories`, { content }),
+  edit: (id: string, content: string) => http.put<Memory>(`/api/memories/${id}`, { content }),
+  forget: (id: string) => http.delete(`/api/memories/${id}`),
 }

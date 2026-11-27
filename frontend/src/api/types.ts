@@ -172,6 +172,8 @@ export interface ToolInfo {
   displayName: string
   description: string
   risk: 'read' | 'write'
+  /** Runs without asking unless the orb's setting says otherwise. */
+  allowedByDefault?: boolean
 }
 
 export interface ConversationSummary {
@@ -364,4 +366,16 @@ export interface SaveIntegrationRequest {
   /** On update: undefined keeps the stored secret, '' removes it. */
   secret?: string
   isEnabled?: boolean
+}
+
+// Memory
+
+export interface Memory {
+  id: string
+  orbId: string
+  content: string
+  source: 'manual' | 'learned'
+  conversationId?: string
+  createdAt: string
+  updatedAt: string
 }

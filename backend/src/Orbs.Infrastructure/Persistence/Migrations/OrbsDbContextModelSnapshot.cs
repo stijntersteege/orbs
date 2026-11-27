@@ -277,6 +277,45 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.ToTable("jobs", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Memories.Memory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("OrbId", "UpdatedAt");
+
+                    b.ToTable("memories", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>
                 {
                     b.Property<Guid>("Id")
@@ -640,6 +679,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.HasOne("Orbs.Domain.Conversations.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Memories.Memory", b =>
+                {
+                    b.HasOne("Orbs.Domain.Orbs.Orb", null)
+                        .WithMany()
+                        .HasForeignKey("OrbId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

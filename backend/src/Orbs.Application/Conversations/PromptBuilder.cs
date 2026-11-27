@@ -2,6 +2,7 @@ using System.Text;
 using Orbs.Application.Abstractions;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 
 namespace Orbs.Application.Conversations;
@@ -22,14 +23,15 @@ public static class PromptBuilder
         Orb orb,
         IReadOnlyList<ContextSource> context,
         IReadOnlyList<Message> history,
-        PromptBudget? budget = null)
+        PromptBudget? budget = null,
+        IReadOnlyList<Memory>? memories = null)
     {
         ArgumentNullException.ThrowIfNull(orb);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(history);
         budget ??= PromptBudget.Default;
 
-        var turns = new List<ChatTurn> { new(ChatRole.System, SystemPrompt(orb, context, budget)) };
+        var turns = new List<ChatTurn> { new(ChatRole.System, SystemPrompt(orb, context, budget, memories ?? [])) };
         turns.AddRange(history
             .OrderBy(m => m.CreatedAt)
             .TakeLast(budget.MaxHistoryMessages)
@@ -37,7 +39,7 @@ public static class PromptBuilder
         return turns;
     }
 
-    internal static string SystemPrompt(Orb orb, IReadOnlyList<ContextSource> context, PromptBudget budget)
+    internal static string SystemPrompt(Orb orb, IReadOnlyList<ContextSource> context, PromptBudget budget, IReadOnlyList<Memory>? memories = null)
     {
         var prompt = new StringBuilder();
         prompt.Append("You are ").Append(orb.Name).Append(", an AI companion in Orbs.");
@@ -51,6 +53,17 @@ public static class PromptBuilder
         if (orb.Instructions.Length > 0)
         {
             prompt.AppendLine().AppendLine("## How to behave").AppendLine(orb.Instructions);
+        }
+
+        if (memories is { Count: > 0 })
+        {
+            prompt.AppendLine()
+                .AppendLine("## What you remember")
+                .AppendLine("Facts you saved in earlier chats or the person told you to keep. Use them when they help.");
+            foreach (var memory in memories)
+            {
+                prompt.Append("- ").AppendLine(memory.Content);
+            }
         }
 
         var ready = Readable(context);

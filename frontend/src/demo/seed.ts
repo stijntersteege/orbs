@@ -1,4 +1,4 @@
-import type { ContextSource, Conversation, Orb, Provider, User } from '@/api/types'
+import type { ContextSource, Conversation, Memory, Orb, Provider, User } from '@/api/types'
 import { DEFAULT_APPEARANCE } from '@/api/types'
 
 export interface DemoState {
@@ -8,6 +8,7 @@ export interface DemoState {
   conversations: Conversation[]
   /** The demo account, once its name was changed. */
   user?: User
+  memories?: Memory[]
 }
 
 const ABOUT_ORBS = `Orbs is an open-source home for AI companions.

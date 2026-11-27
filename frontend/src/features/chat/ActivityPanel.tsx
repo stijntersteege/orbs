@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import type { ContextSource, Orb } from '@/api/types'
 import { Icon } from '@/components/ui/icons'
 import type { ActivityEntry, ToolActivity } from './useChat'
 import styles from './chat.module.css'
+import { MemoryTab } from './MemoryTab'
 
 const KIND_LABEL: Record<string, string> = { text: 'Note', url: 'Web page' }
 
@@ -117,15 +119,49 @@ interface ActivityPanelProps {
 
 /** What the orb did: per reply, the sources it read and the model that wrote it. Newest on top. */
 export function ActivityPanel({ orb, activity, known, open, onClose }: ActivityPanelProps) {
+  const [tab, setTab] = useState<'activity' | 'memory'>('activity')
   return (
     <aside className={styles.activity} data-open={open} aria-label="Activity">
       <div className={styles.activityHead}>
-        <h2 className={styles.panelLabel}>Activity</h2>
+        <div className={styles.panelTabs} role="tablist" aria-label="Panel">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'activity'}
+            className={styles.panelTab}
+            onClick={() => setTab('activity')}
+          >
+            Activity
+          </button>
+          {orb && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'memory'}
+              className={styles.panelTab}
+              onClick={() => setTab('memory')}
+            >
+              Memory
+            </button>
+          )}
+        </div>
         <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close activity">
           <Icon name="close" size={18} />
         </button>
       </div>
 
+      {tab === 'memory' && orb ? (
+        <MemoryTab orb={orb} />
+      ) : (
+        <ActivityContent orb={orb} activity={activity} known={known} />
+      )}
+    </aside>
+  )
+}
+
+function ActivityContent({ orb, activity, known }: Pick<ActivityPanelProps, 'orb' | 'activity' | 'known'>) {
+  return (
+    <>
       {activity.length === 0 ? (
         <p className={styles.activityEmpty}>
           When {orb?.name ?? 'your orb'} answers, you see here what it read, which tools it used and which
@@ -162,6 +198,6 @@ export function ActivityPanel({ orb, activity, known, open, onClose }: ActivityP
           </Link>
         )}
       </div>
-    </aside>
+    </>
   )
 }
