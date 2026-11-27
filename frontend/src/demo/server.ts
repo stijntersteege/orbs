@@ -4,6 +4,8 @@
 // called: the demo has no server and must never send anyone's API key anywhere.
 
 import type {
+  SaveSkillRequest,
+  Skill,
   ChatEvent,
   ContextKind,
   ChatSource,
@@ -21,6 +23,7 @@ import type {
 import { DEFAULT_APPEARANCE } from '@/api/types'
 import { DEMO_STORAGE_KEY } from './mode'
 import { seed, type DemoState } from './seed'
+import { parseSkill, renderSkill, skillName, stepsFrom } from './skills'
 
 const STORAGE_KEY = DEMO_STORAGE_KEY
 const ECHO_KIND = 'echo'
@@ -265,6 +268,9 @@ export class DemoServer {
         if (method === 'GET') return json([this.account().user])
         throw new HttpError(400, 'The live demo has a single account.')
 
+      case 'skills':
+        return this.skills(method, id, action, body)
+
       case 'memories':
         if (method === 'PUT') return json(this.editMemory(id!, body))
         if (method === 'DELETE') {
@@ -287,6 +293,8 @@ export class DemoServer {
           }
           return json(this.startConversation(body), 201)
         }
+        if (action === 'messages' && parts[4] === 'skill')
+          return json(this.skillFromReply(id, parts[3]!, body), 201)
         if (action === 'messages' && method === 'GET') return json(this.olderMessages(id, url))
         if (action === 'approvals') return this.decide(id, parts[3], body, signal)
         if (action === 'messages') return this.send(id, body, signal)
@@ -344,6 +352,77 @@ export class DemoServer {
   }
 
   // Memory
+
+  private skills(
+    method: string,
+    id: string | undefined,
+    action: string | undefined,
+    body: unknown,
+  ): Response {
+    const all = this.state.skills ?? []
+    if (!id) return method === 'GET' ? json(all) : json(this.saveSkill(undefined, body), 201)
+    if (id === 'import') {
+      let parsed: ReturnType<typeof parseSkill>
+      try {
+        parsed = parseSkill(String((body as { markdown?: string })?.markdown ?? ''))
+      } catch (error) {
+        throw new HttpError(400, error instanceof Error ? error.message : 'Not a SKILL.md file.')
+      }
+      const existing = all.find((s) => s.name === skillName(parsed.name))
+      return json(
+        this.saveSkill(existing?.id, { ...parsed, name: skillName(parsed.name) }),
+        existing ? 200 : 201,
+      )
+    }
+    const skill = this.find(all, id, 'skill')
+    if (action === 'export')
+      return new Response(renderSkill(skill), { headers: { 'Content-Type': 'text/markdown; charset=utf-8' } })
+    if (method === 'GET') return json(skill)
+    if (method === 'PUT') return json(this.saveSkill(id, body))
+    if (method === 'DELETE') {
+      this.state.skills = all.filter((s) => s.id !== id)
+      this.save()
+      return new Response(null, { status: 204 })
+    }
+    throw new HttpError(405, 'Not supported.')
+  }
+
+  private saveSkill(id: string | undefined, body: unknown): Skill {
+    const request = body as Partial<SaveSkillRequest>
+    const name = required(request?.name, 'name').toLowerCase()
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name))
+      throw new HttpError(400, "Name may only contain a-z, 0-9 and '-'.")
+    const all = this.state.skills ?? []
+    if (all.some((s) => s.name === name && s.id !== id))
+      throw new HttpError(400, `There is already a skill named "${name}".`)
+    const now = this.timestamp()
+    const existing = id ? this.find(all, id, 'skill') : undefined
+    const skill: Skill = {
+      id: existing?.id ?? newId(),
+      name,
+      description: required(request.description, 'description'),
+      instructions: required(request.instructions, 'instructions'),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    }
+    this.state.skills = [...all.filter((s) => s.id !== skill.id), skill].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )
+    this.save()
+    return skill
+  }
+
+  private skillFromReply(conversationId: string, messageId: string, body: unknown): Skill {
+    const conversation = this.find(this.state.conversations, conversationId, 'conversation')
+    const index = conversation.messages.findIndex((m) => m.id === messageId)
+    const steps = index < 0 ? null : stepsFrom(conversation.messages, index)
+    if (!steps) throw new HttpError(400, 'Only a reply that used tools can become a skill.')
+    return this.saveSkill(undefined, {
+      name: skillName(String((body as { name?: string })?.name ?? '')),
+      description: `Repeats the steps from the chat "${conversation.title}".`,
+      instructions: steps,
+    })
+  }
 
   private addMemory(orbId: string, body: unknown): Memory {
     const now = this.timestamp()

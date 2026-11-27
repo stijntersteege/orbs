@@ -420,6 +420,27 @@ export interface Memory {
   updatedAt: string
 }
 
+// Skills
+
+/** A routine every orb can follow, in the SKILL.md format. */
+export interface Skill {
+  id: string
+  /** Lower case, words joined by '-', such as "weekly-review". */
+  name: string
+  /** What the skill does and when to use it. */
+  description: string
+  /** The steps, in Markdown. */
+  instructions: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SaveSkillRequest {
+  name: string
+  description: string
+  instructions: string
+}
+
 // Schedules
 
 export type TriggerKind = 'time' | 'webhook' | 'rss' | 'email'

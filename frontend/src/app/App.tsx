@@ -14,6 +14,7 @@ import { AuthGate } from '@/features/account/AuthGate'
 import { UsersPage } from '@/features/account/UsersPage'
 import { ToolsPage } from '@/features/tools/ToolsPage'
 import { SchedulesPage } from '@/features/schedules/SchedulesPage'
+import { SkillsPage } from '@/features/skills/SkillsPage'
 import { ChannelsPage } from '@/features/channels/ChannelsPage'
 import { IS_DEMO } from '@/demo/mode'
 import { SettingsProvider } from './SettingsContext'
@@ -49,6 +50,7 @@ export const routes: RouteObject[] = [
           { path: 'context', element: <ContextPage /> },
           { path: 'models', element: <ModelsPage /> },
           { path: 'tools', element: <ToolsPage /> },
+          { path: 'skills', element: <SkillsPage /> },
           { path: 'schedules', element: <SchedulesPage /> },
           { path: 'channels', element: <ChannelsPage /> },
           { path: 'settings', element: <SettingsPage /> },

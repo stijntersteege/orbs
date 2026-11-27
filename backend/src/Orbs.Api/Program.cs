@@ -43,6 +43,7 @@ api.MapConversationEndpoints();
 api.MapJobEndpoints();
 api.MapMcpEndpoints();
 api.MapMemoryEndpoints();
+api.MapSkillEndpoints();
 api.MapScheduleEndpoints();
 api.MapNotificationEndpoints();
 api.MapChannelEndpoints();

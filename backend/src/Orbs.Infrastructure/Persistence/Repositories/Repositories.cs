@@ -8,6 +8,7 @@ using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
 using Orbs.Application.Notifications;
 using Orbs.Application.Schedules;
+using Orbs.Application.Skills;
 using Orbs.Application.Tools;
 using Orbs.Domain.Channels;
 using Orbs.Domain.Common;
@@ -18,6 +19,7 @@ using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Schedules;
+using Orbs.Domain.Skills;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -186,3 +188,5 @@ internal sealed class ChannelRepository(OrbsDbContext db) : EfRepository<Channel
     public async Task<IReadOnlyList<Channel>> ListEnabledAsync(CancellationToken cancellationToken = default) =>
         await Query.Where(c => c.IsEnabled).ToListAsync(cancellationToken);
 }
+
+internal sealed class SkillRepository(OrbsDbContext db) : EfRepository<Skill>(db), ISkillRepository;

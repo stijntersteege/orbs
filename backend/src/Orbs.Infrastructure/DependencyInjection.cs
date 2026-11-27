@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IMemoryRepository, MemoryRepository>();
+        services.AddScoped<Orbs.Application.Skills.ISkillRepository, SkillRepository>();
         services.AddScoped<IContextChunkRepository, ContextChunkRepository>();
         services.AddScoped<IContextFileRepository, ContextFileRepository>();
         services.AddScoped<IScheduleRepository, ScheduleRepository>();

@@ -54,6 +54,8 @@ public static class DependencyInjection
         services.AddScoped<ITool, RememberTool>();
         services.AddScoped<ITool, ForgetTool>();
         services.AddScoped<ITool, Orbs.AskOrbTool>();
+        services.AddScoped<ITool, Skills.UseSkillTool>();
+        services.AddScoped<Skills.SkillService>();
         services.AddScoped<IToolSource, BuiltInToolSource>();
         services.AddScoped<IToolSource, McpToolSource>();
         services.AddScoped<IToolSource, IntegrationToolSource>();

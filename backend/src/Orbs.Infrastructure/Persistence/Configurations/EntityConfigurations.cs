@@ -10,6 +10,7 @@ using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Schedules;
+using Orbs.Domain.Skills;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -394,5 +395,19 @@ internal sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
             chat.Property(x => x.Name).HasMaxLength(200).IsRequired();
         });
         builder.Navigation(c => c.Chats).HasField("_chats").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class SkillConfiguration : IEntityTypeConfiguration<Skill>
+{
+    public void Configure(EntityTypeBuilder<Skill> builder)
+    {
+        builder.ToTable("skills");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasIndex(s => new { s.OwnerId, s.Name }).IsUnique();
+        builder.Property(s => s.Name).HasMaxLength(Orbs.Domain.Common.Slug.MaxLength).IsRequired();
+        builder.Property(s => s.Description).HasMaxLength(Skill.MaxDescriptionLength).IsRequired();
+        builder.Property(s => s.Instructions).HasMaxLength(Skill.MaxInstructionsLength).IsRequired();
     }
 }
