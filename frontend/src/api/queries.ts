@@ -4,6 +4,7 @@ import {
   authApi,
   contextApi,
   conversationsApi,
+  jobsApi,
   orbsApi,
   providersApi,
   usersApi,
@@ -24,6 +25,7 @@ export const keys = {
   authStatus: ['auth', 'status'] as const,
   account: ['account'] as const,
   users: ['users'] as const,
+  jobs: ['jobs'] as const,
 }
 
 export const useOrbs = () => useQuery({ queryKey: keys.orbs, queryFn: orbsApi.list })
@@ -135,3 +137,5 @@ export function useResetSession() {
   const client = useQueryClient()
   return () => client.resetQueries()
 }
+
+export const useJobs = () => useQuery({ queryKey: keys.jobs, queryFn: jobsApi.list, refetchInterval: 15_000 })

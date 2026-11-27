@@ -19,6 +19,9 @@ public interface ISessionRepository : IRepository<Session>
     Task<Session?> FindByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Session>> ListForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes sessions that expired before <paramref name="now"/>. Returns how many.</summary>
+    Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Hashes and checks passwords with a slow, salted algorithm.</summary>

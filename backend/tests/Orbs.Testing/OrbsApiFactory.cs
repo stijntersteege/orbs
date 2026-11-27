@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Jobs;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Security;
 
@@ -53,6 +54,18 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             _anonymous = false;
         }
     }
+
+    /// <summary>Puts a job in the queue as a user (or as the system when <paramref name="ownerId"/> is null).</summary>
+    public async Task<Guid> EnqueueAsync(string kind, object payload, Guid? ownerId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<CurrentUser>().ActAsSystem();
+        var job = await scope.ServiceProvider.GetRequiredService<JobScheduler>().EnqueueAsync(kind, payload, ownerId: ownerId);
+        return job.Id;
+    }
+
+    /// <summary>Runs whatever background work is due, as the worker would.</summary>
+    public Task<int> RunJobsAsync() => Services.GetRequiredService<JobRunner>().RunDueAsync();
 
     /// <summary>A client signed in as a second, non-admin account, created by the owner.</summary>
     public async Task<HttpClient> CreateClientForNewUserAsync(string email)
@@ -103,6 +116,7 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:Orbs", _connectionString);
         builder.UseSetting("Orbs:SeedDemoData", SeedDemoData ? "true" : "false");
         builder.UseSetting("Orbs:ApiToken", ApiToken);
+        builder.UseSetting("Orbs:Jobs:Enabled", "false"); // tests run jobs by hand with JobRunner
 
         builder.ConfigureTestServices(services =>
         {
@@ -111,6 +125,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IModelAdapter>(new EchoModelAdapter { WordDelay = TimeSpan.Zero });
             services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
             services.AddSingleton<IModelAdapter>(new FailingModelAdapter());
+
+            services.AddScoped<IJobHandler, EchoJobHandler>();
+            services.AddScoped<IJobHandler, FailingJobHandler>();
 
             // Fewer hashing rounds keep sign-in fast in tests.
             services.RemoveAll<IPasswordHasher>();

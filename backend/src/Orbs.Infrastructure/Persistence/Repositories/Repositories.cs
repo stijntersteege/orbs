@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Jobs;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Jobs;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Users;
@@ -77,4 +79,22 @@ internal sealed class SessionRepository(OrbsDbContext db) : EfRepository<Session
 
     public async Task<IReadOnlyList<Session>> ListForUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
         await Query.Where(s => s.UserId == userId).ToListAsync(cancellationToken);
+
+    public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        Db.Sessions.Where(s => s.ExpiresAt < now).ExecuteDeleteAsync(cancellationToken);
+}
+
+internal sealed class JobRepository(OrbsDbContext db) : EfRepository<Job>(db), IJobRepository
+{
+    public async Task<IReadOnlyList<Job>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+        await Query.Where(j => j.Status == JobStatus.Pending && j.RunAt <= now).OrderBy(j => j.RunAt).Take(limit).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Job>> ListRunningAsync(CancellationToken cancellationToken = default) =>
+        await Query.Where(j => j.Status == JobStatus.Running).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Job>> ListRecentAsync(int limit, CancellationToken cancellationToken = default) =>
+        await Query.AsNoTracking().OrderByDescending(j => j.UpdatedAt).Take(limit).ToListAsync(cancellationToken);
+
+    public Task<bool> AnyPendingAsync(string kind, CancellationToken cancellationToken = default) =>
+        Query.AnyAsync(j => j.Kind == kind && j.Status == JobStatus.Pending, cancellationToken);
 }

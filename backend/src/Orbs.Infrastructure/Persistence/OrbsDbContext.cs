@@ -6,6 +6,7 @@ using Orbs.Application.Accounts;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Jobs;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Users;
@@ -35,6 +36,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
     public DbSet<ContextSource> ContextSources => Set<ContextSource>();
 
     public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<Job> Jobs => Set<Job>();
 
     public DbSet<User> Users => Set<User>();
 
@@ -70,6 +73,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<ModelProvider>(modelBuilder);
         FilterOwned<ContextSource>(modelBuilder);
         FilterOwned<Conversation>(modelBuilder);
+        FilterOwned<Job>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

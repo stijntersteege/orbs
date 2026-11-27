@@ -226,3 +226,18 @@ export interface CreateUserRequest {
   password: string
   isAdmin?: boolean
 }
+
+// Background jobs
+
+export interface Job {
+  id: string
+  kind: string
+  status: 'pending' | 'running' | 'succeeded' | 'failed'
+  runAt: string
+  attempts: number
+  maxAttempts: number
+  result?: string
+  lastError?: string
+  createdAt: string
+  finishedAt?: string
+}

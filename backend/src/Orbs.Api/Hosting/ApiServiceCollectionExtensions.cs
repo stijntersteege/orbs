@@ -31,6 +31,7 @@ internal static class ApiServiceCollectionExtensions
 
         services.AddHealthChecks().AddDbContextCheck<OrbsDbContext>("database");
         services.AddOrbsAuth(configuration);
+        services.AddHostedService<JobWorker>();
 
         var origins = configuration.GetSection("Orbs:Cors:Origins").Get<string[]>() ?? [];
         services.AddCors(o => o.AddDefaultPolicy(p =>

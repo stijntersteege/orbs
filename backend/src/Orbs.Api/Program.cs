@@ -40,6 +40,7 @@ api.MapOrbEndpoints();
 api.MapProviderEndpoints();
 api.MapContextEndpoints();
 api.MapConversationEndpoints();
+api.MapJobEndpoints();
 
 // Single-page app: any other path that is not a file goes to the web client, when it is bundled.
 app.MapFallbackToFile("index.html");

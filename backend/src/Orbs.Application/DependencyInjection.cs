@@ -4,6 +4,7 @@ using Orbs.Application.Common;
 using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Demo;
+using Orbs.Application.Jobs;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
 
@@ -24,6 +25,11 @@ public static class DependencyInjection
         services.AddScoped<ContextService>();
         services.AddScoped<ChatService>();
         services.AddScoped<DemoSeeder>();
+
+        services.AddScoped<JobScheduler>();
+        services.AddScoped<Housekeeping>();
+        services.AddSingleton<JobRunner>();
+        services.AddScoped<IJobHandler, SessionCleanupJob>();
         return services;
     }
 }
