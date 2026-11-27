@@ -25,6 +25,8 @@ import type {
   McpServerTools,
   SaveMcpServerRequest,
   Integration,
+  Schedule,
+  SaveScheduleRequest,
   IntegrationKind,
   SaveIntegrationRequest,
   Passkey,
@@ -182,4 +184,14 @@ export const memoriesApi = {
   edit: (id: string, content: string, shared?: boolean, orbId?: string) =>
     http.put<Memory>(`/api/memories/${id}`, { content, shared, orbId }),
   forget: (id: string) => http.delete(`/api/memories/${id}`),
+}
+
+export const schedulesApi = {
+  list: (orbId?: string) => http.get<Schedule[]>(`/api/schedules${orbId ? `?orbId=${orbId}` : ''}`),
+  create: (body: SaveScheduleRequest) => http.post<Schedule>('/api/schedules', body),
+  update: (id: string, body: SaveScheduleRequest) => http.put<Schedule>(`/api/schedules/${id}`, body),
+  remove: (id: string) => http.delete(`/api/schedules/${id}`),
+  run: async (id: string) => {
+    await request(`/api/schedules/${id}/run`, { method: 'POST' })
+  },
 }

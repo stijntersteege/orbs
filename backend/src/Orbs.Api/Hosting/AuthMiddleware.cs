@@ -21,6 +21,7 @@ internal sealed class AuthMiddleware(RequestDelegate next, IConfiguration config
         "/api/auth/sign-in",
         "/api/auth/passkeys/sign-in",
         "/api/auth/oidc",
+        "/api/hooks",
     ];
 
     private readonly byte[]? _apiToken = string.IsNullOrWhiteSpace(configuration["Orbs:ApiToken"])

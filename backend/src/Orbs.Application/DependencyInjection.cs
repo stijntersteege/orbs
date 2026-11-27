@@ -9,6 +9,7 @@ using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
+using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 
 namespace Orbs.Application;
@@ -35,6 +36,11 @@ public static class DependencyInjection
         services.AddScoped<ContextIndexer>();
         services.AddScoped<ContextRetriever>();
         services.AddScoped<FileContextService>();
+        services.AddScoped<ScheduleService>();
+        services.AddScoped<ScheduleDispatcher>();
+        services.AddScoped<ScheduleRunner>();
+        services.AddScoped<IJobHandler, ScheduleCheckJob>();
+        services.AddScoped<IJobHandler, ScheduleRunJob>();
         services.AddScoped<IJobHandler, ContextIndexJob>();
         services.AddScoped<ITool, RememberTool>();
         services.AddScoped<ITool, ForgetTool>();

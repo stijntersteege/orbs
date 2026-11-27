@@ -30,6 +30,7 @@ internal sealed class OwnershipMaintenance(OrbsDbContext db) : IOwnershipMainten
     {
         yield return db.Jobs;
         yield return db.ToolApprovals;
+        yield return db.Schedules;
         yield return db.Memories;
         yield return db.ContextChunks;
         yield return db.ContextFiles;

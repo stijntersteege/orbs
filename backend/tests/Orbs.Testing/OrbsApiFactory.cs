@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Jobs;
+using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Security;
@@ -36,6 +37,12 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
     public string ApiToken { get; init; } = string.Empty;
 
     public bool SeedDemoData { get; init; }
+
+    /// <summary>The server's clock: real time, but tests can move it forward.</summary>
+    public TestClock Clock { get; } = new();
+
+    /// <summary>What every RSS schedule sees.</summary>
+    public FakeFeedReader Feeds { get; } = new();
 
     /// <summary>The in-memory MCP client every MCP server talks to in tests.</summary>
     public FakeMcpClient McpClient { get; } = new();
@@ -70,6 +77,18 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Runs whatever background work is due, as the worker would.</summary>
     public Task<int> RunJobsAsync() => Services.GetRequiredService<JobRunner>().RunDueAsync();
+
+    /// <summary>Lets the worker look at due schedules and then run the resulting jobs.</summary>
+    public async Task RunSchedulesAsync()
+    {
+        await using (var scope = Services.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<CurrentUser>().ActAsSystem();
+            await scope.ServiceProvider.GetRequiredService<ScheduleDispatcher>().DispatchDueAsync();
+        }
+
+        await RunJobsAsync();
+    }
 
     /// <summary>A client signed in as a second, non-admin account, created by the owner.</summary>
     public async Task<HttpClient> CreateClientForNewUserAsync(string email)
@@ -132,6 +151,10 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IModelAdapter, GeminiModelAdapter>();
             services.AddSingleton<IModelAdapter>(new FailingModelAdapter());
 
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(Clock);
+            services.RemoveAll<IFeedReader>();
+            services.AddSingleton<IFeedReader>(Feeds);
             services.RemoveAll<IMcpClient>();
             services.AddSingleton<IMcpClient>(McpClient);
             services.AddScoped<IJobHandler, EchoJobHandler>();

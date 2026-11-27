@@ -225,6 +225,10 @@ export class DemoServer {
         }
         throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
 
+      case 'schedules':
+        if (method === 'GET' && !id) return json([])
+        throw new HttpError(400, 'Schedules need a server that keeps running. Self-host Orbs to use them.')
+
       case 'integrations':
         if (method === 'GET' && id === 'kinds') return json([])
         if (method === 'GET' && !id) return json([])

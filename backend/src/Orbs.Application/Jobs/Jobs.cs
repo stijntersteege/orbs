@@ -136,7 +136,8 @@ public sealed class JobRunner(IServiceScopeFactory scopes, TimeProvider clock)
             var currentUser = services.GetRequiredService<CurrentUser>();
             if (job.OwnerId != Guid.Empty)
             {
-                currentUser.SignIn(job.OwnerId, isAdmin: false);
+                var owner = await services.GetRequiredService<IUserRepository>().FindAsync(job.OwnerId, cancellationToken);
+                currentUser.SignIn(job.OwnerId, owner?.IsAdmin ?? false);
             }
 
             var result = await handler.HandleAsync(job, cancellationToken);
