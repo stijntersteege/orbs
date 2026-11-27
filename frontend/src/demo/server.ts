@@ -36,6 +36,20 @@ export const PROVIDER_KINDS: ProviderKind[] = [
     requiresApiKey: false,
   },
   {
+    kind: 'anthropic',
+    displayName: 'Anthropic',
+    description: 'Claude models through the Anthropic Messages API, with tool use.',
+    requiresBaseUrl: false,
+    requiresApiKey: true,
+  },
+  {
+    kind: 'gemini',
+    displayName: 'Google Gemini',
+    description: 'Gemini models through the Google AI (Gemini) API, with function calling.',
+    requiresBaseUrl: false,
+    requiresApiKey: true,
+  },
+  {
     kind: ECHO_KIND,
     displayName: 'Echo (demo)',
     description: 'Repeats what you say. No key needed, handy for trying Orbs out.',

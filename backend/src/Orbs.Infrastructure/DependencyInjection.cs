@@ -75,6 +75,8 @@ public static class DependencyInjection
         services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
 
         services.AddHttpClient(OpenAiCompatibleModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
+        services.AddHttpClient(AnthropicModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
+        services.AddHttpClient(GeminiModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
         // Fetching on behalf of users goes through the network policy (no private addresses by default).
         services.AddSingleton(NetworkPolicy.From(configuration));
         services.AddHttpClient(UrlConnector.HttpClientName, c =>
@@ -88,6 +90,8 @@ public static class DependencyInjection
         // Plugins: add a class here to support a new provider or context kind.
         services.AddSingleton<IModelAdapter, EchoModelAdapter>();
         services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
+        services.AddSingleton<IModelAdapter, AnthropicModelAdapter>();
+        services.AddSingleton<IModelAdapter, GeminiModelAdapter>();
         services.AddSingleton<IContextConnector, TextConnector>();
         services.AddSingleton<IContextConnector, UrlConnector>();
         services.AddSingleton<ITool, CurrentTimeTool>();

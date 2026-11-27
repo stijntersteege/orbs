@@ -20,6 +20,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The audit trail records who let each tool call happen: allowed by the orb settings, approved or declined by you.
 - MCP client: connect any Model Context Protocol server under **Tools** and its tools become available to every orb, named `<server>__<tool>`, with the same permissions and approvals. Streamable HTTP with an optional Authorization header (stored encrypted). Local command (stdio) servers only for admins and only when `Orbs:Mcp:AllowStdio` is on. Servers added by non-admins go through the network policy.
 - Starter tools, connected under **Tools > Connected apps**: **web search** (SearXNG or Brave), **calendar** over CalDAV (read events, add events), **email** (read the inbox over IMAP; send over SMTP, which orbs ask about first) and **Home Assistant** (list entities, call services). Passwords and tokens are stored encrypted. New `IIntegrationKind` plugins add more.
+- Native model adapters for **Anthropic** (Messages API) and **Google Gemini** (generateContent), both streaming and with tool calling. Presets under **Models > Add provider**.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed
