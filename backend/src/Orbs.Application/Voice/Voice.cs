@@ -59,7 +59,7 @@ public sealed class VoiceService(IModelProviderRepository providers, PluginRegis
             ?? throw new ModelUnavailableException("No provider has a speech-to-text model. Set one under Models.");
         try
         {
-            var text = await adapter.TranscribeAsync(providerService.ConnectionFor(provider), provider.SpeechToTextModel!, audio, contentType ?? "audio/webm", language, cancellationToken);
+            var text = await adapter.TranscribeAsync(providerService.ConnectionFor(provider), provider.SpeechToTextModel!, audio, RecordingType(contentType), language, cancellationToken);
             return new TranscriptionDto(text.Trim());
         }
         catch (HttpRequestException ex)
@@ -81,13 +81,49 @@ public sealed class VoiceService(IModelProviderRepository providers, PluginRegis
             ?? throw new ModelUnavailableException("No provider has a text-to-speech model. Set one under Models.");
         try
         {
-            return await adapter.SpeakAsync(providerService.ConnectionFor(provider), provider.TextToSpeechModel!, string.IsNullOrWhiteSpace(request.Voice) ? DefaultVoice : request.Voice.Trim(), text, cancellationToken);
+            var spoken = await adapter.SpeakAsync(providerService.ConnectionFor(provider), provider.TextToSpeechModel!, string.IsNullOrWhiteSpace(request.Voice) ? DefaultVoice : request.Voice.Trim(), text, cancellationToken);
+            return spoken with { ContentType = SpokenType(spoken.ContentType) };
         }
         catch (HttpRequestException ex)
         {
             throw new ExternalServiceException($"Could not speak: {ex.Message}", ex);
         }
     }
+
+    /// <summary>
+    /// The audio type of a recording, from the known ones only, without parameters such as ";codecs=opus".
+    /// Anything else (a browser that sends nothing, or something that is not audio) counts as WebM.
+    /// </summary>
+    public static string RecordingType(string? contentType) =>
+        KnownAudioTypes.TryGetValue(BareType(contentType), out var known) ? known : "audio/webm";
+
+    /// <summary>
+    /// The type Orbs serves spoken audio as. Only known audio types pass, so a provider can never make the app
+    /// serve HTML or script from its own address.
+    /// </summary>
+    public static string SpokenType(string? contentType) =>
+        KnownAudioTypes.TryGetValue(BareType(contentType), out var known) ? known : "audio/mpeg";
+
+    private static readonly Dictionary<string, string> KnownAudioTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["audio/webm"] = "audio/webm",
+        ["audio/ogg"] = "audio/ogg",
+        ["audio/opus"] = "audio/opus",
+        ["audio/mp4"] = "audio/mp4",
+        ["audio/m4a"] = "audio/mp4",
+        ["audio/x-m4a"] = "audio/mp4",
+        ["audio/aac"] = "audio/aac",
+        ["audio/mpeg"] = "audio/mpeg",
+        ["audio/mp3"] = "audio/mpeg",
+        ["audio/wav"] = "audio/wav",
+        ["audio/wave"] = "audio/wav",
+        ["audio/x-wav"] = "audio/wav",
+        ["audio/flac"] = "audio/flac",
+        ["audio/pcm"] = "audio/pcm",
+    };
+
+    private static string BareType(string? contentType) =>
+        (contentType ?? string.Empty).Split(';', 2)[0].Trim();
 
     private async Task<(ModelProvider Provider, T Adapter)?> FindAsync<T>(Func<ModelProvider, string?> model, CancellationToken cancellationToken)
         where T : class
