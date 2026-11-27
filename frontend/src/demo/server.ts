@@ -193,6 +193,10 @@ export class DemoServer {
         }
         throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
 
+      case 'mcp-servers':
+        if (method === 'GET' && !id) return json([])
+        throw new HttpError(400, 'The live demo cannot connect to MCP servers. Self-host Orbs to use them.')
+
       case 'tools':
         return json(DEMO_TOOLS)
 

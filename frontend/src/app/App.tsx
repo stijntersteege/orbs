@@ -12,6 +12,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { AuthGate } from '@/features/account/AuthGate'
 import { UsersPage } from '@/features/account/UsersPage'
+import { ToolsPage } from '@/features/tools/ToolsPage'
 import { IS_DEMO } from '@/demo/mode'
 import { SettingsProvider } from './SettingsContext'
 
@@ -45,6 +46,7 @@ export const routes: RouteObject[] = [
           { path: 'orbs/:orbId', element: <OrbEditorPage /> },
           { path: 'context', element: <ContextPage /> },
           { path: 'models', element: <ModelsPage /> },
+          { path: 'tools', element: <ToolsPage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'account', element: <AccountPage /> },
           { path: 'users', element: <UsersPage /> },

@@ -3,12 +3,14 @@ using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
+using Orbs.Application.Tools;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
 namespace Orbs.Infrastructure.Persistence.Repositories;
@@ -118,3 +120,5 @@ internal sealed class ToolApprovalRepository(OrbsDbContext db) : EfRepository<To
     public async Task<IReadOnlyList<ToolApproval>> ListPendingAsync(Guid conversationId, CancellationToken cancellationToken = default) =>
         await Query.Where(a => a.ConversationId == conversationId && a.Status == ApprovalStatus.Pending).ToListAsync(cancellationToken);
 }
+
+internal sealed class McpServerRepository(OrbsDbContext db) : EfRepository<McpServer>(db), IMcpServerRepository;

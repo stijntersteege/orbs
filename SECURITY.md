@@ -50,6 +50,7 @@ Please give me reasonable time to fix the problem before you share details publi
 - Create the first account right after starting Orbs: until then anyone who reaches the server can claim it.
 - Only set `Orbs__ApiToken` when a script needs it, and keep it long and secret: it acts as the first admin.
 - Change the default PostgreSQL password in `.env` and do not publish the database port.
+- Keep `Orbs__Mcp__AllowStdio` off unless you trust every admin: stdio MCP servers run commands on the Orbs server.
 - Back up the database volume; it also holds the keys that decrypt your provider API keys.
 - Web pages and tools never fetch addresses on private networks (10.x, 192.168.x, localhost, cloud metadata, ...). Allow specific internal hosts with `Orbs__Network__AllowedHosts` (comma-separated), or all with `Orbs__Network__AllowPrivateNetworks=true` on a server only you use. `Orbs__Network__BlockedHosts` blocks hosts on top. Model providers are not limited, so local runtimes such as Ollama keep working.
 - Set spending limits with your model providers.

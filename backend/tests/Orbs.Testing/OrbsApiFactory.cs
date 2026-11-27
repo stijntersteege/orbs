@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Jobs;
+using Orbs.Application.Tools;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Security;
 
@@ -35,6 +36,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
     public string ApiToken { get; init; } = string.Empty;
 
     public bool SeedDemoData { get; init; }
+
+    /// <summary>The in-memory MCP client every MCP server talks to in tests.</summary>
+    public FakeMcpClient McpClient { get; } = new();
 
     public const string OwnerEmail = "owner@orbs.test";
     public const string Password = "correct horse battery";
@@ -126,6 +130,8 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
             services.AddSingleton<IModelAdapter>(new FailingModelAdapter());
 
+            services.RemoveAll<IMcpClient>();
+            services.AddSingleton<IMcpClient>(McpClient);
             services.AddScoped<IJobHandler, EchoJobHandler>();
             services.AddScoped<IJobHandler, FailingJobHandler>();
 

@@ -30,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<ToolRunner>();
         services.AddScoped<ReplyEngine>();
         services.AddScoped<IToolSource, BuiltInToolSource>();
+        services.AddScoped<IToolSource, McpToolSource>();
+        services.AddScoped<McpServerService>();
+        services.AddSingleton<McpToolCache>();
         services.AddScoped<DemoSeeder>();
 
         services.AddScoped<JobScheduler>();

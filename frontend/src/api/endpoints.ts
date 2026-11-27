@@ -20,6 +20,9 @@ import type {
   Job,
   MessagePage,
   ToolInfo,
+  McpServer,
+  McpServerTools,
+  SaveMcpServerRequest,
   Passkey,
   PasskeyOptions,
   SignInResult,
@@ -137,4 +140,12 @@ export const jobsApi = {
 
 export const toolsApi = {
   list: () => http.get<ToolInfo[]>('/api/tools'),
+}
+
+export const mcpApi = {
+  list: () => http.get<McpServer[]>('/api/mcp-servers'),
+  create: (body: SaveMcpServerRequest) => http.post<McpServer>('/api/mcp-servers', body),
+  update: (id: string, body: SaveMcpServerRequest) => http.put<McpServer>(`/api/mcp-servers/${id}`, body),
+  remove: (id: string) => http.delete(`/api/mcp-servers/${id}`),
+  tools: (id: string) => http.get<McpServerTools>(`/api/mcp-servers/${id}/tools`),
 }
