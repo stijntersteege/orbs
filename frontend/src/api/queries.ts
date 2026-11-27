@@ -7,6 +7,7 @@ import {
   jobsApi,
   toolsApi,
   mcpApi,
+  integrationsApi,
   orbsApi,
   providersApi,
   usersApi,
@@ -30,6 +31,8 @@ export const keys = {
   jobs: ['jobs'] as const,
   tools: ['tools'] as const,
   mcpServers: ['mcp-servers'] as const,
+  integrations: ['integrations'] as const,
+  integrationKinds: ['integrations', 'kinds'] as const,
 }
 
 export const useOrbs = () => useQuery({ queryKey: keys.orbs, queryFn: orbsApi.list })
@@ -147,3 +150,8 @@ export const useJobs = () => useQuery({ queryKey: keys.jobs, queryFn: jobsApi.li
 export const useTools = () => useQuery({ queryKey: keys.tools, queryFn: toolsApi.list })
 
 export const useMcpServers = () => useQuery({ queryKey: keys.mcpServers, queryFn: mcpApi.list })
+
+export const useIntegrationKinds = () =>
+  useQuery({ queryKey: keys.integrationKinds, queryFn: integrationsApi.kinds, staleTime: Infinity })
+
+export const useIntegrations = () => useQuery({ queryKey: keys.integrations, queryFn: integrationsApi.list })

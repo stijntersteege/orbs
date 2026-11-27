@@ -12,6 +12,8 @@ describe('ToolsPage', () => {
         { name: 'home__turn_on', displayName: 'Turn on (Home)', description: 'Lights', risk: 'write' },
       ],
       'GET /api/mcp-servers': [],
+      'GET /api/integrations': [],
+      'GET /api/integrations/kinds': [],
       'POST /api/mcp-servers': create,
     })
     renderPage(<ToolsPage />)

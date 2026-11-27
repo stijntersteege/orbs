@@ -44,6 +44,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<McpServer> McpServers => Set<McpServer>();
 
+    public DbSet<Integration> Integrations => Set<Integration>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -81,6 +83,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<Job>(modelBuilder);
         FilterOwned<ToolApproval>(modelBuilder);
         FilterOwned<McpServer>(modelBuilder);
+        FilterOwned<Integration>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

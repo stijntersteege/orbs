@@ -23,6 +23,9 @@ import type {
   McpServer,
   McpServerTools,
   SaveMcpServerRequest,
+  Integration,
+  IntegrationKind,
+  SaveIntegrationRequest,
   Passkey,
   PasskeyOptions,
   SignInResult,
@@ -148,4 +151,14 @@ export const mcpApi = {
   update: (id: string, body: SaveMcpServerRequest) => http.put<McpServer>(`/api/mcp-servers/${id}`, body),
   remove: (id: string) => http.delete(`/api/mcp-servers/${id}`),
   tools: (id: string) => http.get<McpServerTools>(`/api/mcp-servers/${id}/tools`),
+}
+
+export const integrationsApi = {
+  kinds: () => http.get<IntegrationKind[]>('/api/integrations/kinds'),
+  list: () => http.get<Integration[]>('/api/integrations'),
+  create: (body: SaveIntegrationRequest) => http.post<Integration>('/api/integrations', body),
+  update: (id: string, body: SaveIntegrationRequest) =>
+    http.put<Integration>(`/api/integrations/${id}`, body),
+  remove: (id: string) => http.delete(`/api/integrations/${id}`),
+  test: (id: string) => http.post<{ ok: boolean; error?: string }>(`/api/integrations/${id}/test`),
 }

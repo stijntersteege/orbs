@@ -409,6 +409,49 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("providers", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Tools.Integration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProtectedSecret")
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("integrations", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Tools.McpServer", b =>
                 {
                     b.Property<Guid>("Id")

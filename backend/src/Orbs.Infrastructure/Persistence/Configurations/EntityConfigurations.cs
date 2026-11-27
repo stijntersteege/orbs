@@ -235,3 +235,19 @@ internal sealed class McpServerConfiguration : IEntityTypeConfiguration<McpServe
         builder.Ignore(s => s.HasAuthorization);
     }
 }
+
+internal sealed class IntegrationConfiguration : IEntityTypeConfiguration<Integration>
+{
+    public void Configure(EntityTypeBuilder<Integration> builder)
+    {
+        builder.ToTable("integrations");
+        builder.HasKey(i => i.Id);
+        builder.Property(i => i.Id).ValueGeneratedNever();
+        builder.HasIndex(i => i.OwnerId);
+        builder.Property(i => i.Kind).HasMaxLength(64).IsRequired();
+        builder.Property(i => i.Name).HasMaxLength(Integration.MaxNameLength).IsRequired();
+        builder.Property(i => i.Settings).HasMaxLength(Integration.MaxSettingsLength).IsRequired();
+        builder.Property(i => i.ProtectedSecret).HasMaxLength(4_096);
+        builder.Ignore(i => i.HasSecret);
+    }
+}
