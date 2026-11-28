@@ -19,17 +19,21 @@ internal static class AuthEndpoints
 
         auth.MapPost("/setup", async (SetupRequest request, HttpContext http, AccountService accounts, CancellationToken ct) =>
                 SignedIn(http, await accounts.SetupAsync(request, Device(http), ct)))
+            .RequireRateLimiting(RateLimits.SignIn)
             .WithSummary("Create the first account (an admin). Only works once");
 
         auth.MapPost("/sign-in", async (SignInRequest request, HttpContext http, AccountService accounts, CancellationToken ct) =>
                 SignedIn(http, await accounts.SignInWithPasswordAsync(request, Device(http), ct)))
+            .RequireRateLimiting(RateLimits.SignIn)
             .WithSummary("Sign in with email and password");
 
         auth.MapPost("/passkeys/sign-in/options", (AccountService accounts) => accounts.BeginPasskeySignIn())
+            .RequireRateLimiting(RateLimits.SignIn)
             .WithSummary("Start signing in with a passkey: WebAuthn request options");
 
         auth.MapPost("/passkeys/sign-in", async (CompletePasskeyRequest request, HttpContext http, AccountService accounts, CancellationToken ct) =>
                 SignedIn(http, await accounts.CompletePasskeySignInAsync(request, Device(http), ct)))
+            .RequireRateLimiting(RateLimits.SignIn)
             .WithSummary("Finish signing in with a passkey");
 
         auth.MapPost("/sign-out", async (HttpContext http, AccountService accounts, CancellationToken ct) =>
@@ -86,6 +90,7 @@ internal static class AuthEndpoints
                 await accounts.ChangePasswordAsync(request, ct);
                 return TypedResults.NoContent();
             })
+            .RequireRateLimiting(RateLimits.SignIn)
             .WithSummary("Set or change the password");
 
         account.MapDelete("/sessions/{id:guid}", async (Guid id, AccountService accounts, CancellationToken ct) =>
@@ -139,7 +144,8 @@ internal static class AuthEndpoints
     private static CookieOptions CookieOptions(HttpContext http) => new()
     {
         HttpOnly = true,
-        Secure = http.Request.IsHttps,
+        // Behind a proxy that ends TLS, the request itself may look like plain http.
+        Secure = http.Request.IsHttps || http.RequestServices.GetRequiredService<PublicAddress>().IsHttps,
         SameSite = SameSiteMode.Lax,
         Path = "/",
     };

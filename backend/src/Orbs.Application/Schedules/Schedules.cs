@@ -122,6 +122,9 @@ public sealed class ScheduleService(
     /// Called by another app on the secret hook URL. Must run as the system: nobody is signed in.
     /// Returns false for an unknown schedule or a wrong secret, without saying which.
     /// </summary>
+    /// <summary>How much of a webhook's body the orb gets, in characters.</summary>
+    public const int MaxWebhookInput = 10_000;
+
     public async Task<bool> ReceiveWebhookAsync(Guid id, string secret, string? body, CancellationToken cancellationToken = default)
     {
         var schedule = await schedules.FindAsync(id, cancellationToken);
@@ -131,7 +134,7 @@ public sealed class ScheduleService(
             return false;
         }
 
-        var input = string.IsNullOrWhiteSpace(body) ? null : body.Length <= 10_000 ? body : body[..10_000];
+        var input = string.IsNullOrWhiteSpace(body) ? null : body.Length <= MaxWebhookInput ? body : body[..MaxWebhookInput];
         await jobs.EnqueueAsync(ScheduleRunJob.KindName, new ScheduleRunJob.Payload(schedule.Id, input), maxAttempts: 1, ownerId: schedule.OwnerId, cancellationToken: cancellationToken);
         return true;
     }

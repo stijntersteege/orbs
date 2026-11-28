@@ -50,7 +50,7 @@ internal sealed class AnthropicModelAdapter(IHttpClientFactory httpClientFactory
         using var message = Request(connection, HttpMethod.Post, "v1/messages");
         message.Content = new StringContent(BuildRequest(request).ToJsonString(), Encoding.UTF8, "application/json");
 
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
 
@@ -75,7 +75,7 @@ internal sealed class AnthropicModelAdapter(IHttpClientFactory httpClientFactory
     {
         ArgumentNullException.ThrowIfNull(connection);
         using var message = Request(connection, HttpMethod.Get, "v1/models?limit=100");
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -215,39 +215,6 @@ internal sealed class AnthropicModelAdapter(IHttpClientFactory httpClientFactory
                     throw new HttpRequestException(root.GetProperty("error").GetProperty("message").GetString());
             }
 
-            return [];
-        }
-    }
-}
-
-/// <summary>Shared bits for HTTP model adapters.</summary>
-internal static class ModelHttp
-{
-    public static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        if (response.IsSuccessStatusCode)
-        {
-            return;
-        }
-
-        var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (detail.Length > 300)
-        {
-            detail = detail[..300];
-        }
-
-        throw new HttpRequestException($"{(int)response.StatusCode} {response.ReasonPhrase}: {detail}", null, response.StatusCode);
-    }
-
-    /// <summary>Tool arguments as a JSON object; anything else becomes an empty object.</summary>
-    public static JsonObject ParseObject(string json)
-    {
-        try
-        {
-            return JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json) as JsonObject ?? [];
-        }
-        catch (JsonException)
-        {
             return [];
         }
     }

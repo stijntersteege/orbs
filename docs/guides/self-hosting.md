@@ -47,6 +47,12 @@ orbs.example.com {
 
 With nginx, add `proxy_buffering off;` for `/api/` so streamed replies are not held back.
 
+Set `Orbs__PublicUrl` to the https address: the sign-in cookie is then only sent over https. Set `Orbs__TrustForwardedHeaders=true` when Orbs is only reachable through the proxy, so Orbs sees each visitor's own address (for sign-in limits) and knows the request came in over https. Leave it off when port 8080 is open to others, because anyone could then claim any address.
+
+## Protections
+
+Orbs sends a strict Content Security Policy and refuses to be framed by other sites. Sign-in, first-run setup, passkey sign-in and password changes allow 10 attempts per minute per address; webhooks allow 60. Change that with `Orbs__RateLimits__SignInPerMinute` and `Orbs__RateLimits__HooksPerMinute`. Uploaded files that a browser could run (HTML, SVG) always download as plain files.
+
 ## What Orbs may fetch
 
 Web page sources (and, later, tools) are fetched by the server. To keep that from being a way into your network, Orbs refuses private, loopback and link-local addresses, including cloud metadata endpoints.
@@ -57,7 +63,7 @@ Web page sources (and, later, tools) are fetched by the server. To keep that fro
 | `Orbs__Network__BlockedHosts` | Hosts Orbs never fetches, even public ones. |
 | `Orbs__Network__AllowPrivateNetworks` | `true` turns the private-network check off. Only for a server nobody else uses. |
 
-Model providers are not affected, so Ollama or LM Studio on your network keep working.
+Admins are not limited for model providers, integrations and MCP servers, so Ollama or LM Studio on your network keep working. Providers, apps and servers that other accounts add do go through this check. Push notifications always do.
 
 ## Using local models
 

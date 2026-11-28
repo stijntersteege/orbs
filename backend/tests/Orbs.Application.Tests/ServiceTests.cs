@@ -57,7 +57,7 @@ public class ProviderServiceTests
     private readonly InMemoryStore _store = new();
 
     private ProviderService Service(params IModelAdapter[] adapters) =>
-        new(_store.Providers, _store.Orbs, new PluginRegistry<IModelAdapter>(adapters), new FakeSecretProtector(), _store, FakeClock.Default);
+        new(_store.Providers, _store.Orbs, new PluginRegistry<IModelAdapter>(adapters), new FakeSecretProtector(), _store, FakeClock.Default, new CurrentUser());
 
     [Fact]
     public async Task Api_keys_are_stored_encrypted_and_never_returned()
@@ -119,7 +119,7 @@ public class ContextServiceTests
     private ContextService Service(params IContextConnector[] connectors)
     {
         var models = new PluginRegistry<IModelAdapter>([]);
-        var providers = new ProviderService(_store.Providers, _store.Orbs, models, new FakeSecretProtector(), _store, FakeClock.Default);
+        var providers = new ProviderService(_store.Providers, _store.Orbs, models, new FakeSecretProtector(), _store, FakeClock.Default, new CurrentUser());
         var indexer = new ContextIndexer(new EmbedderResolver(_store.Providers, models, providers), new JobScheduler(_store.Jobs, _store, FakeClock.Default), new CurrentUser());
         return new(_store.Context, _store.Orbs, new PluginRegistry<IContextConnector>(connectors), indexer, _store, FakeClock.Default);
     }

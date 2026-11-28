@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Orbs.Api.Endpoints;
 using Orbs.Application.Accounts;
 using Orbs.Infrastructure.Persistence;
@@ -31,6 +32,15 @@ internal static class ApiServiceCollectionExtensions
 
         services.AddHealthChecks().AddDbContextCheck<OrbsDbContext>("database");
         services.AddOrbsAuth(configuration);
+        services.AddOrbsRateLimits(configuration);
+
+        // Behind a reverse proxy (Caddy, Traefik, nginx): the client's address and https come from the proxy.
+        services.Configure<ForwardedHeadersOptions>(o =>
+        {
+            o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+            o.KnownIPNetworks.Clear();
+            o.KnownProxies.Clear();
+        });
         services.AddHostedService<JobWorker>();
 
         var origins = configuration.GetSection("Orbs:Cors:Origins").Get<string[]>() ?? [];
@@ -60,6 +70,7 @@ internal static class ApiServiceCollectionExtensions
         }
 
         services.AddSingleton(new PasskeyOptions(publicUrl.Host, "Orbs", origins));
+        services.AddSingleton(new PublicAddress(publicUrl));
 
         var oidc = configuration.GetSection("Orbs:Auth:Oidc");
         var oidcEnabled = !string.IsNullOrWhiteSpace(oidc["Authority"]) && !string.IsNullOrWhiteSpace(oidc["ClientId"]);
@@ -100,4 +111,10 @@ internal static class ApiServiceCollectionExtensions
 
     public static void MapScalarApiReference(this WebApplication app) =>
         ScalarEndpointRouteBuilderExtensions.MapScalarApiReference(app, o => o.WithTitle("Orbs API"));
+}
+
+/// <summary>The address people open Orbs on (<c>Orbs:PublicUrl</c>).</summary>
+internal sealed record PublicAddress(Uri Url)
+{
+    public bool IsHttps => Url.Scheme == Uri.UriSchemeHttps;
 }

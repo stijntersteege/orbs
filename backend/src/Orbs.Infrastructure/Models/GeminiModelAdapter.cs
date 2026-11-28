@@ -52,7 +52,7 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
         using var message = Request(connection, HttpMethod.Post, $"v1beta/{model}:streamGenerateContent?alt=sse");
         message.Content = new StringContent(BuildRequest(request).ToJsonString(), Encoding.UTF8, "application/json");
 
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
 
@@ -77,7 +77,7 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
     {
         ArgumentNullException.ThrowIfNull(connection);
         using var message = Request(connection, HttpMethod.Get, "v1beta/models?pageSize=200");
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -103,7 +103,7 @@ internal sealed class GeminiModelAdapter(IHttpClientFactory httpClientFactory) :
         };
         using var message = Request(connection, HttpMethod.Post, $"v1beta/{name}:batchEmbedContents");
         message.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await ModelHttp.EnsureSuccessAsync(response, cancellationToken);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));

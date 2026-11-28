@@ -73,7 +73,9 @@ public static class DependencyInjection
         services.AddSingleton<IChannelAdapter, EmailChannel>();
         services.AddSingleton<VapidKeys>();
         services.AddSingleton<IPushSender, WebPushSender>();
-        services.AddHttpClient(WebPushSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
+        // Push services (Google, Mozilla, Apple) are always public: a subscription can never point Orbs inward.
+        services.AddHttpClient(WebPushSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30))
+            .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
         services.AddSingleton<ICronCalculator, CronCalculator>();
         services.AddSingleton<IFeedReader, FeedReader>();
         services.AddSingleton<IDocumentReader, DocumentReader>();
@@ -103,6 +105,8 @@ public static class DependencyInjection
         services.AddHttpClient(OpenAiCompatibleModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
         services.AddHttpClient(AnthropicModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
         services.AddHttpClient(GeminiModelAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5));
+        services.AddHttpClient(ModelHttp.RestrictedHttpClientName, c => c.Timeout = TimeSpan.FromMinutes(5))
+            .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
         // Fetching on behalf of users goes through the network policy (no private addresses by default).
         services.AddSingleton(NetworkPolicy.From(configuration));
         services.AddHttpClient(UrlConnector.HttpClientName, c =>

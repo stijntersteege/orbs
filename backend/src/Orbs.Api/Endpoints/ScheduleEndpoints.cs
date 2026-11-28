@@ -1,3 +1,4 @@
+using Orbs.Api.Hosting;
 using Orbs.Application.Accounts;
 using Orbs.Application.Schedules;
 
@@ -40,10 +41,15 @@ internal static class ScheduleEndpoints
             {
                 // Nobody signs in to call a hook: the secret is the credential, so look it up as the system.
                 currentUser.ActAsSystem();
+
+                // Read no more than the orb gets: anyone can call this address.
                 using var reader = new StreamReader(request.Body);
-                var body = await reader.ReadToEndAsync(ct);
+                var buffer = new char[ScheduleService.MaxWebhookInput];
+                var read = await reader.ReadBlockAsync(buffer.AsMemory(), ct);
+                var body = new string(buffer, 0, read);
                 return await schedules.ReceiveWebhookAsync(id, secret, body, ct) ? Results.Accepted() : Results.NotFound();
             })
+            .RequireRateLimiting(RateLimits.Hooks)
             .WithTags("Schedules")
             .WithSummary("Trigger a webhook schedule. The request body (up to 10,000 characters) goes to the orb with the prompt");
     }

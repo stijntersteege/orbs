@@ -22,6 +22,12 @@ if (app.Configuration.GetValue("Orbs:SeedDemoData", defaultValue: false))
     await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
 }
 
+if (app.Configuration.GetValue("Orbs:TrustForwardedHeaders", defaultValue: false))
+{
+    app.UseForwardedHeaders();
+}
+
+app.UseSecurityHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseCors();
@@ -29,6 +35,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseMiddleware<AuthMiddleware>();
+app.UseRateLimiter();
 
 app.MapOpenApi();
 app.MapScalarApiReference();

@@ -68,7 +68,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         };
         Authorize(message, connection);
 
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
 
@@ -109,7 +109,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         using var message = new HttpRequestMessage(HttpMethod.Get, Endpoint(connection, "models"));
         Authorize(message, connection);
 
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
 
@@ -137,7 +137,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
         using var message = new HttpRequestMessage(HttpMethod.Post, Endpoint(connection, "audio/transcriptions")) { Content = form };
         Authorize(message, connection);
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -154,7 +154,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
         };
         Authorize(message, connection);
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return new SpokenAudio(await response.Content.ReadAsByteArrayAsync(cancellationToken), response.Content.Headers.ContentType?.MediaType ?? "audio/mpeg");
@@ -190,7 +190,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
         };
         Authorize(message, connection);
-        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var client = ModelHttp.CreateClient(httpClientFactory, HttpClientName, connection);
         using var response = await client.SendAsync(message, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return ParseEmbeddings(await response.Content.ReadAsStringAsync(cancellationToken), texts.Count);
