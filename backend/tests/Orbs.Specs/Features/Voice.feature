@@ -6,3 +6,8 @@ Feature: Voice
     When I say out loud "Good morning"
     Then Orbs hears "Good morning"
     And Orbs can read the answer aloud
+
+  Scenario: Each orb has its own voice
+    Given a provider that can listen and speak
+    And an orb named "Pip" with the voice "nova"
+    Then "Pip" reads its answers in the voice "nova"

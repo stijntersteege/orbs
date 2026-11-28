@@ -58,6 +58,7 @@ public sealed class OrbService(
         orb.Describe(request.Description, now);
         orb.Brief(request.Instructions, now);
         orb.ChangeAppearance(request.Appearance ?? orb.Appearance, now);
+        orb.UseVoice(request.Voice, now);
         orb.UseModel(await ResolveModelAsync(request.Model, cancellationToken), now);
         orb.SetContext(await ResolveContextAsync(request.ContextSourceIds, cancellationToken), now);
 

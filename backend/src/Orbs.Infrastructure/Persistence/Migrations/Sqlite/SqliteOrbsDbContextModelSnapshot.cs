@@ -497,6 +497,10 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Voice")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.PrimitiveCollection<string>("_contextSourceIds")
                         .IsRequired()
                         .HasColumnType("TEXT")

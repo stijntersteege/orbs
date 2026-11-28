@@ -393,6 +393,8 @@ export class DemoServer {
       appearance: request.appearance ?? existing?.appearance ?? DEFAULT_APPEARANCE,
       model: request.model ?? undefined,
       contextSourceIds: request.contextSourceIds ?? existing?.contextSourceIds ?? [],
+      toolPermissions: request.toolPermissions ?? existing?.toolPermissions,
+      voice: request.voice?.trim() || undefined,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     }

@@ -18,6 +18,7 @@ import {
 import { Icon } from '@/components/ui/icons'
 import { OrbMaker } from './OrbMaker'
 import { ToolsCard } from './ToolsCard'
+import { VoicePicker } from './VoicePicker'
 import styles from './orbs.module.css'
 
 const AUTO = ''
@@ -31,6 +32,7 @@ function toForm(orb?: OrbModel): SaveOrbRequest {
     model: orb?.model ?? null,
     contextSourceIds: orb?.contextSourceIds ?? [],
     toolPermissions: orb?.toolPermissions ?? {},
+    voice: orb?.voice ?? '',
   }
 }
 
@@ -225,9 +227,12 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
           <Card>
             <div className={styles.sectionHead}>
               <span className={styles.step}>6</span>
-              <h2>Give it a face</h2>
+              <h2>Give it a face and a voice</h2>
             </div>
             <OrbMaker value={appearance} onChange={(a) => set({ appearance: a })} />
+            <div style={{ marginTop: 24 }}>
+              <VoicePicker name={name} value={form.voice ?? ''} onChange={(voice) => set({ voice })} />
+            </div>
           </Card>
 
           {!isNew && (
