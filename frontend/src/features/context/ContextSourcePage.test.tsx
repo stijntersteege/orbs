@@ -17,6 +17,11 @@ const routes = [
 ]
 
 describe('ContextSourcePage', () => {
+  // The Markdown renderer loads lazily; loading it once up front keeps these tests independent of timing.
+  beforeAll(async () => {
+    await import('@/components/markdown/MarkdownRenderer')
+  })
+
   it('shows a Markdown file formatted and saves edits back into the file', async () => {
     const replace = vi.fn<(init?: RequestInit) => unknown>(() => ({}))
     mockApi({
@@ -39,7 +44,7 @@ describe('ContextSourcePage', () => {
     renderRoute(routes, '/context/f1')
 
     expect(await screen.findByRole('heading', { name: 'Plan', level: 1 })).toBeInTheDocument()
-    expect(await screen.findByText('Friday', { selector: 'strong' }, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByText('Friday', { selector: 'strong' })).toBeInTheDocument()
     expect(screen.getByText(/plan\.md · 24 B/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Edit/ }))
