@@ -55,7 +55,7 @@ export function ChannelsPage() {
             ))}
           </ul>
         </Card>
-        {kinds.data && orbs.data && orbs.data.length > 0 && (
+        {kinds.data && kinds.data.length > 0 && orbs.data && orbs.data.length > 0 && (
           <ConnectChannel
             kinds={kinds.data}
             orbs={orbs.data}
