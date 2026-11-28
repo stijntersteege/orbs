@@ -32,6 +32,10 @@ internal sealed class InMemoryStore : IUnitOfWork
 
     public InMemoryRepo<Job> JobItems { get; } = new();
 
+    public InMemoryRepo<ContextFile> FileItems { get; } = new();
+
+    public IContextFileRepository Files => new FileRepo(FileItems);
+
     public IContextChunkRepository Chunks => new ChunkRepo(ChunkItems);
 
     public IJobRepository Jobs => new JobRepo(JobItems);
@@ -79,6 +83,15 @@ internal sealed class InMemoryStore : IUnitOfWork
             Inner.Items.RemoveAll(c => c.SourceId == sourceId);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FileRepo(InMemoryRepo<ContextFile> inner) : Delegating<ContextFile>(inner), IContextFileRepository
+    {
+        public Task<ContextFile?> FindBySourceAsync(Guid sourceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Inner.Items.FirstOrDefault(f => f.SourceId == sourceId));
+
+        public Task<IReadOnlyList<ContextFile>> ListImagesAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ContextFile>>([.. Inner.Items.Where(f => sourceIds.Contains(f.SourceId) && f.IsImage)]);
     }
 
     private sealed class JobRepo(InMemoryRepo<Job> inner) : Delegating<Job>(inner), IJobRepository

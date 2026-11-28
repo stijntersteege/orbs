@@ -22,6 +22,7 @@ public sealed class ChatService(
     IToolApprovalRepository approvals,
     MemoryService memories,
     ContextRetriever retriever,
+    FileContextService files,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -104,11 +105,12 @@ public sealed class ChatService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var retrieved = await retriever.RetrieveAsync(context, request.Content, cancellationToken);
+        var images = adapter.SupportsImages ? await files.ImagesForAsync(context, cancellationToken) : [];
         var state = new ReplyState
         {
             ProviderId = resolved.Provider.Id,
             Model = resolved.Model,
-            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken), retrieved: retrieved)],
+            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken), retrieved: retrieved, images: images)],
         };
         var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(resolved.Provider), toolSet);
         var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context, retrieved: retrieved));

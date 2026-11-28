@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<EmbedderResolver>();
         services.AddScoped<ContextIndexer>();
         services.AddScoped<ContextRetriever>();
+        services.AddScoped<FileContextService>();
         services.AddScoped<IJobHandler, ContextIndexJob>();
         services.AddScoped<ITool, RememberTool>();
         services.AddScoped<ITool, ForgetTool>();

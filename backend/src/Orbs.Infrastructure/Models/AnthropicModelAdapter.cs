@@ -30,6 +30,8 @@ internal sealed class AnthropicModelAdapter(IHttpClientFactory httpClientFactory
 
     public bool SupportsTools => true;
 
+    public bool SupportsImages => true;
+
     public async IAsyncEnumerable<string> StreamChatAsync(ProviderConnection connection, ChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var output in StreamAsync(connection, request, cancellationToken))
@@ -105,6 +107,15 @@ internal sealed class AnthropicModelAdapter(IHttpClientFactory httpClientFactory
                 if (turn.Content.Length > 0)
                 {
                     blocks.Add(new JsonObject { ["type"] = "text", ["text"] = turn.Content });
+                }
+
+                foreach (var image in turn.Images ?? [])
+                {
+                    blocks.Add(new JsonObject
+                    {
+                        ["type"] = "image",
+                        ["source"] = new JsonObject { ["type"] = "base64", ["media_type"] = image.MediaType, ["data"] = image.Base64 },
+                    });
                 }
 
                 foreach (var call in turn.ToolCalls ?? [])

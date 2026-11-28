@@ -27,7 +27,10 @@ public class ChatServiceTests
         var engine = new ReplyEngine(tools, _store.Approvals, _store, _clock);
         var memories = new MemoryService(_store.Memories, _store.Orbs, _store, _clock);
         var retriever = new ContextRetriever(_store.Chunks, new EmbedderResolver(_store.Providers, registry, providerService));
-        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, engine, _store.Approvals, memories, retriever, _store, _clock);
+        var embedders = new EmbedderResolver(_store.Providers, registry, providerService);
+        var indexer = new ContextIndexer(embedders, new global::Orbs.Application.Jobs.JobScheduler(_store.Jobs, _store, _clock), new CurrentUser());
+        var files = new FileContextService(_store.Context, _store.Files, new NoDocuments(), indexer, _store, _clock);
+        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, engine, _store.Approvals, memories, retriever, files, _store, _clock);
     }
 
     private (Orb Orb, Conversation Chat) GivenAnOrbWithAChat(string providerKind = "scripted")
@@ -142,4 +145,14 @@ public class ChatServiceTests
         await Should.ThrowAsync<NotFoundException>(() =>
             CreateService(new ScriptedModelAdapter()).StartAsync(new StartConversationRequest(Guid.NewGuid())));
     }
+}
+
+internal sealed class NoDocuments : IDocumentReader
+{
+    public string ContentTypeFor(string fileName, string? declared) => declared ?? "application/octet-stream";
+
+    public bool CanRead(string contentType) => false;
+
+    public Task<string> ReadTextAsync(string fileName, string contentType, byte[] data, CancellationToken cancellationToken = default) =>
+        Task.FromResult(string.Empty);
 }

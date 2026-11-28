@@ -63,7 +63,7 @@ public sealed class ProviderAndContextApiTests : IDisposable
     {
         var kinds = await _api.GetAsync<List<ContextKindDto>>("/api/context-sources/kinds");
 
-        kinds.Select(k => k.Kind).ShouldBe(["text", "url"], ignoreOrder: true);
+        kinds.Select(k => k.Kind).ShouldBe(["text", "url", "file"], ignoreOrder: true);
     }
 }
 

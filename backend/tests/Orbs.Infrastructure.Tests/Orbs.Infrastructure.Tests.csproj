@@ -6,6 +6,7 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="ModelContextProtocol.Core" />
     <PackageReference Include="MailKit" />
+    <PackageReference Include="PdfPig" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>

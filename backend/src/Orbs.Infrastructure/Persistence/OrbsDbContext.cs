@@ -51,6 +51,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<ContextChunk> ContextChunks => Set<ContextChunk>();
 
+    public DbSet<ContextFile> ContextFiles => Set<ContextFile>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -91,6 +93,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<Integration>(modelBuilder);
         FilterOwned<Memory>(modelBuilder);
         FilterOwned<ContextChunk>(modelBuilder);
+        FilterOwned<ContextFile>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

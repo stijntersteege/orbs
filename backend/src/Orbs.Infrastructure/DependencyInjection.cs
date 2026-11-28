@@ -55,6 +55,8 @@ public static class DependencyInjection
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IMemoryRepository, MemoryRepository>();
         services.AddScoped<IContextChunkRepository, ContextChunkRepository>();
+        services.AddScoped<IContextFileRepository, ContextFileRepository>();
+        services.AddSingleton<IDocumentReader, DocumentReader>();
         services.AddSingleton<IIntegrationKind, WebSearchIntegration>();
         services.AddSingleton<IIntegrationKind, CalDavIntegration>();
         services.AddSingleton<IIntegrationKind, EmailIntegration>();
@@ -98,6 +100,7 @@ public static class DependencyInjection
         services.AddSingleton<IModelAdapter, GeminiModelAdapter>();
         services.AddSingleton<IContextConnector, TextConnector>();
         services.AddSingleton<IContextConnector, UrlConnector>();
+        services.AddSingleton<IContextConnector, FileConnector>();
         services.AddSingleton<ITool, CurrentTimeTool>();
         services.AddSingleton<ITool, CalculatorTool>();
 

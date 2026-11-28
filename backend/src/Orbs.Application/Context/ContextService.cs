@@ -30,6 +30,11 @@ public sealed class ContextService(
     {
         ArgumentNullException.ThrowIfNull(request);
         var connector = connectors.Get(request.Kind);
+        if (connector.Kind == FileContextService.Kind)
+        {
+            throw new DomainException("Upload files with POST /api/context-sources/files.");
+        }
+
         var source = ContextSource.Create(request.Name, connector.Kind, clock.GetUtcNow());
         Configure(source, connector, request);
         sources.Add(source);
@@ -50,6 +55,13 @@ public sealed class ContextService(
 
         var connector = connectors.Get(source.Kind);
         source.Rename(request.Name, clock.GetUtcNow());
+        if (connector.Kind == FileContextService.Kind)
+        {
+            // A file cannot be edited, only renamed.
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return source.ToDto();
+        }
+
         Configure(source, connector, request);
         await SyncAsync(source, connector, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

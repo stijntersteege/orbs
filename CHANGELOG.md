@@ -24,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Memory: orbs save lasting facts during chats with a built-in `remember` tool and drop them with `forget` (both run without asking; you can change that per orb). Memories go into the orb's prompt. A **Memory** tab next to Activity lists them; add, edit or forget any memory there. `/api/orbs/{id}/memories` and `/api/memories/{id}`.
 - Shared memories: choose per memory whether it is private to one orb or shared with all your orbs. The Memory tab shows and switches it; orbs can save a fact for all orbs with `remember` (`shared: true`).
 - Retrieval: give a provider an **embedding model** and big context sources are split into passages, embedded in the background, and orbs read only the passages that match the question instead of a cut-off copy. Works with OpenAI-compatible endpoints (OpenAI, Ollama, LM Studio, ...) and Gemini; the Echo demo has a simple built-in embedder. The activity panel shows how many passages were read. `POST /api/context-sources/{id}/index` re-indexes a source.
+- Files as context: upload PDF, Word (.docx), Markdown, plain text, CSV, JSON or HTML documents and they are read into text (and indexed for retrieval). Upload a picture (PNG, JPEG, GIF, WebP) and orbs whose model can see get the image itself with every question. Up to 20 MB per file. `POST /api/context-sources/files`, `GET /api/context-sources/{id}/file`.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

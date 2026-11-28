@@ -30,6 +30,25 @@ internal static class ContextEndpoints
         group.MapPost("/{id:guid}/sync", (Guid id, ContextService context, CancellationToken ct) => context.SyncAsync(id, ct))
             .WithSummary("Read a context source again");
 
+        group.MapPost("/files", async (IFormFile file, [Microsoft.AspNetCore.Mvc.FromForm] string? name, FileContextService files, CancellationToken ct) =>
+            {
+                await using var stream = file.OpenReadStream();
+                using var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer, ct);
+                var source = await files.UploadAsync(name, new UploadedFile(file.FileName, file.ContentType, buffer.ToArray()), ct);
+                return TypedResults.Created($"/api/context-sources/{source.Id}", source);
+            })
+            .DisableAntiforgery()
+            .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(Orbs.Domain.Context.ContextFile.MaxBytes + 1_000_000))
+            .WithSummary("Upload a file as context: PDF, Word (.docx), Markdown, plain text or an image");
+
+        group.MapGet("/{id:guid}/file", async (Guid id, FileContextService files, CancellationToken ct) =>
+            {
+                var file = await files.DownloadAsync(id, ct);
+                return TypedResults.File(file.Data, file.ContentType, file.FileName);
+            })
+            .WithSummary("Download the file behind a file source");
+
         group.MapPost("/{id:guid}/index", async (Guid id, ContextService context, CancellationToken ct) =>
                 await context.IndexAsync(id, ct)
                     ? Results.Accepted()

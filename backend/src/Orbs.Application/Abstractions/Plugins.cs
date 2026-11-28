@@ -24,7 +24,13 @@ public enum ChatRole { System, User, Assistant, Tool }
 /// One message sent to a model. An assistant turn may carry the tools it asked for;
 /// a tool turn carries one tool's result and the id of the call it answers.
 /// </summary>
-public sealed record ChatTurn(ChatRole Role, string Content, IReadOnlyList<ToolCall>? ToolCalls = null, string? ToolCallId = null);
+public sealed record ChatTurn(ChatRole Role, string Content, IReadOnlyList<ToolCall>? ToolCalls = null, string? ToolCallId = null, IReadOnlyList<ChatImage>? Images = null);
+
+/// <summary>A picture sent along with a user turn, for models that can see.</summary>
+public sealed record ChatImage(string MediaType, byte[] Data, string? Name = null)
+{
+    public string Base64 => Convert.ToBase64String(Data);
+}
 
 /// <summary>What to send to a model. <see cref="Tools"/> lists the tools it may call; empty means none.</summary>
 public sealed record ChatRequest(string Model, IReadOnlyList<ChatTurn> Messages, IReadOnlyList<ToolDefinition>? Tools = null);
@@ -64,6 +70,9 @@ public interface IModelAdapter : IPlugin
 
     /// <summary>True when the adapter passes <see cref="ChatRequest.Tools"/> to the model and reports tool calls.</summary>
     bool SupportsTools => false;
+
+    /// <summary>True when the adapter can send <see cref="ChatTurn.Images"/>. Whether the chosen model can see is up to the model.</summary>
+    bool SupportsImages => false;
 
     /// <summary>
     /// Streams the reply as text and tool calls. Adapters without tool support get this for free:

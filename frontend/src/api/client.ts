@@ -48,7 +48,8 @@ async function toError(response: Response, path: string): Promise<ApiError> {
 
 /** Low-level request. Prefer the typed helpers below. */
 export async function request(path: string, init: RequestInit = {}): Promise<Response> {
-  const json = init.body !== undefined
+  // Uploads set their own multipart content type.
+  const json = init.body !== undefined && !(init.body instanceof FormData)
   let response: Response
   try {
     response = await fetch(`${apiBase()}${path}`, { ...init, headers: { ...headers(json), ...init.headers } })

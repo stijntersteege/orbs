@@ -78,6 +78,47 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("context_chunks", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Context.ContextFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("SourceId")
+                        .IsUnique();
+
+                    b.ToTable("context_files", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Context.ContextSource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -668,6 +709,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                 });
 
             modelBuilder.Entity("Orbs.Domain.Context.ContextChunk", b =>
+                {
+                    b.HasOne("Orbs.Domain.Context.ContextSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Context.ContextFile", b =>
                 {
                     b.HasOne("Orbs.Domain.Context.ContextSource", null)
                         .WithMany()
