@@ -44,6 +44,6 @@ If the provider fails mid-reply, the stream ends with `event: error {text}` and 
 
 ## First start
 
-1. The API applies migrations (PostgreSQL) or creates the schema (SQLite).
+1. The API applies migrations (PostgreSQL and SQLite each have their own).
 2. With `Orbs__SeedDemoData=true` and an empty database, `DemoSeeder` adds the Echo provider, a welcome note and Pip.
 3. The web app is served from `wwwroot`; unknown paths fall back to `index.html` for client-side routing.

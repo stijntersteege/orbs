@@ -40,15 +40,22 @@ dotnet run --project src/Orbs.Api --launch-profile http \
 
 ## Database migrations
 
-Migrations target PostgreSQL and live in `backend/src/Orbs.Infrastructure/Persistence/Migrations`.
+PostgreSQL and SQLite each keep their own migrations, because the two databases need different migration code:
+
+- PostgreSQL: `backend/src/Orbs.Infrastructure/Persistence/Migrations` (context `OrbsDbContext`)
+- SQLite: `backend/src/Orbs.Infrastructure/Persistence/Migrations/Sqlite` (context `SqliteOrbsDbContext`)
+
+Every model change needs a migration for both:
 
 ```bash
 make migration name=AddOrbTags
 # or
-cd backend && dotnet ef migrations add AddOrbTags --project src/Orbs.Infrastructure --output-dir Persistence/Migrations
+cd backend
+dotnet ef migrations add AddOrbTags --project src/Orbs.Infrastructure --context OrbsDbContext --output-dir Persistence/Migrations
+dotnet ef migrations add AddOrbTags --project src/Orbs.Infrastructure --context SqliteOrbsDbContext --output-dir Persistence/Migrations/Sqlite
 ```
 
-Review the generated code, then run the integration tests. Migrations apply automatically on start.
+Review the generated code, then run the tests: `MigrationTests` fails when either history is missing a change. Migrations apply automatically on start. SQLite databases created by Orbs 0.1 or 0.2 (before SQLite had migrations) are recognized and upgraded in place.
 
 ## Where does my code go?
 

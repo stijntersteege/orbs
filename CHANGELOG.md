@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- SQLite databases now use migrations too, so future versions can change the schema without losing data. Databases from 0.1 and 0.2 are upgraded in place on start.
+
 ## [0.2.0] - 2026-11-26
 
 A makeover: a cleaner look for the app and the website, your orbs always at hand, and an activity panel that shows what an orb read and which model answered.

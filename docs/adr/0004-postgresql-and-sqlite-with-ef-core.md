@@ -22,3 +22,4 @@ EF Core with a provider switch (`Database:Provider` = `Sqlite` or `Postgres`). P
 - Contributors run the API with no database server; tests need no containers.
 - Mappings must stay portable: enums as strings, primitive collections, and a `DateTimeOffset` converter for SQLite only.
 - Migrations target PostgreSQL. A SQLite install that needs a schema change in future versions will need a migration path; we will add SQLite migrations before the first such change ships.
+- Update (0.3): SQLite now has its own migration history on `SqliteOrbsDbContext`. Databases created before that are baselined on start, then migrated.
