@@ -28,6 +28,7 @@ import type {
   Schedule,
   NotificationSettings,
   Channel,
+  VoiceStatus,
   ChannelKind,
   SaveChannelRequest,
   SaveScheduleRequest,
@@ -228,4 +229,17 @@ export const channelsApi = {
     ).json() as Promise<{
       note?: string
     }>,
+}
+
+export const voiceApi = {
+  status: () => http.get<VoiceStatus>('/api/voice'),
+  transcribe: async (audio: Blob) => {
+    const form = new FormData()
+    form.append('audio', audio, `speech.${audio.type.includes('mp4') ? 'm4a' : 'webm'}`)
+    return (await request('/api/voice/transcribe', { method: 'POST', body: form })).json() as Promise<{
+      text: string
+    }>
+  },
+  speak: async (text: string, voice?: string) =>
+    (await request('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text, voice }) })).blob(),
 }

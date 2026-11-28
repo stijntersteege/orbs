@@ -780,3 +780,38 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+.voiceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.voiceButton[aria-pressed='true'] {
+  color: var(--accent-text);
+  border-color: currentColor;
+}
+
+.voiceButton[data-state='listening'] {
+  color: var(--err);
+  animation: voice-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--err) 20%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voiceButton[data-state='listening'] {
+    animation: none;
+  }
+}

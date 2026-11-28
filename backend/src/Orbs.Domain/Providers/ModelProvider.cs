@@ -40,6 +40,12 @@ public sealed class ModelProvider : OwnedAggregateRoot
     /// <summary>The model that turns context into embeddings for retrieval, or <c>null</c> for none.</summary>
     public string? EmbeddingModel { get; private set; }
 
+    /// <summary>The model that turns speech into text, such as whisper-1. Null for none.</summary>
+    public string? SpeechToTextModel { get; private set; }
+
+    /// <summary>The model that reads replies aloud, such as tts-1 or kokoro. Null for none.</summary>
+    public string? TextToSpeechModel { get; private set; }
+
     public bool IsEnabled { get; private set; } = true;
 
     public bool HasApiKey => ProtectedApiKey is not null;
@@ -77,6 +83,15 @@ public sealed class ModelProvider : OwnedAggregateRoot
     {
         var value = Guard.Text(model, nameof(EmbeddingModel), MaxModelLength, required: false);
         EmbeddingModel = value.Length == 0 ? null : value;
+        Touch(now);
+    }
+
+    public void SetSpeechModels(string? speechToText, string? textToSpeech, DateTimeOffset now)
+    {
+        var listen = Guard.Text(speechToText, nameof(SpeechToTextModel), MaxModelLength, required: false);
+        var speak = Guard.Text(textToSpeech, nameof(TextToSpeechModel), MaxModelLength, required: false);
+        SpeechToTextModel = listen.Length == 0 ? null : listen;
+        TextToSpeechModel = speak.Length == 0 ? null : speak;
         Touch(now);
     }
 
