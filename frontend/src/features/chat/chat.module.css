@@ -430,7 +430,6 @@
   flex: 1;
   min-width: 0;
   padding-top: 2px;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.7;
 }

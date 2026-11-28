@@ -1,0 +1,222 @@
+.markdown {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown hr {
+  margin: 0 0 0.85em;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 1.2em 0 0.5em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.markdown h1 {
+  font-size: 1.45em;
+}
+
+.markdown h2 {
+  font-size: 1.25em;
+}
+
+.markdown h3 {
+  font-size: 1.1em;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 1em;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5em;
+}
+
+.markdown li + li {
+  margin-top: 0.25em;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  margin: 0.25em 0 0;
+}
+
+/* Task lists from GitHub-flavoured Markdown. */
+.markdown :global(.contains-task-list) {
+  padding-left: 0.25em;
+  list-style: none;
+}
+
+.markdown :global(.task-list-item) input {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+
+.markdown a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown strong {
+  font-weight: 650;
+}
+
+.markdown blockquote {
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.markdown :not(pre) > code {
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  background: var(--chip);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.codeBlock {
+  margin: 0 0 0.85em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.codeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.copy {
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.copy:hover,
+.copy:focus-visible {
+  color: var(--text);
+}
+
+.codeBlock pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.tableWrap {
+  margin: 0 0 0.85em;
+  overflow-x: auto;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.markdown th,
+.markdown td {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+/* Code colours, readable in light and dark. */
+.markdown :global(.hljs-comment),
+.markdown :global(.hljs-quote) {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.markdown :global(.hljs-keyword),
+.markdown :global(.hljs-selector-tag),
+.markdown :global(.hljs-built_in),
+.markdown :global(.hljs-literal) {
+  color: var(--plasma);
+}
+
+.markdown :global(.hljs-string),
+.markdown :global(.hljs-regexp),
+.markdown :global(.hljs-addition) {
+  color: var(--ok);
+}
+
+.markdown :global(.hljs-number),
+.markdown :global(.hljs-symbol),
+.markdown :global(.hljs-variable),
+.markdown :global(.hljs-template-variable) {
+  color: var(--coral);
+}
+
+.markdown :global(.hljs-title),
+.markdown :global(.hljs-section),
+.markdown :global(.hljs-function),
+.markdown :global(.hljs-attr),
+.markdown :global(.hljs-attribute) {
+  color: var(--info);
+}
+
+.markdown :global(.hljs-type),
+.markdown :global(.hljs-meta) {
+  color: var(--warn);
+}
+
+.markdown :global(.hljs-deletion) {
+  color: var(--err);
+}
+
+/* While the renderer loads. */
+.plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
