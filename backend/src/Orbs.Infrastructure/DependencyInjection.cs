@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Jobs;
 using Orbs.Infrastructure.Context;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Persistence;
@@ -42,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IModelProviderRepository, ModelProviderRepository>();
         services.AddScoped<IContextSourceRepository, ContextSourceRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IJobRepository, JobRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IOwnershipMaintenance, OwnershipMaintenance>();

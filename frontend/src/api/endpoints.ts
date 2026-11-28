@@ -16,6 +16,7 @@ import type {
   Account,
   AuthStatus,
   CreateUserRequest,
+  Job,
   Passkey,
   PasskeyOptions,
   SignInResult,
@@ -103,4 +104,8 @@ export const usersApi = {
   list: () => http.get<User[]>('/api/users'),
   create: (body: CreateUserRequest) => http.post<User>('/api/users', body),
   remove: (id: string) => http.delete(`/api/users/${id}`),
+}
+
+export const jobsApi = {
+  list: () => http.get<Job[]>('/api/jobs'),
 }

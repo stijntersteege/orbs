@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Jobs;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Users;
@@ -162,5 +163,22 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.Description).HasMaxLength(Session.MaxDescriptionLength).IsRequired();
         builder.HasIndex(s => s.UserId);
         builder.HasOne<User>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
+{
+    public void Configure(EntityTypeBuilder<Job> builder)
+    {
+        builder.ToTable("jobs");
+        builder.HasKey(j => j.Id);
+        builder.Property(j => j.Id).ValueGeneratedNever();
+        builder.HasIndex(j => j.OwnerId);
+        builder.Property(j => j.Kind).HasMaxLength(Job.MaxKindLength).IsRequired();
+        builder.Property(j => j.Payload).HasMaxLength(Job.MaxPayloadLength).IsRequired();
+        builder.Property(j => j.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(j => j.LastError).HasMaxLength(Job.MaxErrorLength);
+        builder.Property(j => j.Result).HasMaxLength(Job.MaxResultLength);
+        builder.HasIndex(j => new { j.Status, j.RunAt });
     }
 }

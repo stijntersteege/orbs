@@ -15,7 +15,8 @@
 | Item | Why it exists | Plan |
 | --- | --- | --- |
 | Conversations are loaded with all messages. | Simple and fine for typical chat sizes. | Paginate messages when histories grow. |
-| Context sync is on demand only. | Keeps the first version simple. | Background scheduler (hosted service) per source. |
+| Context sync is on demand only. | Keeps the first version simple. | The job runner exists now; scheduled sync builds on it. |
+| Background jobs run inside the web process, polled from a table. | One container, no extra broker. | Fine for one instance. Running several instances would need row locking (`FOR UPDATE SKIP LOCKED`) when claiming jobs. |
 | Frontend API types are written by hand. | Avoids a generator step for a small API. | Generate from `/openapi/v1.json` once the API stabilizes. |
 | English-only UI copy. | Focus on the core first. | Introduce i18n (message catalogs) when translators join. |
 | Only two provider adapters. | The OpenAI-compatible adapter covers most providers. | Add native adapters where a provider has no compatible API. |

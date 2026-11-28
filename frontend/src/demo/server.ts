@@ -159,6 +159,10 @@ export class DemoServer {
         }
         throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
 
+      case 'jobs':
+        // The demo has no server, so nothing runs in the background.
+        return json([])
+
       case 'users':
         if (method === 'GET') return json([this.account().user])
         throw new HttpError(400, 'The live demo has a single account.')

@@ -28,6 +28,7 @@ internal sealed class OwnershipMaintenance(OrbsDbContext db) : IOwnershipMainten
     /// <summary>Every owned aggregate, children before parents. Later features add their sets here.</summary>
     private IEnumerable<IQueryable<OwnedAggregateRoot>> OwnedSets()
     {
+        yield return db.Jobs;
         yield return db.Conversations;
         yield return db.Orbs;
         yield return db.ContextSources;

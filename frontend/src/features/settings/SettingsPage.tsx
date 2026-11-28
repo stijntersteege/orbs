@@ -4,6 +4,7 @@ import { useSettings } from '@/app/SettingsContext'
 import type { ThemePreference } from '@/lib/settings'
 import { Button, Card, PageHeader, Switch, TextField } from '@/components/ui'
 import styles from '../shared.module.css'
+import { JobsCard } from './JobsCard'
 
 const THEMES: { id: ThemePreference; label: string }[] = [
   { id: 'light', label: 'Light' },
@@ -97,6 +98,8 @@ export function SettingsPage() {
             </div>
           </form>
         </Card>
+
+        <JobsCard />
 
         <Card>
           <div className={styles.stack}>
