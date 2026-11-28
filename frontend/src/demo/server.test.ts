@@ -143,4 +143,36 @@ describe('DemoServer', () => {
     await fetch('/favicon.svg')
     expect(passthrough).toHaveBeenCalledTimes(1)
   })
+
+  it('imports, exports and lists skills like the server', async () => {
+    const server = new DemoServer()
+    const markdown =
+      '---\nname: Weekly Review\ndescription: >\n  Sum up\n  the week\n---\n1. Read the calendar.'
+    const imported = await call<{ id: string; name: string; description: string }>(
+      server,
+      'POST',
+      '/api/skills/import',
+      { markdown },
+    )
+    expect(imported.body).toMatchObject({ name: 'weekly-review', description: 'Sum up the week' })
+
+    const exported = await server.handle(
+      'GET',
+      new URL(`/api/skills/${imported.body.id}/export`, base),
+      undefined,
+    )
+    expect(await exported.text()).toBe(
+      '---\nname: weekly-review\ndescription: "Sum up the week"\n---\n\n1. Read the calendar.\n',
+    )
+    expect(
+      (
+        await call(server, 'POST', '/api/skills', {
+          name: 'weekly-review',
+          description: 'x',
+          instructions: 'y',
+        })
+      ).status,
+    ).toBe(400)
+    expect((await call(server, 'POST', '/api/skills/import', { markdown: 'nope' })).status).toBe(400)
+  })
 })

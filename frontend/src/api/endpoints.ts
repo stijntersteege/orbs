@@ -21,6 +21,8 @@ import type {
   MessagePage,
   ToolInfo,
   Memory,
+  SaveSkillRequest,
+  Skill,
   McpServer,
   McpServerTools,
   SaveMcpServerRequest,
@@ -190,6 +192,20 @@ export const memoriesApi = {
   edit: (id: string, content: string, shared?: boolean, orbId?: string) =>
     http.put<Memory>(`/api/memories/${id}`, { content, shared, orbId }),
   forget: (id: string) => http.delete(`/api/memories/${id}`),
+}
+
+export const skillsApi = {
+  list: () => http.get<Skill[]>('/api/skills'),
+  create: (body: SaveSkillRequest) => http.post<Skill>('/api/skills', body),
+  update: (id: string, body: SaveSkillRequest) => http.put<Skill>(`/api/skills/${id}`, body),
+  remove: (id: string) => http.delete(`/api/skills/${id}`),
+  /** Adds a skill from a SKILL.md file's text. One with the same name is replaced. */
+  import: (markdown: string) => http.post<Skill>('/api/skills/import', { markdown }),
+  /** The skill as a SKILL.md file. */
+  export: async (id: string) => (await request(`/api/skills/${id}/export`)).text(),
+  /** Saves the tools a reply used as a skill. */
+  fromReply: (conversationId: string, messageId: string, name: string) =>
+    http.post<Skill>(`/api/conversations/${conversationId}/messages/${messageId}/skill`, { name }),
 }
 
 export const schedulesApi = {

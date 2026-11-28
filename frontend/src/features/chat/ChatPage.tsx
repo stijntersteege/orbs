@@ -508,6 +508,7 @@ export function ChatPage() {
         orb={orb}
         activity={chat.activity}
         known={known}
+        conversationId={conversationId}
         open={activityOpen}
         onClose={() => setActivityOpen(false)}
       />

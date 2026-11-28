@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { skillsApi } from '@/api/endpoints'
+import { keys } from '@/api/queries'
 import type { ContextSource, Orb } from '@/api/types'
 import { Icon } from '@/components/ui/icons'
 import type { ActivityEntry, ToolActivity } from './useChat'
@@ -75,8 +78,60 @@ function ToolItem({ call }: { call: ToolActivity }) {
   )
 }
 
-function Reply({ entry }: { entry: ActivityEntry }) {
+/** Saves the tools a finished reply used as a skill any orb can repeat. */
+function SaveAsSkill({ conversationId, messageId }: { conversationId: string; messageId: string }) {
+  const client = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const save = useMutation({
+    mutationFn: () => skillsApi.fromReply(conversationId, messageId, name),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.skills }),
+  })
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    save.mutate()
+  }
+
+  if (save.isSuccess)
+    return (
+      <li className={styles.actDetail}>
+        Saved as the skill <Link to="/skills">{save.data.name}</Link>.
+      </li>
+    )
+  if (!open)
+    return (
+      <li>
+        <button type="button" className={styles.actLink} onClick={() => setOpen(true)}>
+          Save these steps as a skill
+        </button>
+      </li>
+    )
+  return (
+    <li>
+      <form className={styles.actForm} onSubmit={submit} aria-label="Save as skill">
+        <input
+          className={styles.actInput}
+          aria-label="Skill name"
+          placeholder="Skill name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button type="submit" className={styles.actLink} disabled={save.isPending}>
+          Save
+        </button>
+      </form>
+      {save.error && <span className={styles.actDetail}>{save.error.message}</span>}
+    </li>
+  )
+}
+
+function Reply({ entry, conversationId }: { entry: ActivityEntry; conversationId?: string }) {
   const done = !!entry.finishedAt
+  const repeatable =
+    done &&
+    !entry.failed &&
+    entry.tools.some((t) => t.result !== undefined && !t.isError && t.decision !== 'denied')
   const where = [entry.provider, duration(entry)].filter(Boolean).join(' · ')
   return (
     <>
@@ -108,6 +163,7 @@ function Reply({ entry }: { entry: ActivityEntry }) {
           }${when(entry.startedAt)}`}
         />
       ))}
+      {repeatable && conversationId && <SaveAsSkill conversationId={conversationId} messageId={entry.id} />}
       {entry.sources.length === 0 && entry.tools.length === 0 && (
         <Item tone="dim" title="No sources read" detail="Answered from the model alone" />
       )}
@@ -119,12 +175,14 @@ interface ActivityPanelProps {
   orb: Orb | undefined
   activity: ActivityEntry[]
   known: ContextSource[]
+  /** The saved chat, when there is one: replies in it can be saved as skills. */
+  conversationId?: string
   open: boolean
   onClose: () => void
 }
 
 /** What the orb did: per reply, the sources it read and the model that wrote it. Newest on top. */
-export function ActivityPanel({ orb, activity, known, open, onClose }: ActivityPanelProps) {
+export function ActivityPanel({ orb, activity, known, conversationId, open, onClose }: ActivityPanelProps) {
   const [tab, setTab] = useState<'activity' | 'memory'>('activity')
   return (
     <aside className={styles.activity} data-open={open} aria-label="Activity">
@@ -159,13 +217,18 @@ export function ActivityPanel({ orb, activity, known, open, onClose }: ActivityP
       {tab === 'memory' && orb ? (
         <MemoryTab orb={orb} />
       ) : (
-        <ActivityContent orb={orb} activity={activity} known={known} />
+        <ActivityContent orb={orb} activity={activity} known={known} conversationId={conversationId} />
       )}
     </aside>
   )
 }
 
-function ActivityContent({ orb, activity, known }: Pick<ActivityPanelProps, 'orb' | 'activity' | 'known'>) {
+function ActivityContent({
+  orb,
+  activity,
+  known,
+  conversationId,
+}: Pick<ActivityPanelProps, 'orb' | 'activity' | 'known' | 'conversationId'>) {
   return (
     <>
       {activity.length === 0 ? (
@@ -176,7 +239,7 @@ function ActivityContent({ orb, activity, known }: Pick<ActivityPanelProps, 'orb
       ) : (
         <ol className={styles.actList} reversed>
           {[...activity].reverse().map((entry) => (
-            <Reply key={entry.id} entry={entry} />
+            <Reply key={entry.id} entry={entry} conversationId={conversationId} />
           ))}
         </ol>
       )}

@@ -12,6 +12,7 @@ using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 using Orbs.Domain.Schedules;
+using Orbs.Domain.Skills;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -50,6 +51,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
     public DbSet<Integration> Integrations => Set<Integration>();
 
     public DbSet<Memory> Memories => Set<Memory>();
+
+    public DbSet<Skill> Skills => Set<Skill>();
 
     public DbSet<ContextChunk> ContextChunks => Set<ContextChunk>();
 
@@ -102,6 +105,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<McpServer>(modelBuilder);
         FilterOwned<Integration>(modelBuilder);
         FilterOwned<Memory>(modelBuilder);
+        FilterOwned<Skill>(modelBuilder);
         FilterOwned<ContextChunk>(modelBuilder);
         FilterOwned<ContextFile>(modelBuilder);
         FilterOwned<Schedule>(modelBuilder);

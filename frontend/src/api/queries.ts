@@ -10,6 +10,7 @@ import {
   mcpApi,
   integrationsApi,
   schedulesApi,
+  skillsApi,
   notificationsApi,
   channelsApi,
   voiceApi,
@@ -39,6 +40,7 @@ export const keys = {
   mcpServers: ['mcp-servers'] as const,
   integrations: ['integrations'] as const,
   schedules: ['schedules'] as const,
+  skills: ['skills'] as const,
   notifications: ['account', 'notifications'] as const,
   channels: ['channels'] as const,
   voice: ['voice'] as const,
@@ -181,6 +183,8 @@ export const useMemories = (orbId: string | undefined) =>
     queryFn: () => memoriesApi.list(orbId!),
     enabled: !!orbId,
   })
+
+export const useSkills = () => useQuery({ queryKey: keys.skills, queryFn: skillsApi.list })
 
 export const useSchedules = () => useQuery({ queryKey: keys.schedules, queryFn: () => schedulesApi.list() })
 

@@ -14,6 +14,7 @@ export const MENU: { to: string; label: string; hint: string; icon: IconName; ad
   { to: '/models', label: 'Models', hint: 'Providers and API keys', icon: 'models' },
   { to: '/context', label: 'Context', hint: 'Notes and web pages', icon: 'context' },
   { to: '/tools', label: 'Tools', hint: 'What orbs can do, MCP servers', icon: 'plug' },
+  { to: '/skills', label: 'Skills', hint: 'Routines every orb can follow', icon: 'note' },
   { to: '/schedules', label: 'Schedules', hint: 'Orbs that work on their own', icon: 'clock' },
   { to: '/channels', label: 'Channels', hint: 'Telegram and other apps', icon: 'chat' },
   { to: '/orbs', label: 'Manage orbs', hint: 'Faces, instructions, delete', icon: 'orbs' },

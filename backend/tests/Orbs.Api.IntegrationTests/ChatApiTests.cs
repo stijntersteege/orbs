@@ -144,7 +144,7 @@ public sealed class ToolApiTests : IDisposable
 
         var tools = await api.GetAsync<List<Orbs.Application.Tools.ToolDto>>("/api/tools");
 
-        tools.Select(t => t.Name).ShouldBe(["ask_orb", "calculator", "current_time", "forget", "remember"], ignoreOrder: true);
+        tools.Select(t => t.Name).ShouldBe(["ask_orb", "calculator", "current_time", "forget", "remember", "use_skill"], ignoreOrder: true);
         tools.Single(t => t.Name == "remember").AllowedByDefault.ShouldBeTrue();
     }
 
