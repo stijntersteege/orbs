@@ -47,6 +47,7 @@ export function ChannelsPage() {
                 channel={c}
                 orb={orbs.data?.find((o) => o.id === c.orbId)}
                 kind={kinds.data?.find((k) => k.kind === c.kind)}
+                orbs={orbs.data ?? []}
                 pairing={pairing?.id === c.id ? pairing : undefined}
                 onPairing={(code) => setPairing({ id: c.id, code })}
                 onChange={refresh}
@@ -73,6 +74,7 @@ function ChannelRow({
   channel,
   orb,
   kind,
+  orbs,
   pairing,
   onPairing,
   onChange,
@@ -80,10 +82,12 @@ function ChannelRow({
   channel: Channel
   orb?: OrbModel
   kind?: ChannelKind
+  orbs: OrbModel[]
   pairing?: { code: string; note?: string }
   onPairing: (code: string) => void
   onChange: () => void
 }) {
+  const [editing, setEditing] = useState(false)
   const newCode = useMutation({
     mutationFn: () => channelsApi.pairingCode(channel.id),
     onSuccess: (c) => c.pairingCode && onPairing(c.pairingCode),
@@ -104,6 +108,26 @@ function ChannelRow({
     link.click()
     URL.revokeObjectURL(link.href)
   }
+
+  if (editing && kind && orbs.length > 0)
+    return (
+      <li className={shared.editBox}>
+        <ConnectChannel
+          kinds={[kind]}
+          orbs={orbs}
+          existing={channel}
+          onConnected={() => {
+            setEditing(false)
+            onChange()
+          }}
+        />
+        <div>
+          <Button small variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </li>
+    )
 
   return (
     <li className={shared.row} style={{ alignItems: 'flex-start' }}>
@@ -137,6 +161,11 @@ function ChannelRow({
           <Button small onClick={() => newCode.mutate()} disabled={newCode.isPending}>
             Pair a chat
           </Button>
+          {kind && (
+            <Button small onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+          )}
           {orb && (
             <>
               <Button small variant="ghost" onClick={() => avatar.mutate()} disabled={avatar.isPending}>
@@ -162,33 +191,39 @@ function ChannelRow({
   )
 }
 
+/** Connects a channel, or changes one (`existing`). A blank token keeps the saved one. */
 function ConnectChannel({
   kinds,
   orbs,
+  existing,
   onConnected,
 }: {
   kinds: ChannelKind[]
   orbs: OrbModel[]
+  existing?: Channel
   onConnected: (channel: Channel) => void
 }) {
-  const [orbId, setOrbId] = useState(orbs[0]!.id)
-  const [kindId, setKindId] = useState(kinds[0]!.kind)
-  const [values, setValues] = useState<Record<string, string>>({})
+  const [orbId, setOrbId] = useState(existing?.orbId ?? orbs[0]!.id)
+  const [kindId, setKindId] = useState(existing?.kind ?? kinds[0]!.kind)
+  const [values, setValues] = useState<Record<string, string>>(existing?.settings ?? {})
   const kind = kinds.find((k) => k.kind === kindId) ?? kinds[0]!
   const secretField = kind.fields.find((f) => f.secret)
 
   const connect = useMutation({
-    mutationFn: () =>
-      channelsApi.create({
+    mutationFn: () => {
+      const body = {
         orbId,
         kind: kind.kind,
         settings: Object.fromEntries(
           kind.fields.filter((f) => !f.secret && values[f.key]).map((f) => [f.key, values[f.key]!]),
         ),
-        secret: secretField ? values[secretField.key] : undefined,
-      }),
+        secret: secretField ? values[secretField.key] || undefined : undefined,
+        isEnabled: existing?.isEnabled ?? true,
+      }
+      return existing ? channelsApi.update(existing.id, body) : channelsApi.create(body)
+    },
     onSuccess: (c) => {
-      setValues({})
+      if (!existing) setValues({})
       onConnected(c)
     },
   })
@@ -198,54 +233,64 @@ function ConnectChannel({
     connect.mutate()
   }
 
-  return (
-    <Card>
-      <form className={shared.stack} onSubmit={submit} aria-label="Connect a channel">
-        <h2>Connect a channel</h2>
-        <div className={shared.grid2}>
-          <SelectField label="Orb" value={orbId} onChange={(e) => setOrbId(e.target.value)}>
-            {orbs.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
-            label="App"
-            value={kind.kind}
-            onChange={(e) => {
-              setKindId(e.target.value)
-              setValues({})
-            }}
-          >
-            {kinds.map((k) => (
-              <option key={k.kind} value={k.kind}>
-                {k.displayName}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-        <p className={shared.muted}>{kind.description}</p>
-        {kind.fields.map((field) => (
-          <TextField
-            key={field.key}
-            label={field.label}
-            type={field.secret ? 'password' : 'text'}
-            autoComplete="off"
-            required={field.required}
-            placeholder={field.placeholder}
-            hint={field.hint}
-            value={values[field.key] ?? ''}
-            onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-          />
-        ))}
-        <ErrorNotice error={connect.error} />
-        <div className={shared.actions}>
-          <Button type="submit" variant="primary" disabled={connect.isPending}>
-            Connect
-          </Button>
-        </div>
-      </form>
-    </Card>
+  const form = (
+    <form
+      className={shared.stack}
+      onSubmit={submit}
+      aria-label={existing ? `Edit ${kind.displayName} channel` : 'Connect a channel'}
+    >
+      <h2>{existing ? `Edit ${kind.displayName} channel` : 'Connect a channel'}</h2>
+      <div className={shared.grid2}>
+        <SelectField
+          label="Orb"
+          value={orbId}
+          disabled={!!existing}
+          onChange={(e) => setOrbId(e.target.value)}
+        >
+          {orbs.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          label="App"
+          value={kind.kind}
+          disabled={!!existing}
+          onChange={(e) => {
+            setKindId(e.target.value)
+            setValues({})
+          }}
+        >
+          {kinds.map((k) => (
+            <option key={k.kind} value={k.kind}>
+              {k.displayName}
+            </option>
+          ))}
+        </SelectField>
+      </div>
+      <p className={shared.muted}>{kind.description}</p>
+      {kind.fields.map((field) => (
+        <TextField
+          key={field.key}
+          label={field.label}
+          type={field.secret ? 'password' : 'text'}
+          autoComplete="off"
+          required={field.required && !(existing && field.secret)}
+          placeholder={field.placeholder}
+          hint={field.secret && existing ? 'Saved. Leave empty to keep it, or type a new one.' : field.hint}
+          value={values[field.key] ?? ''}
+          onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+        />
+      ))}
+      <ErrorNotice error={connect.error} />
+      <div className={shared.actions}>
+        <Button type="submit" variant="primary" disabled={connect.isPending}>
+          {existing ? 'Save changes' : 'Connect'}
+        </Button>
+      </div>
+    </form>
   )
+  // In a list row it opens in place; on its own it gets a card.
+  return existing ? form : <Card>{form}</Card>
 }

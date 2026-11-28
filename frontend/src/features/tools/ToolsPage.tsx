@@ -83,7 +83,26 @@ function ServerRow({ server, onChange }: { server: McpServer; onChange: () => vo
     onSuccess: (r) => (setCheck(r), onChange()),
   })
   const remove = useMutation({ mutationFn: () => mcpApi.remove(server.id), onSuccess: onChange })
+  const [editing, setEditing] = useState(false)
   const error = check?.error ?? server.lastError
+
+  if (editing)
+    return (
+      <div className={shared.editBox}>
+        <AddServer
+          existing={server}
+          onAdded={() => {
+            setEditing(false)
+            onChange()
+          }}
+        />
+        <div>
+          <Button small variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
 
   return (
     <div className={shared.row}>
@@ -100,6 +119,9 @@ function ServerRow({ server, onChange }: { server: McpServer; onChange: () => vo
       <Button small onClick={() => test.mutate()} disabled={test.isPending}>
         Test
       </Button>
+      <Button small onClick={() => setEditing(true)}>
+        Edit
+      </Button>
       <Button small variant="ghost" aria-label={`Remove ${server.name}`} onClick={() => remove.mutate()}>
         <Icon name="trash" />
       </Button>
@@ -107,13 +129,23 @@ function ServerRow({ server, onChange }: { server: McpServer; onChange: () => vo
   )
 }
 
-function AddServer({ onAdded }: { onAdded: () => void }) {
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
+/** Connects an MCP server, or changes one (`existing`). A blank authorization keeps the saved one. */
+function AddServer({ existing, onAdded }: { existing?: McpServer; onAdded: () => void }) {
+  const [name, setName] = useState(existing?.name ?? '')
+  const [url, setUrl] = useState(existing?.location ?? '')
   const [auth, setAuth] = useState('')
+  const isHttp = (existing?.transport ?? 'http') === 'http'
   const add = useMutation({
-    mutationFn: () =>
-      mcpApi.create({ name, transport: 'http', location: url, authorization: auth || undefined }),
+    mutationFn: () => {
+      const body = {
+        name,
+        transport: existing?.transport ?? 'http',
+        location: url,
+        authorization: auth || undefined,
+        isEnabled: existing?.isEnabled ?? true,
+      }
+      return existing ? mcpApi.update(existing.id, body) : mcpApi.create(body)
+    },
     onSuccess: () => {
       setName('')
       setUrl('')
@@ -126,7 +158,11 @@ function AddServer({ onAdded }: { onAdded: () => void }) {
     add.mutate()
   }
   return (
-    <form className={shared.stack} onSubmit={submit} aria-label="Connect an MCP server">
+    <form
+      className={shared.stack}
+      onSubmit={submit}
+      aria-label={existing ? `Edit ${existing.name}` : 'Connect an MCP server'}
+    >
       <div className={shared.grid2}>
         <TextField
           label="Name"
@@ -136,8 +172,8 @@ function AddServer({ onAdded }: { onAdded: () => void }) {
           placeholder="Home"
         />
         <TextField
-          label="Server URL"
-          type="url"
+          label={isHttp ? 'Server URL' : 'Command'}
+          type={isHttp ? 'url' : 'text'}
           required
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -151,12 +187,16 @@ function AddServer({ onAdded }: { onAdded: () => void }) {
         value={auth}
         onChange={(e) => setAuth(e.target.value)}
         placeholder="Optional, for example: Bearer abc123"
-        hint="Stored encrypted and never shown again."
+        hint={
+          existing?.hasAuthorization
+            ? 'Saved. Leave empty to keep it, or type a new one.'
+            : 'Stored encrypted and never shown again.'
+        }
       />
       <ErrorNotice error={add.error} />
       <div className={shared.actions}>
         <Button type="submit" variant="primary" disabled={add.isPending}>
-          Connect server
+          {existing ? 'Save changes' : 'Connect server'}
         </Button>
       </div>
     </form>

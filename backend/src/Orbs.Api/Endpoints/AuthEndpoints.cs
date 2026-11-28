@@ -125,6 +125,9 @@ internal static class AuthEndpoints
             })
             .WithSummary("Create an account (admins only)");
 
+        users.MapPut("/{id:guid}", (Guid id, UpdateUserRequest request, AccountService accounts, CancellationToken ct) => accounts.UpdateUserAsync(id, request, ct))
+            .WithSummary("Change an account: name, admin rights, or a new password (admins only)");
+
         users.MapDelete("/{id:guid}", async (Guid id, AccountService accounts, CancellationToken ct) =>
             {
                 await accounts.DeleteUserAsync(id, ct);

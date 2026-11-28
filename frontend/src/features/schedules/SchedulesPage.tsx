@@ -99,7 +99,7 @@ export function SchedulesPage() {
               <ScheduleRow
                 key={s.id}
                 schedule={s}
-                orbName={orbs.data?.find((o) => o.id === s.orbId)?.name ?? 'Orb'}
+                orbs={orbs.data?.map((o) => ({ id: o.id, name: o.name })) ?? []}
                 onChange={refresh}
               />
             ))}
@@ -107,9 +107,9 @@ export function SchedulesPage() {
         </Card>
 
         {orbs.data && orbs.data.length > 0 && (
-          <NewSchedule
+          <ScheduleForm
             orbs={orbs.data.map((o) => ({ id: o.id, name: o.name }))}
-            onCreated={(s) => {
+            onSaved={(s) => {
               if (s.webhookPath) setWebhook(`${apiBase() || window.location.origin}${s.webhookPath}`)
               void refresh()
             }}
@@ -120,17 +120,55 @@ export function SchedulesPage() {
   )
 }
 
+/** The fields a schedule is saved with, for changing just one of them. */
+const toRequest = (s: Schedule) => ({
+  orbId: s.orbId,
+  name: s.name,
+  prompt: s.prompt,
+  trigger: s.trigger,
+  cron: s.cron,
+  timeZone: s.timeZone,
+  feedUrl: s.feedUrl,
+  integrationId: s.integrationId,
+  isEnabled: s.isEnabled,
+})
+
 function ScheduleRow({
   schedule,
-  orbName,
+  orbs,
   onChange,
 }: {
   schedule: Schedule
-  orbName: string
+  orbs: { id: string; name: string }[]
   onChange: () => void
 }) {
+  const [editing, setEditing] = useState(false)
+  const orbName = orbs.find((o) => o.id === schedule.orbId)?.name ?? 'Orb'
   const run = useMutation({ mutationFn: () => schedulesApi.run(schedule.id) })
   const remove = useMutation({ mutationFn: () => schedulesApi.remove(schedule.id), onSuccess: onChange })
+  const toggle = useMutation({
+    mutationFn: () =>
+      schedulesApi.update(schedule.id, { ...toRequest(schedule), isEnabled: !schedule.isEnabled }),
+    onSuccess: onChange,
+  })
+  if (editing && orbs.length > 0)
+    return (
+      <li className={shared.editBox}>
+        <ScheduleForm
+          orbs={orbs}
+          existing={schedule}
+          onSaved={() => {
+            setEditing(false)
+            onChange()
+          }}
+        />
+        <div>
+          <Button small variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </li>
+    )
   return (
     <li className={shared.row}>
       <span className={shared.rowText}>
@@ -152,6 +190,12 @@ function ScheduleRow({
       <Button small onClick={() => run.mutate()} disabled={run.isPending}>
         Run now
       </Button>
+      <Button small onClick={() => setEditing(true)}>
+        Edit
+      </Button>
+      <Button small variant="ghost" onClick={() => toggle.mutate()} disabled={toggle.isPending}>
+        {schedule.isEnabled ? 'Pause' : 'Resume'}
+      </Button>
       <Button small variant="ghost" aria-label={`Delete ${schedule.name}`} onClick={() => remove.mutate()}>
         <Icon name="trash" />
       </Button>
@@ -159,27 +203,30 @@ function ScheduleRow({
   )
 }
 
-function NewSchedule({
+/** Creates a schedule, or changes one (`existing`). A webhook keeps its address when edited. */
+function ScheduleForm({
   orbs,
-  onCreated,
+  existing,
+  onSaved,
 }: {
   orbs: { id: string; name: string }[]
-  onCreated: (schedule: Schedule) => void
+  existing?: Schedule
+  onSaved: (schedule: Schedule) => void
 }) {
   const integrations = useIntegrations()
   const emailAccounts = integrations.data?.filter((i) => i.kind === 'email') ?? []
-  const [orbId, setOrbId] = useState(orbs[0]!.id)
-  const [name, setName] = useState('')
-  const [prompt, setPrompt] = useState('')
-  const [trigger, setTrigger] = useState<TriggerKind>('time')
-  const [cron, setCron] = useState(PRESETS[1]!.cron)
-  const [timeZone, setTimeZone] = useState(localTimeZone)
-  const [feedUrl, setFeedUrl] = useState('')
-  const [integrationId, setIntegrationId] = useState('')
+  const [orbId, setOrbId] = useState(existing?.orbId ?? orbs[0]!.id)
+  const [name, setName] = useState(existing?.name ?? '')
+  const [prompt, setPrompt] = useState(existing?.prompt ?? '')
+  const [trigger, setTrigger] = useState<TriggerKind>(existing?.trigger ?? 'time')
+  const [cron, setCron] = useState(existing?.cron ?? PRESETS[1]!.cron)
+  const [timeZone, setTimeZone] = useState(existing?.timeZone ?? localTimeZone)
+  const [feedUrl, setFeedUrl] = useState(existing?.feedUrl ?? '')
+  const [integrationId, setIntegrationId] = useState(existing?.integrationId ?? '')
 
   const create = useMutation({
-    mutationFn: () =>
-      schedulesApi.create({
+    mutationFn: () => {
+      const body = {
         orbId,
         name,
         prompt,
@@ -188,11 +235,16 @@ function NewSchedule({
         timeZone: trigger === 'time' ? timeZone : undefined,
         feedUrl: trigger === 'rss' ? feedUrl : undefined,
         integrationId: trigger === 'email' ? integrationId || emailAccounts[0]?.id : undefined,
-      }),
+        isEnabled: existing?.isEnabled ?? true,
+      }
+      return existing ? schedulesApi.update(existing.id, body) : schedulesApi.create(body)
+    },
     onSuccess: (s) => {
-      setName('')
-      setPrompt('')
-      onCreated(s)
+      if (!existing) {
+        setName('')
+        setPrompt('')
+      }
+      onSaved(s)
     },
   })
 
@@ -201,107 +253,111 @@ function NewSchedule({
     create.mutate()
   }
 
-  return (
-    <Card>
-      <form className={shared.stack} onSubmit={submit} aria-label="New schedule">
-        <h2>New schedule</h2>
-        <div className={shared.grid2}>
-          <SelectField label="Orb" value={orbId} onChange={(e) => setOrbId(e.target.value)}>
-            {orbs.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </SelectField>
-          <TextField
-            label="Name"
-            required
-            value={name}
-            placeholder="Weekly summary"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <TextArea
-          label="What should the orb do?"
-          required
-          rows={3}
-          value={prompt}
-          placeholder="Summarize my week and list what is still open."
-          onChange={(e) => setPrompt(e.target.value)}
-        />
-        <SelectField label="When" value={trigger} onChange={(e) => setTrigger(e.target.value as TriggerKind)}>
-          {TRIGGERS.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.label}
+  const form = (
+    <form
+      className={shared.stack}
+      onSubmit={submit}
+      aria-label={existing ? `Edit ${existing.name}` : 'New schedule'}
+    >
+      <h2>{existing ? `Edit ${existing.name}` : 'New schedule'}</h2>
+      <div className={shared.grid2}>
+        <SelectField label="Orb" value={orbId} onChange={(e) => setOrbId(e.target.value)}>
+          {orbs.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
             </option>
           ))}
         </SelectField>
-        {trigger === 'time' && (
-          <>
-            <div className={shared.actions}>
-              {PRESETS.map((p) => (
-                <Button
-                  key={p.cron}
-                  small
-                  variant={p.cron === cron ? 'primary' : 'secondary'}
-                  onClick={() => setCron(p.cron)}
-                >
-                  {p.label}
-                </Button>
-              ))}
-            </div>
-            <div className={shared.grid2}>
-              <TextField
-                label="Cron expression"
-                value={cron}
-                onChange={(e) => setCron(e.target.value)}
-                hint="Minute, hour, day of month, month, day of week."
-              />
-              <TextField label="Time zone" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
-            </div>
-          </>
-        )}
-        {trigger === 'rss' && (
-          <TextField
-            label="Feed address"
-            type="url"
-            required
-            value={feedUrl}
-            placeholder="https://example.com/feed.xml"
-            onChange={(e) => setFeedUrl(e.target.value)}
-            hint="Checked every 15 minutes. The first check only remembers what is already there."
-          />
-        )}
-        {trigger === 'email' &&
-          (emailAccounts.length === 0 ? (
-            <p className={shared.muted}>
-              Connect an email account under <Link to="/tools">Tools</Link> first.
-            </p>
-          ) : (
-            <SelectField
-              label="Email account"
-              value={integrationId || emailAccounts[0]!.id}
-              onChange={(e) => setIntegrationId(e.target.value)}
-            >
-              {emailAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </SelectField>
-          ))}
-        {trigger === 'webhook' && (
+        <TextField
+          label="Name"
+          required
+          value={name}
+          placeholder="Weekly summary"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <TextArea
+        label="What should the orb do?"
+        required
+        rows={3}
+        value={prompt}
+        placeholder="Summarize my week and list what is still open."
+        onChange={(e) => setPrompt(e.target.value)}
+      />
+      <SelectField label="When" value={trigger} onChange={(e) => setTrigger(e.target.value as TriggerKind)}>
+        {TRIGGERS.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </SelectField>
+      {trigger === 'time' && (
+        <>
+          <div className={shared.actions}>
+            {PRESETS.map((p) => (
+              <Button
+                key={p.cron}
+                small
+                variant={p.cron === cron ? 'primary' : 'secondary'}
+                onClick={() => setCron(p.cron)}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          <div className={shared.grid2}>
+            <TextField
+              label="Cron expression"
+              value={cron}
+              onChange={(e) => setCron(e.target.value)}
+              hint="Minute, hour, day of month, month, day of week."
+            />
+            <TextField label="Time zone" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
+          </div>
+        </>
+      )}
+      {trigger === 'rss' && (
+        <TextField
+          label="Feed address"
+          type="url"
+          required
+          value={feedUrl}
+          placeholder="https://example.com/feed.xml"
+          onChange={(e) => setFeedUrl(e.target.value)}
+          hint="Checked every 15 minutes. The first check only remembers what is already there."
+        />
+      )}
+      {trigger === 'email' &&
+        (emailAccounts.length === 0 ? (
           <p className={shared.muted}>
-            You get a secret address after saving. Anything posted to it goes to the orb.
+            Connect an email account under <Link to="/tools">Tools</Link> first.
           </p>
-        )}
-        <ErrorNotice error={create.error} />
-        <div className={shared.actions}>
-          <Button type="submit" variant="primary" disabled={create.isPending}>
-            Create schedule
-          </Button>
-        </div>
-      </form>
-    </Card>
+        ) : (
+          <SelectField
+            label="Email account"
+            value={integrationId || emailAccounts[0]!.id}
+            onChange={(e) => setIntegrationId(e.target.value)}
+          >
+            {emailAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </SelectField>
+        ))}
+      {trigger === 'webhook' && (
+        <p className={shared.muted}>
+          You get a secret address after saving. Anything posted to it goes to the orb.
+        </p>
+      )}
+      <ErrorNotice error={create.error} />
+      <div className={shared.actions}>
+        <Button type="submit" variant="primary" disabled={create.isPending}>
+          {existing ? 'Save changes' : 'Create schedule'}
+        </Button>
+      </div>
+    </form>
   )
+  // In a list row it opens in place; on its own it gets a card.
+  return existing ? form : <Card>{form}</Card>
 }

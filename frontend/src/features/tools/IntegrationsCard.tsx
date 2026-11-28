@@ -53,11 +53,30 @@ function IntegrationRow({
   kind?: IntegrationKind
   onChange: () => void
 }) {
+  const [editing, setEditing] = useState(false)
   const test = useMutation({ mutationFn: () => integrationsApi.test(integration.id) })
   const remove = useMutation({
     mutationFn: () => integrationsApi.remove(integration.id),
     onSuccess: onChange,
   })
+  if (editing && kind)
+    return (
+      <div className={shared.editBox}>
+        <ConnectApp
+          kinds={[kind]}
+          existing={integration}
+          onAdded={() => {
+            setEditing(false)
+            onChange()
+          }}
+        />
+        <div>
+          <Button small variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
   return (
     <div className={shared.row}>
       <span className={shared.rowText}>
@@ -74,6 +93,11 @@ function IntegrationRow({
       <Button small onClick={() => test.mutate()} disabled={test.isPending}>
         Test
       </Button>
+      {kind && (
+        <Button small onClick={() => setEditing(true)}>
+          Edit
+        </Button>
+      )}
       <Button small variant="ghost" aria-label={`Remove ${integration.name}`} onClick={() => remove.mutate()}>
         <Icon name="trash" />
       </Button>
@@ -81,23 +105,35 @@ function IntegrationRow({
   )
 }
 
-function ConnectApp({ kinds, onAdded }: { kinds: IntegrationKind[]; onAdded: () => void }) {
-  const [kindId, setKindId] = useState(kinds[0]!.kind)
-  const [name, setName] = useState('')
-  const [values, setValues] = useState<Record<string, string>>({})
+/** Connects an app, or changes one that is connected (`existing`). A blank secret keeps the saved one. */
+function ConnectApp({
+  kinds,
+  existing,
+  onAdded,
+}: {
+  kinds: IntegrationKind[]
+  existing?: Integration
+  onAdded: () => void
+}) {
+  const [kindId, setKindId] = useState(existing?.kind ?? kinds[0]!.kind)
+  const [name, setName] = useState(existing?.name ?? '')
+  const [values, setValues] = useState<Record<string, string>>(existing?.settings ?? {})
   const kind = kinds.find((k) => k.kind === kindId) ?? kinds[0]!
   const secretField = kind.fields.find((f) => f.secret)
 
   const add = useMutation({
-    mutationFn: () =>
-      integrationsApi.create({
+    mutationFn: () => {
+      const body = {
         kind: kind.kind,
         name: name || kind.displayName,
         settings: Object.fromEntries(
           kind.fields.filter((f) => !f.secret && values[f.key]).map((f) => [f.key, values[f.key]!]),
         ),
         secret: secretField ? values[secretField.key] || undefined : undefined,
-      }),
+        isEnabled: existing?.isEnabled ?? true,
+      }
+      return existing ? integrationsApi.update(existing.id, body) : integrationsApi.create(body)
+    },
     onSuccess: () => {
       setName('')
       setValues({})
@@ -111,11 +147,16 @@ function ConnectApp({ kinds, onAdded }: { kinds: IntegrationKind[]; onAdded: () 
   }
 
   return (
-    <form className={shared.stack} onSubmit={submit} aria-label="Connect an app">
+    <form
+      className={shared.stack}
+      onSubmit={submit}
+      aria-label={existing ? `Edit ${existing.name}` : 'Connect an app'}
+    >
       <div className={shared.grid2}>
         <SelectField
           label="App"
           value={kind.kind}
+          disabled={!!existing}
           onChange={(e) => {
             setKindId(e.target.value)
             setValues({})
@@ -156,9 +197,13 @@ function ConnectApp({ kinds, onAdded }: { kinds: IntegrationKind[]; onAdded: () 
             label={field.label}
             type={field.secret ? 'password' : 'text'}
             autoComplete="off"
-            required={field.required}
+            required={field.required && !(existing && field.secret)}
             placeholder={field.placeholder}
-            hint={field.hint ?? (field.secret ? 'Stored encrypted and never shown again.' : undefined)}
+            hint={
+              field.secret && existing?.hasSecret
+                ? 'Saved. Leave empty to keep it, or type a new one.'
+                : (field.hint ?? (field.secret ? 'Stored encrypted and never shown again.' : undefined))
+            }
             value={values[field.key] ?? ''}
             onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
           />
@@ -167,7 +212,7 @@ function ConnectApp({ kinds, onAdded }: { kinds: IntegrationKind[]; onAdded: () 
       <ErrorNotice error={add.error} />
       <div className={shared.actions}>
         <Button type="submit" variant="primary" disabled={add.isPending}>
-          Connect {kind.displayName}
+          {existing ? 'Save changes' : `Connect ${kind.displayName}`}
         </Button>
       </div>
     </form>

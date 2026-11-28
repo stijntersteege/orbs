@@ -58,6 +58,7 @@ describe('ChannelsPage', () => {
       kind: 'telegram',
       settings: {},
       secret: '123:abc',
+      isEnabled: true,
     })
   })
 })
