@@ -1,6 +1,8 @@
 using Orbs.Application.Abstractions;
+using Orbs.Application.Accounts;
 using Orbs.Application.Common;
 using Orbs.Application.Context;
+using Orbs.Application.Jobs;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
 using Orbs.Application.Tests.Fakes;
@@ -114,8 +116,13 @@ public class ContextServiceTests
 {
     private readonly InMemoryStore _store = new();
 
-    private ContextService Service(params IContextConnector[] connectors) =>
-        new(_store.Context, _store.Orbs, new PluginRegistry<IContextConnector>(connectors), _store, FakeClock.Default);
+    private ContextService Service(params IContextConnector[] connectors)
+    {
+        var models = new PluginRegistry<IModelAdapter>([]);
+        var providers = new ProviderService(_store.Providers, _store.Orbs, models, new FakeSecretProtector(), _store, FakeClock.Default);
+        var indexer = new ContextIndexer(new EmbedderResolver(_store.Providers, models, providers), new JobScheduler(_store.Jobs, _store, FakeClock.Default), new CurrentUser());
+        return new(_store.Context, _store.Orbs, new PluginRegistry<IContextConnector>(connectors), indexer, _store, FakeClock.Default);
+    }
 
     [Fact]
     public async Task New_sources_are_read_straight_away()

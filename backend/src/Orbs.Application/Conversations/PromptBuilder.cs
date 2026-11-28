@@ -1,5 +1,6 @@
 using System.Text;
 using Orbs.Application.Abstractions;
+using Orbs.Application.Context;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Memories;
@@ -24,14 +25,15 @@ public static class PromptBuilder
         IReadOnlyList<ContextSource> context,
         IReadOnlyList<Message> history,
         PromptBudget? budget = null,
-        IReadOnlyList<Memory>? memories = null)
+        IReadOnlyList<Memory>? memories = null,
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null)
     {
         ArgumentNullException.ThrowIfNull(orb);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(history);
         budget ??= PromptBudget.Default;
 
-        var turns = new List<ChatTurn> { new(ChatRole.System, SystemPrompt(orb, context, budget, memories ?? [])) };
+        var turns = new List<ChatTurn> { new(ChatRole.System, SystemPrompt(orb, context, budget, memories ?? [], retrieved)) };
         turns.AddRange(history
             .OrderBy(m => m.CreatedAt)
             .TakeLast(budget.MaxHistoryMessages)
@@ -39,7 +41,12 @@ public static class PromptBuilder
         return turns;
     }
 
-    internal static string SystemPrompt(Orb orb, IReadOnlyList<ContextSource> context, PromptBudget budget, IReadOnlyList<Memory>? memories = null)
+    internal static string SystemPrompt(
+        Orb orb,
+        IReadOnlyList<ContextSource> context,
+        PromptBudget budget,
+        IReadOnlyList<Memory>? memories = null,
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null)
     {
         var prompt = new StringBuilder();
         prompt.Append("You are ").Append(orb.Name).Append(", an AI companion in Orbs.");
@@ -73,10 +80,25 @@ public static class PromptBuilder
                 .AppendLine("## What you know")
                 .AppendLine("Use these sources when they help. Say which source you used. If they do not cover the question, say so.");
 
-            var share = budget.MaxContextCharacters / ready.Count;
+            var whole = ready.Where(s => retrieved?.ContainsKey(s.Id) != true).ToList();
+            var share = whole.Count == 0 ? 0 : budget.MaxContextCharacters / whole.Count;
             foreach (var source in ready)
             {
-                var content = source.Content.Length > share ? string.Concat(source.Content.AsSpan(0, share), " [truncated]") : source.Content;
+                string content;
+                if (retrieved is not null && retrieved.TryGetValue(source.Id, out var passages))
+                {
+                    if (passages.Count == 0)
+                    {
+                        continue; // Retrieval found nothing relevant in this source.
+                    }
+
+                    content = "Passages that match the question:\n" + ContextRetriever.Join(passages);
+                }
+                else
+                {
+                    content = source.Content.Length > share ? string.Concat(source.Content.AsSpan(0, share), " [truncated]") : source.Content;
+                }
+
                 prompt.AppendLine().Append("### ").Append(source.Name).Append(" (").Append(source.Kind).AppendLine(")").AppendLine(content);
             }
         }
@@ -88,7 +110,10 @@ public static class PromptBuilder
     /// The sources that end up in the prompt, with how much of each the model sees.
     /// Same rules as <see cref="Build"/>, so what people are shown is what the model read.
     /// </summary>
-    public static IReadOnlyList<ChatSourceDto> SourcesUsed(IReadOnlyList<ContextSource> context, PromptBudget? budget = null)
+    public static IReadOnlyList<ChatSourceDto> SourcesUsed(
+        IReadOnlyList<ContextSource> context,
+        PromptBudget? budget = null,
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>>? retrieved = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         budget ??= PromptBudget.Default;
@@ -98,8 +123,25 @@ public static class PromptBuilder
             return [];
         }
 
-        var share = budget.MaxContextCharacters / ready.Count;
-        return [.. ready.Select(s => new ChatSourceDto(s.Id, s.Name, s.Kind, Math.Min(s.Content.Length, share), s.Content.Length > share))];
+        var whole = ready.Count(s => retrieved?.ContainsKey(s.Id) != true);
+        var share = whole == 0 ? 0 : budget.MaxContextCharacters / whole;
+        var used = new List<ChatSourceDto>();
+        foreach (var s in ready)
+        {
+            if (retrieved is not null && retrieved.TryGetValue(s.Id, out var passages))
+            {
+                if (passages.Count > 0)
+                {
+                    used.Add(new ChatSourceDto(s.Id, s.Name, s.Kind, passages.Sum(p => p.Length), false, passages.Count));
+                }
+            }
+            else
+            {
+                used.Add(new ChatSourceDto(s.Id, s.Name, s.Kind, Math.Min(s.Content.Length, share), s.Content.Length > share));
+            }
+        }
+
+        return used;
     }
 
     private static List<ContextSource> Readable(IReadOnlyList<ContextSource> context) =>

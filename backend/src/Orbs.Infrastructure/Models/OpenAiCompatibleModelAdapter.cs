@@ -14,7 +14,7 @@ namespace Orbs.Infrastructure.Models;
 /// OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM, Groq, Mistral and many more.
 /// Supports function calling: tools go out as <c>tools</c>, calls come back as streamed <c>tool_calls</c>.
 /// </summary>
-internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter
+internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter, IEmbeddingAdapter
 {
     public const string HttpClientName = "openai-compatible";
 
@@ -112,6 +112,38 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
         var list = await response.Content.ReadFromJsonAsync<ModelList>(Json, cancellationToken);
         return [.. (list?.Data ?? []).Select(m => new ModelInfo(m.Id, m.Name)).OrderBy(m => m.Id, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>POST /embeddings: one vector per input, put back in input order.</summary>
+    public async Task<IReadOnlyList<float[]>> EmbedAsync(ProviderConnection connection, string model, IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(texts);
+        var body = new JsonObject { ["model"] = model, ["input"] = new JsonArray([.. texts.Select(t => (JsonNode)JsonValue.Create(t)!)]) };
+        using var message = new HttpRequestMessage(HttpMethod.Post, Endpoint(connection, "embeddings"))
+        {
+            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        Authorize(message, connection);
+        using var client = httpClientFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return ParseEmbeddings(await response.Content.ReadAsStringAsync(cancellationToken), texts.Count);
+    }
+
+    internal static IReadOnlyList<float[]> ParseEmbeddings(string json, int expected)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var vectors = new float[expected][];
+        var position = 0;
+        foreach (var item in doc.RootElement.GetProperty("data").EnumerateArray())
+        {
+            var index = item.TryGetProperty("index", out var i) ? i.GetInt32() : position;
+            vectors[index] = [.. item.GetProperty("embedding").EnumerateArray().Select(v => v.GetSingle())];
+            position++;
+        }
+
+        return vectors.Any(v => v is null) ? throw new HttpRequestException("The provider returned fewer embeddings than asked for.") : vectors;
     }
 
     /// <summary>The Chat Completions request body, including tool definitions and earlier tool turns.</summary>

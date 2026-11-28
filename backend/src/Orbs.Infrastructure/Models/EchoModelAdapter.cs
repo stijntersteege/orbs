@@ -9,9 +9,12 @@ namespace Orbs.Infrastructure.Models;
 /// It can also try tools: "/tool current_time" or "/tool calculator {"expression":"2+2"}" calls that tool
 /// and then repeats what it said.
 /// </summary>
-internal sealed class EchoModelAdapter : IModelAdapter
+internal sealed class EchoModelAdapter : IModelAdapter, IEmbeddingAdapter
 {
     public const string ToolCommand = "/tool ";
+
+    private static readonly HashSet<string> StopWords =
+        ["the", "and", "for", "with", "that", "this", "are", "was", "you", "your", "not", "but", "have", "has", "from", "where", "what", "who", "how", "when", "there", "here", "into", "about", "then", "than", "all", "any", "can"];
 
     public string Kind => "echo";
 
@@ -82,6 +85,38 @@ internal sealed class EchoModelAdapter : IModelAdapter
         {
             yield return new TextOutput(word);
         }
+    }
+
+    /// <summary>
+    /// Bag-of-words embeddings: each word lands in one of 1024 buckets. Crude, but texts that share words end up
+    /// close together, which is enough to try retrieval (and test it) without a real model.
+    /// </summary>
+    public Task<IReadOnlyList<float[]>> EmbedAsync(ProviderConnection connection, string model, IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+        return Task.FromResult<IReadOnlyList<float[]>>([.. texts.Select(Embed)]);
+    }
+
+    internal static float[] Embed(string text)
+    {
+        var vector = new float[1024];
+        foreach (var word in text.ToLowerInvariant().Split([' ', '\n', '\t', '.', ',', '?', '!', ':', ';', '(', ')', '"'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (word.Length < 3 || StopWords.Contains(word))
+            {
+                continue;
+            }
+
+            var hash = 17;
+            foreach (var c in word)
+            {
+                hash = unchecked((hash * 31) + c);
+            }
+
+            vector[(hash & 0x7fffffff) % vector.Length] += 1;
+        }
+
+        return vector;
     }
 
     public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(ProviderConnection connection, CancellationToken cancellationToken = default) =>

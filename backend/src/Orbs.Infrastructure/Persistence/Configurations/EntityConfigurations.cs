@@ -75,6 +75,7 @@ internal sealed class ModelProviderConfiguration : IEntityTypeConfiguration<Mode
         builder.Property(p => p.BaseUrl).HasMaxLength(2_048);
         builder.Property(p => p.ProtectedApiKey).HasMaxLength(4_096);
         builder.Property(p => p.DefaultModel).HasMaxLength(ModelProvider.MaxModelLength);
+        builder.Property(p => p.EmbeddingModel).HasMaxLength(ModelProvider.MaxModelLength);
         builder.Ignore(p => p.HasApiKey);
     }
 }
@@ -266,5 +267,21 @@ internal sealed class MemoryConfiguration : IEntityTypeConfiguration<Memory>
         builder.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
         builder.Ignore(m => m.IsShared);
         builder.HasOne<Orb>().WithMany().HasForeignKey(m => m.OrbId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ContextChunkConfiguration : IEntityTypeConfiguration<ContextChunk>
+{
+    public void Configure(EntityTypeBuilder<ContextChunk> builder)
+    {
+        builder.ToTable("context_chunks");
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.HasIndex(c => c.OwnerId);
+        builder.HasIndex(c => new { c.SourceId, c.Index });
+        builder.Property(c => c.Text).HasMaxLength(ContextChunk.MaxTextLength).IsRequired();
+        builder.Property(c => c.Vector).IsRequired();
+        builder.Property(c => c.Model).HasMaxLength(200).IsRequired();
+        builder.HasOne<ContextSource>().WithMany().HasForeignKey(c => c.SourceId).OnDelete(DeleteBehavior.Cascade);
     }
 }

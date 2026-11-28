@@ -93,6 +93,7 @@ public sealed class ProviderService(
         var now = clock.GetUtcNow();
         provider.PointAt(string.IsNullOrWhiteSpace(request.BaseUrl) ? adapter.DefaultBaseUrl?.ToString() : request.BaseUrl, now);
         provider.SetDefaultModel(request.DefaultModel, now);
+        provider.SetEmbeddingModel(adapter is IEmbeddingAdapter ? request.EmbeddingModel : null, now);
 
         if (request.ApiKey is not null)
         {

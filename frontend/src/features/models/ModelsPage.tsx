@@ -33,6 +33,7 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
   const [apiKey, setApiKey] = useState('')
   const [defaultModel, setDefaultModel] = useState(provider?.defaultModel ?? preset?.defaultModel ?? '')
   const [isEnabled, setIsEnabled] = useState(provider?.isEnabled ?? true)
+  const [embeddingModel, setEmbeddingModel] = useState(provider?.embeddingModel ?? '')
   const kindInfo = kinds.data?.find((k) => k.kind === kind)
 
   const submit = async (e: FormEvent) => {
@@ -47,6 +48,7 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
         apiKey: apiKey || undefined,
         defaultModel: defaultModel || undefined,
         isEnabled,
+        embeddingModel: embeddingModel || undefined,
       },
     })
     onDone()
@@ -122,6 +124,15 @@ function ProviderForm({ provider, preset, onDone }: ProviderFormProps) {
             hint={
               models.error ? `Could not list models: ${models.error.message}` : 'Orbs on Auto use this model.'
             }
+          />
+        )}
+        {kindInfo?.supportsEmbeddings && (
+          <TextField
+            label="Embedding model"
+            value={embeddingModel}
+            placeholder="for example text-embedding-3-small or nomic-embed-text"
+            onChange={(e) => setEmbeddingModel(e.target.value)}
+            hint="Optional. With an embedding model, big sources are split into passages and orbs read only the passages that match the question."
           />
         )}
         <Switch

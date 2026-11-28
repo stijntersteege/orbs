@@ -99,7 +99,13 @@ function Reply({ entry }: { entry: ActivityEntry }) {
           key={s.id}
           tone="ok"
           title={`Read ${s.name}`}
-          detail={`${kindLabel(s.kind)} · ${s.truncated ? 'first part, ' : ''}${when(entry.startedAt)}`}
+          detail={`${kindLabel(s.kind)} · ${
+            s.passages
+              ? `${s.passages} matching ${s.passages === 1 ? 'passage' : 'passages'}, `
+              : s.truncated
+                ? 'first part, '
+                : ''
+          }${when(entry.startedAt)}`}
         />
       ))}
       {entry.sources.length === 0 && entry.tools.length === 0 && (

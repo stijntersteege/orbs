@@ -1,9 +1,12 @@
 using Orbs.Application.Abstractions;
+using Orbs.Application.Context;
 using Orbs.Application.Conversations;
+using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Jobs;
 using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
@@ -24,6 +27,14 @@ internal sealed class InMemoryStore : IUnitOfWork
     public InMemoryRepo<ToolApproval> ApprovalItems { get; } = new();
 
     public InMemoryRepo<Memory> MemoryItems { get; } = new();
+
+    public InMemoryRepo<ContextChunk> ChunkItems { get; } = new();
+
+    public InMemoryRepo<Job> JobItems { get; } = new();
+
+    public IContextChunkRepository Chunks => new ChunkRepo(ChunkItems);
+
+    public IJobRepository Jobs => new JobRepo(JobItems);
 
     public IMemoryRepository Memories => new MemoryRepo(MemoryItems);
 
@@ -56,6 +67,33 @@ internal sealed class InMemoryStore : IUnitOfWork
             var set = ids.ToHashSet();
             return Task.FromResult<IReadOnlyList<ContextSource>>([.. Inner.Items.Where(s => set.Contains(s.Id))]);
         }
+    }
+
+    private sealed class ChunkRepo(InMemoryRepo<ContextChunk> inner) : Delegating<ContextChunk>(inner), IContextChunkRepository
+    {
+        public Task<IReadOnlyList<ContextChunk>> ListForSourcesAsync(IReadOnlyCollection<Guid> sourceIds, string model, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ContextChunk>>([.. Inner.Items.Where(c => sourceIds.Contains(c.SourceId) && c.Model == model)]);
+
+        public Task DeleteForSourceAsync(Guid sourceId, CancellationToken cancellationToken = default)
+        {
+            Inner.Items.RemoveAll(c => c.SourceId == sourceId);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class JobRepo(InMemoryRepo<Job> inner) : Delegating<Job>(inner), IJobRepository
+    {
+        public Task<IReadOnlyList<Job>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Job>>([.. Inner.Items.Where(j => j.IsDue(now)).Take(limit)]);
+
+        public Task<IReadOnlyList<Job>> ListRunningAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Job>>([.. Inner.Items.Where(j => j.Status == JobStatus.Running)]);
+
+        public Task<IReadOnlyList<Job>> ListRecentAsync(int limit, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Job>>([.. Inner.Items.Take(limit)]);
+
+        public Task<bool> AnyPendingAsync(string kind, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Inner.Items.Any(j => j.Kind == kind && j.Status == JobStatus.Pending));
     }
 
     private sealed class MemoryRepo(InMemoryRepo<Memory> inner) : Delegating<Memory>(inner), IMemoryRepository

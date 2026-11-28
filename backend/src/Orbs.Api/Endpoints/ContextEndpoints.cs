@@ -30,6 +30,12 @@ internal static class ContextEndpoints
         group.MapPost("/{id:guid}/sync", (Guid id, ContextService context, CancellationToken ct) => context.SyncAsync(id, ct))
             .WithSummary("Read a context source again");
 
+        group.MapPost("/{id:guid}/index", async (Guid id, ContextService context, CancellationToken ct) =>
+                await context.IndexAsync(id, ct)
+                    ? Results.Accepted()
+                    : Results.Problem("Set an embedding model on one of your providers first, and make sure the source is synced.", statusCode: StatusCodes.Status409Conflict))
+            .WithSummary("Embed a context source again for retrieval (runs in the background)");
+
         group.MapDelete("/{id:guid}", async (Guid id, ContextService context, CancellationToken ct) =>
             {
                 await context.DeleteAsync(id, ct);
