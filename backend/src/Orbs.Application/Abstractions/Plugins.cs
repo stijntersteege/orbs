@@ -18,11 +18,29 @@ public interface IPlugin
 
 // ---------- Models ----------
 
-public enum ChatRole { System, User, Assistant }
+public enum ChatRole { System, User, Assistant, Tool }
 
-public sealed record ChatTurn(ChatRole Role, string Content);
+/// <summary>
+/// One message sent to a model. An assistant turn may carry the tools it asked for;
+/// a tool turn carries one tool's result and the id of the call it answers.
+/// </summary>
+public sealed record ChatTurn(ChatRole Role, string Content, IReadOnlyList<ToolCall>? ToolCalls = null, string? ToolCallId = null);
 
-public sealed record ChatRequest(string Model, IReadOnlyList<ChatTurn> Messages);
+/// <summary>What to send to a model. <see cref="Tools"/> lists the tools it may call; empty means none.</summary>
+public sealed record ChatRequest(string Model, IReadOnlyList<ChatTurn> Messages, IReadOnlyList<ToolDefinition>? Tools = null);
+
+/// <summary>A tool as a model sees it: a name, what it does and a JSON Schema for its arguments.</summary>
+public sealed record ToolDefinition(string Name, string Description, string ParametersSchema);
+
+/// <summary>A model asking to run a tool. <see cref="Arguments"/> is a JSON object.</summary>
+public sealed record ToolCall(string Id, string Name, string Arguments);
+
+/// <summary>Something a model produced while streaming: text, or a request to call a tool.</summary>
+public abstract record ModelOutput;
+
+public sealed record TextOutput(string Text) : ModelOutput;
+
+public sealed record ToolCallOutput(ToolCall Call) : ModelOutput;
 
 /// <summary>What an adapter needs to reach a provider. The API key is already decrypted.</summary>
 public sealed record ProviderConnection(Uri? BaseUrl, string? ApiKey);
@@ -43,6 +61,63 @@ public interface IModelAdapter : IPlugin
     IAsyncEnumerable<string> StreamChatAsync(ProviderConnection connection, ChatRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ModelInfo>> ListModelsAsync(ProviderConnection connection, CancellationToken cancellationToken = default);
+
+    /// <summary>True when the adapter passes <see cref="ChatRequest.Tools"/> to the model and reports tool calls.</summary>
+    bool SupportsTools => false;
+
+    /// <summary>
+    /// Streams the reply as text and tool calls. Adapters without tool support get this for free:
+    /// it wraps <see cref="StreamChatAsync"/>.
+    /// </summary>
+    async IAsyncEnumerable<ModelOutput> StreamAsync(
+        ProviderConnection connection,
+        ChatRequest request,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var text in StreamChatAsync(connection, request, cancellationToken))
+        {
+            yield return new TextOutput(text);
+        }
+    }
+}
+
+// ---------- Tools ----------
+
+/// <summary>How careful Orbs is with a tool by default. Per-orb permissions can override it.</summary>
+public enum ToolRisk
+{
+    /// <summary>Only reads, such as the time or a search.</summary>
+    Read,
+
+    /// <summary>Changes something or reaches out, such as sending email.</summary>
+    Write,
+}
+
+/// <summary>Who is calling a tool, so it can act for the right user and orb.</summary>
+public sealed record ToolInvocation(Guid OrbId, Guid? UserId, string Arguments);
+
+/// <summary>
+/// Something an orb can do: look something up, or act in another app.
+/// <see cref="IPlugin.Kind"/> is the tool's name as models see it (letters, digits, '_' and '-').
+/// </summary>
+public interface ITool : IPlugin
+{
+    /// <summary>JSON Schema of the arguments object.</summary>
+    string ParametersSchema { get; }
+
+    ToolRisk Risk { get; }
+
+    /// <summary>Runs the tool and returns what the model should read. Throw to report a failure to the model.</summary>
+    Task<string> InvokeAsync(ToolInvocation invocation, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Supplies tools for the current user. Built-in tools come from one source; each connected
+/// MCP server or integration can be another.
+/// </summary>
+public interface IToolSource
+{
+    Task<IReadOnlyList<ITool>> ListAsync(CancellationToken cancellationToken = default);
 }
 
 // ---------- Context ----------

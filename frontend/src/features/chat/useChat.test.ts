@@ -1,4 +1,4 @@
-import { reduceChatEvent, type ChatState } from './useChat'
+import { activityFromHistory, reduceChatEvent, type ChatState } from './useChat'
 
 const empty: ChatState = {
   messages: [],
@@ -58,8 +58,45 @@ describe('reduceChatEvent', () => {
         sources: [source],
         startedAt: t0.getTime(),
         finishedAt: t1.getTime(),
+        tools: [],
       },
     ])
+  })
+
+  it('records each tool call and its result with the reply', () => {
+    let state = reduceChatEvent(empty, { type: 'start', model: 'm' })
+    state = reduceChatEvent(state, { type: 'tool_call', callId: 'c1', tool: 'calculator', arguments: '{}' })
+    expect(state.activity[0]!.tools).toEqual([{ callId: 'c1', tool: 'calculator', arguments: '{}' }])
+
+    state = reduceChatEvent(state, {
+      type: 'tool_result',
+      callId: 'c1',
+      tool: 'calculator',
+      text: '42',
+      isError: false,
+      durationMs: 3,
+    })
+    expect(state.activity[0]!.tools[0]).toMatchObject({ result: '42', isError: false, durationMs: 3 })
+  })
+
+  it('rebuilds activity for earlier replies from their saved model and tools', () => {
+    const entries = activityFromHistory([
+      { id: 'u', role: 'user', content: 'hi', createdAt: '2026-01-01T09:00:00Z' },
+      {
+        id: 'a',
+        role: 'assistant',
+        content: 'calculator said: 4',
+        createdAt: '2026-01-01T09:00:01Z',
+        model: 'echo-1',
+        toolCalls: [{ tool: 'calculator', arguments: '{}', result: '4', isError: false, durationMs: 1 }],
+      },
+    ])
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      id: 'a',
+      model: 'echo-1',
+      tools: [{ tool: 'calculator', result: '4' }],
+    })
   })
 
   it('marks the activity of a failed reply', () => {

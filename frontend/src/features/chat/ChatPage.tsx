@@ -133,6 +133,7 @@ export function ChatPage() {
   const model = orb ? orb.model : pendingModel
   const name = orb?.name ?? 'Pip'
   const citations = new Map(chat.activity.map((a) => [a.id, a.sources]))
+  const runningTool = chat.activity.at(-1)?.tools.find((t) => t.result === undefined)?.tool
   const empty = chat.messages.length === 0 && !chat.isStreaming && !conversation.isFetching
 
   const pickModel = (ref: ModelRef | null) => {
@@ -342,7 +343,11 @@ export function ChatPage() {
                       }}
                     />
                     <div className={styles.assistant} aria-busy="true">
-                      {chat.streaming || <span className={styles.thinking}>Thinking…</span>}
+                      {chat.streaming || (
+                        <span className={styles.thinking}>
+                          {runningTool ? `Using ${runningTool}…` : 'Thinking…'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}

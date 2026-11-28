@@ -8,12 +8,17 @@ public enum MessageRole { User, Assistant }
 public sealed class Message : Entity
 {
     public const int MaxContentLength = 100_000;
+    public const int MaxModelLength = 200;
 
-    internal Message(Guid id, MessageRole role, string content, DateTimeOffset createdAt) : base(id)
+    private readonly List<ToolCallRecord> _toolCalls = [];
+
+    internal Message(Guid id, MessageRole role, string content, DateTimeOffset createdAt, string? model, IEnumerable<ToolCallRecord>? toolCalls) : base(id)
     {
         Role = role;
         Content = content;
         CreatedAt = createdAt;
+        Model = model;
+        _toolCalls.AddRange(toolCalls ?? []);
     }
 
     // For EF Core materialization.
@@ -27,6 +32,49 @@ public sealed class Message : Entity
     public string Content { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>The model that wrote an assistant message, for the audit trail.</summary>
+    public string? Model { get; private set; }
+
+    /// <summary>Tools the orb used while writing this reply, in order: the audit trail.</summary>
+    public IReadOnlyList<ToolCallRecord> ToolCalls => _toolCalls;
+}
+
+/// <summary>One tool call an orb made: what it asked for, and what came back.</summary>
+public sealed class ToolCallRecord
+{
+    public const int MaxTextLength = 20_000;
+
+    public ToolCallRecord(string tool, string arguments, string result, bool isError, long durationMs)
+    {
+        Tool = Guard.Text(tool, nameof(tool), 200);
+        Arguments = Clip(arguments);
+        Result = Clip(result);
+        IsError = isError;
+        DurationMs = durationMs;
+    }
+
+    // For EF Core materialization.
+    private ToolCallRecord()
+    {
+        Tool = string.Empty;
+        Arguments = string.Empty;
+        Result = string.Empty;
+    }
+
+    public string Tool { get; private set; }
+
+    /// <summary>The arguments as JSON.</summary>
+    public string Arguments { get; private set; }
+
+    public string Result { get; private set; }
+
+    public bool IsError { get; private set; }
+
+    public long DurationMs { get; private set; }
+
+    private static string Clip(string? text) =>
+        text is null ? string.Empty : text.Length <= MaxTextLength ? text : string.Concat(text.AsSpan(0, MaxTextLength - 3), "...");
 }
 
 /// <summary>A chat between the user and one orb.</summary>
@@ -72,7 +120,9 @@ public sealed class Conversation : OwnedAggregateRoot
         return message;
     }
 
-    public Message AddAssistantMessage(string content, DateTimeOffset now) => Append(MessageRole.Assistant, content, now);
+    /// <summary>Adds the orb's reply, with the model that wrote it and the tools it used on the way.</summary>
+    public Message AddAssistantMessage(string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null) =>
+        Append(MessageRole.Assistant, content, now, model, toolCalls);
 
     public void Retitle(string title, DateTimeOffset now)
     {
@@ -80,10 +130,11 @@ public sealed class Conversation : OwnedAggregateRoot
         Touch(now);
     }
 
-    private Message Append(MessageRole role, string content, DateTimeOffset now)
+    private Message Append(MessageRole role, string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null)
     {
         var text = Guard.Text(content, nameof(content), Message.MaxContentLength);
-        var message = new Message(Guid.NewGuid(), role, text, now);
+        var modelName = model is null ? null : Guard.Text(model, nameof(model), Message.MaxModelLength, required: false);
+        var message = new Message(Guid.NewGuid(), role, text, now, modelName, toolCalls);
         _messages.Add(message);
         Touch(now);
         return message;

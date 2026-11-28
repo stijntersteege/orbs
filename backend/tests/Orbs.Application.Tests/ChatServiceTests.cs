@@ -1,8 +1,10 @@
 using Orbs.Application.Abstractions;
+using Orbs.Application.Accounts;
 using Orbs.Application.Common;
 using Orbs.Application.Conversations;
 using Orbs.Application.Providers;
 using Orbs.Application.Tests.Fakes;
+using Orbs.Application.Tools;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Orbs;
@@ -19,7 +21,8 @@ public class ChatServiceTests
     {
         var registry = new PluginRegistry<IModelAdapter>(adapters);
         var providerService = new ProviderService(_store.Providers, _store.Orbs, registry, new FakeSecretProtector(), _store, _clock);
-        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, _store, _clock);
+        var tools = new ToolRunner(new ToolCatalog([]), new CurrentUser());
+        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, _store, _clock);
     }
 
     private (Orb Orb, Conversation Chat) GivenAnOrbWithAChat(string providerKind = "scripted")

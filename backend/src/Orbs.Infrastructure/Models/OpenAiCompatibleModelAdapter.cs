@@ -1,7 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Orbs.Application.Abstractions;
 
@@ -10,6 +12,7 @@ namespace Orbs.Infrastructure.Models;
 /// <summary>
 /// Talks to any endpoint that speaks the OpenAI Chat Completions API:
 /// OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM, Groq, Mistral and many more.
+/// Supports function calling: tools go out as <c>tools</c>, calls come back as streamed <c>tool_calls</c>.
 /// </summary>
 internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClientFactory) : IModelAdapter
 {
@@ -32,7 +35,23 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
     public Uri? DefaultBaseUrl => null;
 
+    public bool SupportsTools => true;
+
     public async IAsyncEnumerable<string> StreamChatAsync(
+        ProviderConnection connection,
+        ChatRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var output in StreamAsync(connection, request, cancellationToken))
+        {
+            if (output is TextOutput text)
+            {
+                yield return text.Text;
+            }
+        }
+    }
+
+    public async IAsyncEnumerable<ModelOutput> StreamAsync(
         ProviderConnection connection,
         ChatRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -40,14 +59,9 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(request);
 
-        var body = new CompletionRequest(
-            request.Model,
-            [.. request.Messages.Select(m => new CompletionMessage(m.Role.ToString().ToLowerInvariant(), m.Content))],
-            Stream: true);
-
         using var message = new HttpRequestMessage(HttpMethod.Post, Endpoint(connection, "chat/completions"))
         {
-            Content = JsonContent.Create(body, options: Json),
+            Content = new StringContent(BuildRequest(request).ToJsonString(), Encoding.UTF8, "application/json"),
         };
         Authorize(message, connection);
 
@@ -57,6 +71,7 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
+        var calls = new ToolCallAccumulator();
         while (await reader.ReadLineAsync(cancellationToken) is { } line)
         {
             if (!line.StartsWith("data:", StringComparison.Ordinal))
@@ -67,14 +82,21 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
             var data = line["data:".Length..].Trim();
             if (data == "[DONE]")
             {
-                yield break;
+                break;
             }
 
             var text = ParseDelta(data);
             if (!string.IsNullOrEmpty(text))
             {
-                yield return text;
+                yield return new TextOutput(text);
             }
+
+            calls.Add(data);
+        }
+
+        foreach (var call in calls.Complete())
+        {
+            yield return new ToolCallOutput(call);
         }
     }
 
@@ -90,6 +112,58 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
 
         var list = await response.Content.ReadFromJsonAsync<ModelList>(Json, cancellationToken);
         return [.. (list?.Data ?? []).Select(m => new ModelInfo(m.Id, m.Name)).OrderBy(m => m.Id, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>The Chat Completions request body, including tool definitions and earlier tool turns.</summary>
+    internal static JsonObject BuildRequest(ChatRequest request)
+    {
+        var messages = new JsonArray();
+        foreach (var turn in request.Messages)
+        {
+            var item = new JsonObject
+            {
+                ["role"] = turn.Role.ToString().ToLowerInvariant(),
+                ["content"] = turn.Content,
+            };
+            if (turn.ToolCalls is { Count: > 0 } calls)
+            {
+                item["tool_calls"] = new JsonArray([.. calls.Select(c => (JsonNode)new JsonObject
+                {
+                    ["id"] = c.Id,
+                    ["type"] = "function",
+                    ["function"] = new JsonObject { ["name"] = c.Name, ["arguments"] = c.Arguments },
+                })]);
+            }
+
+            if (turn.ToolCallId is not null)
+            {
+                item["tool_call_id"] = turn.ToolCallId;
+            }
+
+            messages.Add(item);
+        }
+
+        var body = new JsonObject
+        {
+            ["model"] = request.Model,
+            ["messages"] = messages,
+            ["stream"] = true,
+        };
+        if (request.Tools is { Count: > 0 } tools)
+        {
+            body["tools"] = new JsonArray([.. tools.Select(t => (JsonNode)new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = t.Name,
+                    ["description"] = t.Description,
+                    ["parameters"] = JsonNode.Parse(t.ParametersSchema),
+                },
+            })]);
+        }
+
+        return body;
     }
 
     internal static string? ParseDelta(string json)
@@ -138,11 +212,71 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         throw new HttpRequestException($"{(int)response.StatusCode} {response.ReasonPhrase}: {detail}", null, response.StatusCode);
     }
 
-    private sealed record CompletionRequest(string Model, IReadOnlyList<CompletionMessage> Messages, bool Stream);
-
-    private sealed record CompletionMessage(string Role, string Content);
-
     private sealed record ModelList(IReadOnlyList<ModelEntry>? Data);
 
     private sealed record ModelEntry(string Id, string? Name);
+}
+
+/// <summary>
+/// Streamed tool calls arrive in pieces: the first chunk names the call, later chunks add bits of the
+/// arguments. Pieces are keyed by their index and joined when the stream ends.
+/// </summary>
+internal sealed class ToolCallAccumulator
+{
+    private readonly SortedDictionary<int, Pending> _calls = [];
+
+    public void Add(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (!doc.RootElement.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0
+            || !choices[0].TryGetProperty("delta", out var delta)
+            || !delta.TryGetProperty("tool_calls", out var toolCalls) || toolCalls.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var piece in toolCalls.EnumerateArray())
+        {
+            var index = piece.TryGetProperty("index", out var i) && i.TryGetInt32(out var n) ? n : _calls.Count;
+            if (!_calls.TryGetValue(index, out var current))
+            {
+                current = new Pending();
+                _calls[index] = current;
+            }
+
+            if (piece.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String)
+            {
+                current.Id = id.GetString();
+            }
+
+            if (piece.TryGetProperty("function", out var function))
+            {
+                if (function.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+                {
+                    current.Name += name.GetString();
+                }
+
+                if (function.TryGetProperty("arguments", out var args) && args.ValueKind == JsonValueKind.String)
+                {
+                    current.Arguments.Append(args.GetString());
+                }
+            }
+        }
+    }
+
+    public IReadOnlyList<ToolCall> Complete() =>
+        [.. _calls.Where(c => c.Value.Name.Length > 0)
+            .Select(c => new ToolCall(
+                c.Value.Id ?? $"call_{c.Key}",
+                c.Value.Name,
+                c.Value.Arguments.Length == 0 ? "{}" : c.Value.Arguments.ToString()))];
+
+    private sealed class Pending
+    {
+        public string? Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public StringBuilder Arguments { get; } = new();
+    }
 }

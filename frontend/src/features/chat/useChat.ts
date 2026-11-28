@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { conversationsApi } from '@/api/endpoints'
 import { keys } from '@/api/queries'
-import type { ChatEvent, ChatSource, Message } from '@/api/types'
+import type { ChatEvent, ChatSource, Message, ToolCallRecord } from '@/api/types'
 
 /** What the orb did for one reply: which model and provider answered, what it read and how long it took. */
 export interface ActivityEntry {
@@ -14,6 +14,31 @@ export interface ActivityEntry {
   /** Set when the reply is complete. */
   finishedAt?: number
   failed?: boolean
+  /** Tools used for this reply, in order. A call without a result is still running. */
+  tools: ToolActivity[]
+}
+
+export interface ToolActivity extends Partial<ToolCallRecord> {
+  callId: string
+  tool: string
+  arguments: string
+}
+
+/** Activity for replies loaded from the server: the model that wrote each one and the tools it used. */
+export function activityFromHistory(messages: Message[]): ActivityEntry[] {
+  return messages
+    .filter((m) => m.role === 'assistant' && m.model)
+    .map((m) => {
+      const at = Date.parse(m.createdAt)
+      return {
+        id: m.id,
+        model: m.model!,
+        sources: [],
+        startedAt: at,
+        finishedAt: at,
+        tools: (m.toolCalls ?? []).map((t, i) => ({ ...t, callId: `${m.id}-${i}` })),
+      }
+    })
 }
 
 export interface ChatState {
@@ -29,6 +54,12 @@ export interface ChatState {
 }
 
 const current = (state: ChatState) => state.activity.at(-1)
+
+function withCurrent(state: ChatState, change: (entry: ActivityEntry) => ActivityEntry): ChatState {
+  const last = current(state)
+  if (!last) return state
+  return { ...state, activity: [...state.activity.slice(0, -1), change(last)] }
+}
 
 function finishActivity(state: ChatState, patch: Partial<ActivityEntry>, now: number): ActivityEntry[] {
   const last = current(state)
@@ -56,9 +87,24 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
             provider: event.provider,
             sources: event.sources ?? [],
             startedAt: now.getTime(),
+            tools: [],
           },
         ],
       }
+    case 'tool_call':
+      return withCurrent(state, (entry) => ({
+        ...entry,
+        tools: [...entry.tools, { callId: event.callId, tool: event.tool, arguments: event.arguments }],
+      }))
+    case 'tool_result':
+      return withCurrent(state, (entry) => ({
+        ...entry,
+        tools: entry.tools.map((t) =>
+          t.callId === event.callId
+            ? { ...t, result: event.text, isError: event.isError, durationMs: event.durationMs }
+            : t,
+        ),
+      }))
     case 'delta':
       return { ...state, streaming: (state.streaming ?? '') + event.text }
     case 'done':
@@ -117,7 +163,7 @@ export function useChat(
       streaming: null,
       model: null,
       error: null,
-      activity: same ? s.activity : [],
+      activity: same && s.activity.length > 0 ? s.activity : activityFromHistory(initial ?? []),
       hasMore: initialHasMore,
     }))
   }, [initial, conversationId, initialHasMore])

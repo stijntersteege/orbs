@@ -129,3 +129,60 @@ public sealed class MessagePagingTests : IDisposable
         (await sam.GetAsync(new Uri($"/api/conversations/{chat.Id}/messages", UriKind.Relative))).StatusCode.ShouldBe(System.Net.HttpStatusCode.NotFound);
     }
 }
+
+public sealed class ToolApiTests : IDisposable
+{
+    private readonly OrbsApiFactory _factory = new();
+
+    public void Dispose() => _factory.Dispose();
+
+    [Fact]
+    public async Task The_built_in_tools_are_listed()
+    {
+        var api = new ApiClient(_factory.CreateClient());
+
+        var tools = await api.GetAsync<List<Orbs.Application.Tools.ToolDto>>("/api/tools");
+
+        tools.Select(t => t.Name).ShouldBe(["calculator", "current_time"], ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task A_reply_that_uses_a_tool_streams_the_call_and_keeps_an_audit_trail()
+    {
+        var api = new ApiClient(_factory.CreateClient());
+        await api.ConnectEchoAsync();
+        var orb = await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var chat = await api.StartConversationAsync(orb.Id);
+
+        var result = await api.SendAsync(chat.Id, """/tool calculator {"expression":"6*7"}""");
+
+        result.Events.Select(e => e.Type).ShouldBe(["start", "tool_call", "tool_result", "delta", "delta", "delta", "done"]);
+        var call = result.Events.Single(e => e.Type == ChatEvent.ToolCallType);
+        call.Tool.ShouldBe("calculator");
+        call.Arguments.ShouldBe("""{"expression":"6*7"}""");
+        result.Events.Single(e => e.Type == ChatEvent.ToolResultType).Text.ShouldBe("42");
+        result.Reply.ShouldBe("calculator said: 42");
+
+        var saved = (await api.GetAsync<ConversationDto>($"/api/conversations/{chat.Id}")).Messages[^1];
+        saved.Model.ShouldBe("echo-1");
+        var record = saved.ToolCalls.ShouldNotBeNull().ShouldHaveSingleItem();
+        record.Tool.ShouldBe("calculator");
+        record.Result.ShouldBe("42");
+        record.IsError.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_failing_tool_tells_the_model_what_went_wrong()
+    {
+        var api = new ApiClient(_factory.CreateClient());
+        await api.ConnectEchoAsync();
+        var orb = await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var chat = await api.StartConversationAsync(orb.Id);
+
+        var result = await api.SendAsync(chat.Id, """/tool calculator {"expression":"1/0"}""");
+
+        var toolResult = result.Events.Single(e => e.Type == ChatEvent.ToolResultType);
+        toolResult.IsError.ShouldBe(true);
+        result.Reply.ShouldStartWith("calculator said: The result is not a finite number");
+    }
+}
