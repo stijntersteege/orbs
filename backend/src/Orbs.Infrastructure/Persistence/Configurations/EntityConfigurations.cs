@@ -7,6 +7,7 @@ using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
 namespace Orbs.Infrastructure.Persistence.Configurations;
@@ -215,5 +216,22 @@ internal sealed class ToolApprovalConfiguration : IEntityTypeConfiguration<ToolA
         builder.Property(a => a.State).IsRequired();
         builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
         builder.HasOne<Conversation>().WithMany().HasForeignKey(a => a.ConversationId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class McpServerConfiguration : IEntityTypeConfiguration<McpServer>
+{
+    public void Configure(EntityTypeBuilder<McpServer> builder)
+    {
+        builder.ToTable("mcp_servers");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasIndex(s => s.OwnerId);
+        builder.Property(s => s.Name).HasMaxLength(McpServer.MaxNameLength).IsRequired();
+        builder.Property(s => s.Transport).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Location).HasMaxLength(McpServer.MaxLocationLength).IsRequired();
+        builder.Property(s => s.ProtectedAuthorization).HasMaxLength(4_096);
+        builder.Property(s => s.LastError).HasMaxLength(1_000);
+        builder.Ignore(s => s.HasAuthorization);
     }
 }

@@ -6,6 +6,7 @@ using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
+using Orbs.Application.Tools;
 using Orbs.Infrastructure.Context;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Persistence;
@@ -47,6 +48,14 @@ public static class DependencyInjection
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IJobRepository, JobRepository>();
         services.AddScoped<IToolApprovalRepository, ToolApprovalRepository>();
+        services.AddScoped<IMcpServerRepository, McpServerRepository>();
+        services.AddSingleton<IMcpClient, McpClientAdapter>();
+        services.AddSingleton(new McpSettings(AllowStdio: configuration.GetValue("Orbs:Mcp:AllowStdio", false)));
+
+        // MCP over HTTP: admins' servers may be on the local network; everyone else's go through the network policy.
+        services.AddHttpClient(McpClientAdapter.HttpClientName, c => c.Timeout = TimeSpan.FromMinutes(2));
+        services.AddHttpClient(McpClientAdapter.RestrictedHttpClientName, c => c.Timeout = TimeSpan.FromMinutes(2))
+            .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IOwnershipMaintenance, OwnershipMaintenance>();

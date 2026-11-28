@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Tool permissions per orb: **Allow**, **Ask first** (the default) or **Block**, set in the orb editor under "What it can do". Blocked tools are not offered to the model at all.
 - Approval cards: when an orb wants a tool that asks first, the reply pauses and the chat shows what it wants to do. **Allow once**, **Always allow** or **Decline**; the reply then continues. Waiting requests survive a reload. `POST /api/conversations/{id}/approvals/{approvalId}` answers one and streams the rest of the reply.
 - The audit trail records who let each tool call happen: allowed by the orb settings, approved or declined by you.
+- MCP client: connect any Model Context Protocol server under **Tools** and its tools become available to every orb, named `<server>__<tool>`, with the same permissions and approvals. Streamable HTTP with an optional Authorization header (stored encrypted). Local command (stdio) servers only for admins and only when `Orbs:Mcp:AllowStdio` is on. Servers added by non-admins go through the network policy.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

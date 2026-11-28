@@ -299,3 +299,30 @@ export interface Job {
   createdAt: string
   finishedAt?: string
 }
+
+// MCP servers
+
+export interface McpServer {
+  id: string
+  name: string
+  transport: 'http' | 'stdio'
+  location: string
+  hasAuthorization: boolean
+  isEnabled: boolean
+  lastError?: string
+  createdAt: string
+}
+
+export interface SaveMcpServerRequest {
+  name: string
+  transport: 'http' | 'stdio'
+  location: string
+  /** On update: undefined keeps the stored value, '' removes it. */
+  authorization?: string
+  isEnabled?: boolean
+}
+
+export interface McpServerTools {
+  tools: ToolInfo[]
+  error?: string
+}

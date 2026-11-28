@@ -6,6 +6,7 @@ import {
   conversationsApi,
   jobsApi,
   toolsApi,
+  mcpApi,
   orbsApi,
   providersApi,
   usersApi,
@@ -28,6 +29,7 @@ export const keys = {
   users: ['users'] as const,
   jobs: ['jobs'] as const,
   tools: ['tools'] as const,
+  mcpServers: ['mcp-servers'] as const,
 }
 
 export const useOrbs = () => useQuery({ queryKey: keys.orbs, queryFn: orbsApi.list })
@@ -143,3 +145,5 @@ export function useResetSession() {
 export const useJobs = () => useQuery({ queryKey: keys.jobs, queryFn: jobsApi.list, refetchInterval: 15_000 })
 
 export const useTools = () => useQuery({ queryKey: keys.tools, queryFn: toolsApi.list })
+
+export const useMcpServers = () => useQuery({ queryKey: keys.mcpServers, queryFn: mcpApi.list })

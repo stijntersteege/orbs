@@ -13,6 +13,7 @@ import styles from './AppShell.module.css'
 export const MENU: { to: string; label: string; hint: string; icon: IconName; admin?: boolean }[] = [
   { to: '/models', label: 'Models', hint: 'Providers and API keys', icon: 'models' },
   { to: '/context', label: 'Context', hint: 'Notes and web pages', icon: 'context' },
+  { to: '/tools', label: 'Tools', hint: 'What orbs can do, MCP servers', icon: 'plug' },
   { to: '/orbs', label: 'Manage orbs', hint: 'Faces, instructions, delete', icon: 'orbs' },
   { to: '/account', label: 'Account', hint: 'Password, passkeys, devices', icon: 'user' },
   { to: '/users', label: 'Accounts', hint: 'People on this server', icon: 'users', admin: true },
