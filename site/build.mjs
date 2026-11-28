@@ -73,10 +73,12 @@ const brokenLinks = []
 
 /** GitHub-style heading anchors, so links like `guide.md#adding-a-preset` keep working. */
 function slugify(text, seen) {
-  const base = text
-    .toLowerCase()
-    .trim()
-    .replace(/<[^>]+>/g, '')
+  let plain = text.toLowerCase().trim()
+  for (let previous; previous !== plain; ) {
+    previous = plain
+    plain = plain.replace(/<[^>]*>/g, '')
+  }
+  const base = plain
     .replace(/[^\p{L}\p{N}\s_-]/gu, '')
     .replace(/\s/g, '-')
   const count = seen.get(base) ?? 0

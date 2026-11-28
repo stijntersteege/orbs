@@ -8,7 +8,15 @@ const FAQ = [
   ],
   [
     'Which models can I use?',
-    'Anything that speaks the OpenAI chat API: OpenRouter (hundreds of models with one key), OpenAI, local models via Ollama or LM Studio, vLLM, LiteLLM and any other OpenAI-compatible endpoint.',
+    'OpenAI, Anthropic (Claude) and Google Gemini natively, OpenRouter with hundreds of models on one key, local models via Ollama or LM Studio, and anything else that speaks the OpenAI chat API.',
+  ],
+  [
+    'Can my orbs act for me?',
+    'Yes, with tools: web search, your calendar, email, Home Assistant and any MCP server. Anything that changes something asks you first, per orb, and every call is shown with the reply.',
+  ],
+  [
+    'Can my family or team use it?',
+    'Yes. Everyone gets their own account with a password, a passkey or single sign-on, and sees only their own orbs, models and chats.',
   ],
   [
     'Where does my data go?',
@@ -27,6 +35,17 @@ const FAQ = [
 // Small orbs used in lists. Same options as the app's appearance fields.
 const mini = (color, eyes, shape, size = 30) =>
   orb({ color, eyes, shape, accessory: 'none', blush: false, glow: false, size })
+
+const features = [
+  ['Tools that ask first', 'Web search, calendar, email, Home Assistant and any MCP server. Allow, ask first or block, per orb.'],
+  ['Memory', 'Orbs keep the facts that matter, for one orb or all of them. See and edit everything they remember.'],
+  ['Voice', 'Talk to an orb and hear it answer, each in its own voice.'],
+  ['Schedules', 'A weekly summary, a feed watcher, a reply to new email: orbs work on their own and let you know.'],
+  ['Channels', 'Chat with your orbs in Telegram, Matrix, Discord, Signal or email.'],
+  ['Group chats', 'Mention another orb with @ and let your specialists answer together.'],
+  ['Skills', 'Save a routine once and every orb can follow it. Works with SKILL.md files.'],
+  ['Accounts', 'Passwords, passkeys or single sign-on. Everyone gets their own orbs.'],
+]
 
 export function home({ root }) {
   const roster = [
@@ -189,7 +208,7 @@ export function home({ root }) {
   <div class="v2-split-text">
     <span class="v2-eyebrow">02 · Any context</span>
     <h2 class="v2-h2">It knows your stuff. Only the stuff you allow.</h2>
-    <p class="v2-body">Add notes and web pages. Switch sources on per orb, and every answer shows where it came from.</p>
+    <p class="v2-body">Add notes, web pages that stay in sync, and files: PDFs, Word documents, Markdown and pictures. Switch sources on per orb, drop a file into a single chat, and every answer shows where it came from.</p>
   </div>
 </section>
 
@@ -201,6 +220,22 @@ export function home({ root }) {
       ${faces.map(([c, look, size]) => orb({ color: c, glow: false, floating: true, size, ...look })).join('')}
     </div>
     <p class="v2-body v2-faces-text">4 shapes, 6 eyes, 5 mouths, 7 accessories, 7 colors. Tell your work orb from your kitchen orb at a glance.</p>
+  </div>
+</section>
+
+<section id="features" class="v2-wrap v2-section">
+  <div class="v2-section-head">
+    <span class="v2-eyebrow">04 · Does things</span>
+    <h2 class="v2-h2">More than a chat box</h2>
+    <p class="v2-sub">Orbs remember, act, keep an eye on things and show up where you already talk. Anything that changes something asks you first.</p>
+  </div>
+  <div class="v2-features">
+    ${features
+      .map(
+        ([title, text]) =>
+          `<div class="v2-card v2-feature"><span class="v2-feature-title">${escapeHtml(title)}</span><span class="v2-feature-text">${escapeHtml(text)}</span></div>`,
+      )
+      .join('')}
   </div>
 </section>
 

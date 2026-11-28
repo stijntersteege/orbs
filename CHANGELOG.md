@@ -5,14 +5,63 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Added
+## [1.0.0] - 2026-11-28
+
+The first full release. Orbs grows from a place to chat with orbs that know your notes into companions that act for you, remember what matters, work on their own and show up where you already talk. Everything runs on your own server, for everyone in your household or team.
+
+### Highlights
+
+- **Accounts**: passwords, passkeys or single sign-on (OpenID Connect). Everyone gets their own orbs, models, context and chats.
+- **Tools that ask first**: web search, calendar, email, Home Assistant and any MCP server, with per-orb permissions, approval cards and a full audit trail.
+- **Native Anthropic and Gemini** adapters next to OpenAI-compatible APIs, all with tool calling.
+- **Memory and retrieval**: orbs remember lasting facts, and with an embedding model they read only the passages of big sources that match the question.
+- **Files**: PDF, Word, Markdown, text and pictures as context, or dropped into a single chat. View, edit and download every source.
+- **Working on their own**: schedules (times, webhooks, feeds, new email), web pages that stay in sync, and notifications with quiet hours.
+- **Channels**: talk to your orbs in Telegram, Matrix, Discord, Signal or email.
+- **Voice**: talk to an orb and hear it answer, each orb in its own voice, with faces that show when it listens, thinks and speaks.
+- **Orbs together**: group chats with `@mentions`, coordinator orbs that ask specialists, reusable skills (SKILL.md) and orb templates to share.
+- **A nicer chat**: Markdown with highlighted code, rename and delete chats and messages, and edit everything you create.
+
+### Upgrading from 0.2
+
+- Back up first (see the self-hosting guide). Migrations run on start, for PostgreSQL and SQLite alike.
+- On first start you create an account. It becomes the admin and keeps everything that was already on the server.
+- Every `/api` call now needs a signed-in session. Scripts can keep using `Orbs:ApiToken`, which now acts as the first admin.
+- Set `Orbs:PublicUrl` to the address people open Orbs on (passkeys and secure cookies depend on it), and `Orbs:TrustForwardedHeaders=true` if Orbs sits behind a reverse proxy.
+
+### Added: Accounts and sign-in
 
 - Accounts. Everyone signs in with a password, a passkey or an OpenID Connect provider (Authentik, Authelia, Keycloak, Google, ...). Orbs, models, context and chats belong to one account and nobody else sees them.
 - First-run setup: the first account becomes the admin and keeps everything already on the server.
 - Account page: display name, password, passkeys and signed-in devices. Admins manage people under **Accounts**.
-- Web page sources refuse private, loopback and link-local addresses (SSRF protection). Admins can allow hosts with `Orbs:Network:AllowedHosts`, block hosts with `Orbs:Network:BlockedHosts`, or allow all private networks with `Orbs:Network:AllowPrivateNetworks`. Downloads are capped at 10 MB.
-- Background jobs: a job table and a worker inside the Orbs process that runs due work as the job's owner, with retries (30 s, 60 s, 120 s ...). Settings shows your recent background work. Expired sessions are cleaned up daily. `Orbs:Jobs:Enabled` and `Orbs:Jobs:PollSeconds` control the worker.
+- Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
+
+### Added: Models
+
+- Native model adapters for **Anthropic** (Messages API) and **Google Gemini** (generateContent), both streaming and with tool calling. Presets under **Models > Add provider**.
+- Retrieval: give a provider an **embedding model** and big context sources are split into passages, embedded in the background, and orbs read only the passages that match the question instead of a cut-off copy. Works with OpenAI-compatible endpoints (OpenAI, Ollama, LM Studio, ...) and Gemini; the Echo demo has a simple built-in embedder. The activity panel shows how many passages were read. `POST /api/context-sources/{id}/index` re-indexes a source.
+- Voice mode: give a provider a speech-to-text and a text-to-speech model, then tap the microphone to talk to an orb and the speaker to have replies read aloud. Works with OpenAI and anything that speaks its audio API, such as a local Whisper server, Kokoro or Piper (openedai-speech). The Echo demo can pretend. `/api/voice`, `/api/voice/transcribe`, `/api/voice/speak`.
+- A voice per orb, chosen in the orb editor next to its face, with a preview. Replies read aloud use the orb's voice.
+
+### Added: Chat
+
 - Long chats load their newest 50 messages and page back on request (**Load earlier messages**). `GET /api/conversations/{id}/messages?before=...&limit=...` pages through older ones; `GET /api/conversations/{id}` takes `limit` and says `hasMoreMessages`.
+- Animated faces: an orb shows what it is doing. Wide eyes and a pulsing ring while it listens, a pulsing glow while it thinks, a moving mouth while it speaks, and a question mark while it waits for your approval. Reduced-motion settings stop the movement.
+- Group chats: type `@Name` to hand a question to another orb. It joins the chat and answers; mention several and they answer in turn, each seeing what the others said. Every reply shows the face and name of the orb that wrote it, and typing `@` suggests orbs. `POST /api/conversations` takes `with` to start a group chat.
+- Managing chats: rename or delete the open chat from its **⋯** menu, see every chat with an orb under **Chats > All chats** (open, rename, delete), and copy or delete single messages. A deleted message is gone for the orb too. `PUT /api/conversations/{id}` and `DELETE /api/conversations/{id}/messages/{messageId}`.
+- Files in a chat: attach PDFs, Word and Markdown documents, text or pictures with the paperclip in the message box, or drop or paste them in. A file is for that chat only, unless you tick **Remember for (orb), in every chat**. Files in a chat show above the message box and can be taken out again; the files themselves stay under Context. `POST /api/conversations/{id}/attachments` and `DELETE /api/conversations/{id}/attachments/{sourceId}`.
+- Replies show Markdown: headings, bold and italics, lists, task lists, quotes, tables and code blocks with highlighting, the language and a **Copy** button. Links open in a new tab. Raw HTML in a reply is shown as text, never run, and pictures in replies are links instead of being loaded.
+
+### Added: Context and memory
+
+- Memory: orbs save lasting facts during chats with a built-in `remember` tool and drop them with `forget` (both run without asking; you can change that per orb). Memories go into the orb's prompt. A **Memory** tab next to Activity lists them; add, edit or forget any memory there. `/api/orbs/{id}/memories` and `/api/memories/{id}`.
+- Shared memories: choose per memory whether it is private to one orb or shared with all your orbs. The Memory tab shows and switches it; orbs can save a fact for all orbs with `remember` (`shared: true`).
+- Files as context: upload PDF, Word (.docx), Markdown, plain text, CSV, JSON or HTML documents and they are read into text (and indexed for retrieval). Upload a picture (PNG, JPEG, GIF, WebP) and orbs whose model can see get the image itself with every question. Up to 20 MB per file. `POST /api/context-sources/files`, `GET /api/context-sources/{id}/file`.
+- Web page sources can keep themselves up to date: hourly, daily or weekly, in the background, re-indexed after every sync.
+- Every context source opens on its own page (**Open**, or click its name). Notes and Markdown files show formatted, CSV and JSON as code, pictures as a preview, and PDFs and Word documents as the text orbs read. **Edit** renames any source, changes a note's text or a web page's address and sync, and saves edited text back into Markdown, text, CSV and JSON files. Files can be downloaded. `GET /api/context-sources/{id}/content` and `PUT /api/context-sources/{id}/file`.
+
+### Added: Tools
+
 - Tools: orbs can call tools while they answer. A new `ITool` port (next to `IModelAdapter` and `IContextConnector`), `IToolSource` for sets of tools, and function calling in the OpenAI-compatible adapter. Two built-in tools to start: **Current time** and **Calculator**. The Echo demo model tries a tool when you type `/tool <name> {json}`.
 - Every tool call, its input and its result streams to the app (`tool_call` and `tool_result` events), shows in the activity panel and is saved with the reply, together with the model that wrote it. `GET /api/tools` lists the tools.
 - Tool permissions per orb: **Allow**, **Ask first** (the default) or **Block**, set in the orb editor under "What it can do". Blocked tools are not offered to the model at all.
@@ -20,39 +69,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The audit trail records who let each tool call happen: allowed by the orb settings, approved or declined by you.
 - MCP client: connect any Model Context Protocol server under **Tools** and its tools become available to every orb, named `<server>__<tool>`, with the same permissions and approvals. Streamable HTTP with an optional Authorization header (stored encrypted). Local command (stdio) servers only for admins and only when `Orbs:Mcp:AllowStdio` is on. Servers added by non-admins go through the network policy.
 - Starter tools, connected under **Tools > Connected apps**: **web search** (SearXNG or Brave), **calendar** over CalDAV (read events, add events), **email** (read the inbox over IMAP; send over SMTP, which orbs ask about first) and **Home Assistant** (list entities, call services). Passwords and tokens are stored encrypted. New `IIntegrationKind` plugins add more.
-- Native model adapters for **Anthropic** (Messages API) and **Google Gemini** (generateContent), both streaming and with tool calling. Presets under **Models > Add provider**.
-- Memory: orbs save lasting facts during chats with a built-in `remember` tool and drop them with `forget` (both run without asking; you can change that per orb). Memories go into the orb's prompt. A **Memory** tab next to Activity lists them; add, edit or forget any memory there. `/api/orbs/{id}/memories` and `/api/memories/{id}`.
-- Shared memories: choose per memory whether it is private to one orb or shared with all your orbs. The Memory tab shows and switches it; orbs can save a fact for all orbs with `remember` (`shared: true`).
-- Retrieval: give a provider an **embedding model** and big context sources are split into passages, embedded in the background, and orbs read only the passages that match the question instead of a cut-off copy. Works with OpenAI-compatible endpoints (OpenAI, Ollama, LM Studio, ...) and Gemini; the Echo demo has a simple built-in embedder. The activity panel shows how many passages were read. `POST /api/context-sources/{id}/index` re-indexes a source.
-- Files as context: upload PDF, Word (.docx), Markdown, plain text, CSV, JSON or HTML documents and they are read into text (and indexed for retrieval). Upload a picture (PNG, JPEG, GIF, WebP) and orbs whose model can see get the image itself with every question. Up to 20 MB per file. `POST /api/context-sources/files`, `GET /api/context-sources/{id}/file`.
+- Coordinator orbs: the built-in `ask_orb` tool lets an orb hand a question to one of your other orbs, a specialist, and use its answer in its reply. The specialist answers with its own brief, context and memories but without tools, so a delegated question never acts on anything. Called without an orb, it lists your orbs and what each one does. Runs without asking by default; change that per orb.
+- Skills: routines every orb can follow. Write them under **Skills**, or save the steps of a good reply with **Save these steps as a skill** in the activity panel. Orbs read them with the built-in `use_skill` tool (it runs without asking; the steps' own tools still follow their permissions). Skills import and export as SKILL.md files, so they move between Orbs and other agents. `/api/skills`, `/api/skills/import`, `/api/skills/{id}/export` and `POST /api/conversations/{id}/messages/{messageId}/skill`.
+
+### Added: Working on their own
+
+- Background jobs: a job table and a worker inside the Orbs process that runs due work as the job's owner, with retries (30 s, 60 s, 120 s ...). Settings shows your recent background work. Expired sessions are cleaned up daily. `Orbs:Jobs:Enabled` and `Orbs:Jobs:PollSeconds` control the worker.
 - Schedules and triggers: let an orb work on its own **at set times** (cron with a time zone, such as "every Monday at 9:00"), **when another app calls** a secret webhook (the body goes to the orb), **when a feed has new items** (RSS or Atom) or **when new email arrives** in a connected account. Each schedule writes into its own chat with the orb, and tools still ask first. Manage them on the new **Schedules** page; `/api/schedules`, `POST /api/hooks/{id}/{secret}`.
-- Web page sources can keep themselves up to date: hourly, daily or weekly, in the background, re-indexed after every sync.
 - Proactive notifications: when a schedule runs, its orb tells you what it wrote (or that it needs your approval) with a Web Push notification that opens the chat. Turn them on per device under **Account > Notifications**, with **quiet hours** in your time zone; notifications that arrive then wait until quiet hours end. The server makes its own VAPID keys (or set `Orbs:Push:VapidPublicKey`, `VapidPrivateKey` and `Subject`). A service worker (`/sw.js`) shows them.
 - Channels: talk to your orbs in messaging apps. A new `IChannelAdapter` port, starting with **Telegram**: each orb is its own bot (named after the orb), polled so no public address is needed. Pair a chat by sending a one-time code; everyone else is ignored. Tool approvals work by replying yes or no. The chat shows up in the app as a normal conversation. Manage it on the new **Channels** page, which can also make a PNG of the orb's face for the bot's picture.
 - More channels: **Matrix** (joins rooms it is invited to; sets its name and face), **Discord** (one text channel, read over REST), **Signal** (through your own signal-cli REST API) and **email** (its own mailbox, answers by SMTP). The pairing code may now sit anywhere in a message.
-- Voice mode: give a provider a speech-to-text and a text-to-speech model, then tap the microphone to talk to an orb and the speaker to have replies read aloud. Works with OpenAI and anything that speaks its audio API, such as a local Whisper server, Kokoro or Piper (openedai-speech). The Echo demo can pretend. `/api/voice`, `/api/voice/transcribe`, `/api/voice/speak`.
-- A voice per orb, chosen in the orb editor next to its face, with a preview. Replies read aloud use the orb's voice.
-- Animated faces: an orb shows what it is doing. Wide eyes and a pulsing ring while it listens, a pulsing glow while it thinks, a moving mouth while it speaks, and a question mark while it waits for your approval. Reduced-motion settings stop the movement.
-- Group chats: type `@Name` to hand a question to another orb. It joins the chat and answers; mention several and they answer in turn, each seeing what the others said. Every reply shows the face and name of the orb that wrote it, and typing `@` suggests orbs. `POST /api/conversations` takes `with` to start a group chat.
-- Coordinator orbs: the built-in `ask_orb` tool lets an orb hand a question to one of your other orbs, a specialist, and use its answer in its reply. The specialist answers with its own brief, context and memories but without tools, so a delegated question never acts on anything. Called without an orb, it lists your orbs and what each one does. Runs without asking by default; change that per orb.
-- Skills: routines every orb can follow. Write them under **Skills**, or save the steps of a good reply with **Save these steps as a skill** in the activity panel. Orbs read them with the built-in `use_skill` tool (it runs without asking; the steps' own tools still follow their permissions). Skills import and export as SKILL.md files, so they move between Orbs and other agents. `/api/skills`, `/api/skills/import`, `/api/skills/{id}/export` and `POST /api/conversations/{id}/messages/{messageId}/skill`.
+
+### Added: Orbs
+
 - Orb templates: **Export as template** in the orb editor saves an orb as one JSON file, with its face, brief, voice, tool settings and time and feed schedules. **Import orb** on Your orbs creates a new orb from such a file (a taken name gets a number). The model, context sources, chats and memories stay on the account. `GET /api/orbs/{id}/template` and `POST /api/orbs/import`.
-- Security hardening: a strict Content Security Policy plus `nosniff`, no framing, `no-referrer` and a Permissions-Policy on every response. Sign-in, setup, passkey sign-in and password changes are rate limited per address (`Orbs:RateLimits:*`); so are webhooks, which also read at most 10,000 characters. The session cookie is `Secure` whenever `Orbs:PublicUrl` is https, and `Orbs:TrustForwardedHeaders` makes Orbs see visitors' own addresses behind a reverse proxy. Model providers added by accounts that are not admins, and all push endpoints, go through the private-network check. Uploaded HTML and SVG download as plain files.
-- Orb editor: the save button now sits in a bar at the bottom of the screen, always in reach. It says when there are unsaved changes, offers **Undo changes**, and Orbs asks before you leave with unsaved changes. On phones the preview is a compact strip, so the form starts right away. Headings read "What your orb knows" until the orb has a name.
-- Tools page: connected apps and MCP servers are listed first; **Connect an app** and **Connect an MCP server** open their forms when you need them. Built-in tools describe themselves in plain words for people, apart from the instructions the model reads.
-- Managing chats: rename or delete the open chat from its **⋯** menu, see every chat with an orb under **Chats > All chats** (open, rename, delete), and copy or delete single messages. A deleted message is gone for the orb too. `PUT /api/conversations/{id}` and `DELETE /api/conversations/{id}/messages/{messageId}`.
 - Edit everything: schedules (plus **Pause** and **Resume**), channels, connected apps, MCP servers and accounts now have **Edit**, which opens the item in place. Saved tokens and passwords stay when their field is left empty. Admins can rename an account, change its admin rights or set a new password, which signs that person out everywhere (`PUT /api/users/{id}`). Orbs keeps at least one admin and admins cannot remove their own rights.
-- The microphone button is always in the chat box. When talking cannot work yet, clicking it says why: no speech-to-text model chosen under Models (with a link), an address that is not https (browsers only allow the microphone on secure addresses), or a browser that cannot record.
-- Files in a chat: attach PDFs, Word and Markdown documents, text or pictures with the paperclip in the message box, or drop or paste them in. A file is for that chat only, unless you tick **Remember for (orb), in every chat**. Files in a chat show above the message box and can be taken out again; the files themselves stay under Context. `POST /api/conversations/{id}/attachments` and `DELETE /api/conversations/{id}/attachments/{sourceId}`.
-- Replies show Markdown: headings, bold and italics, lists, task lists, quotes, tables and code blocks with highlighting, the language and a **Copy** button. Links open in a new tab. Raw HTML in a reply is shown as text, never run, and pictures in replies are links instead of being loaded.
-- Every context source opens on its own page (**Open**, or click its name). Notes and Markdown files show formatted, CSV and JSON as code, pictures as a preview, and PDFs and Word documents as the text orbs read. **Edit** renames any source, changes a note's text or a web page's address and sync, and saves edited text back into Markdown, text, CSV and JSON files. Files can be downloaded. `GET /api/context-sources/{id}/content` and `PUT /api/context-sources/{id}/file`.
-- Upgrading Postgres databases that already have chats no longer fails on the group-chat migration.
-- Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed
 
 - Every `/api` call needs a signed-in session. `Orbs:ApiToken` still works for scripts and now acts as the first admin.
 - SQLite databases now use migrations too, so future versions can change the schema without losing data. Databases from 0.1 and 0.2 are upgraded in place on start.
+- Orb editor: the save button now sits in a bar at the bottom of the screen, always in reach. It says when there are unsaved changes, offers **Undo changes**, and Orbs asks before you leave with unsaved changes. On phones the preview is a compact strip, so the form starts right away. Headings read "What your orb knows" until the orb has a name.
+- Tools page: connected apps and MCP servers are listed first; **Connect an app** and **Connect an MCP server** open their forms when you need them. Built-in tools describe themselves in plain words for people, apart from the instructions the model reads.
+- The microphone button is always in the chat box. When talking cannot work yet, clicking it says why: no speech-to-text model chosen under Models (with a link), an address that is not https (browsers only allow the microphone on secure addresses), or a browser that cannot record.
+
+### Security
+
+- Web page sources refuse private, loopback and link-local addresses (SSRF protection). Admins can allow hosts with `Orbs:Network:AllowedHosts`, block hosts with `Orbs:Network:BlockedHosts`, or allow all private networks with `Orbs:Network:AllowPrivateNetworks`. Downloads are capped at 10 MB.
+- Security hardening: a strict Content Security Policy plus `nosniff`, no framing, `no-referrer` and a Permissions-Policy on every response. Sign-in, setup, passkey sign-in and password changes are rate limited per address (`Orbs:RateLimits:*`); so are webhooks, which also read at most 10,000 characters. The session cookie is `Secure` whenever `Orbs:PublicUrl` is https, and `Orbs:TrustForwardedHeaders` makes Orbs see visitors' own addresses behind a reverse proxy. Model providers added by accounts that are not admins, and all push endpoints, go through the private-network check. Uploaded HTML and SVG download as plain files.
 
 ## [0.2.0] - 2026-11-26
 
@@ -93,6 +137,7 @@ A makeover: a cleaner look for the app and the website, your orbs always at hand
 - Documentation: arc42 architecture, ADRs, guides, contribution and security policies.
 - Project website on GitHub Pages with a landing page, the changelog and a live demo that runs on sample data in the browser.
 
-[Unreleased]: https://github.com/stijntersteege/orbs/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/stijntersteege/orbs/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/stijntersteege/orbs/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/stijntersteege/orbs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/stijntersteege/orbs/releases/tag/v0.1.0

@@ -38,6 +38,6 @@ flowchart LR
 | Server to providers | HTTPS, OpenAI Chat Completions with streaming | Adapter per kind; keys decrypted only for the call. |
 | Server to web pages | HTTPS GET | 30 s timeout; HTML reduced to text. |
 
-## Out of scope (for now)
+## Out of scope
 
-Multi-user accounts, billing, tool execution, voice, retrieval with embeddings. They are on the roadmap and the design leaves room for them (see section 11).
+Billing and payments, phone calls, a browser-automation sidecar and app-store builds are deliberately out of scope for 1.0. Accounts, tools, voice, retrieval, channels and schedules, once listed here, all shipped in 1.0.

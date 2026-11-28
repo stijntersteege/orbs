@@ -2056,3 +2056,26 @@ h3 {
     max-width: 85%;
   }
 }
+
+/* 1.0 feature grid */
+.v2-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+
+.v2-feature {
+  padding: 22px;
+}
+
+.v2-feature-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.v2-feature-text {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
