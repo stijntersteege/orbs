@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Accounts. Everyone signs in with a password, a passkey or an OpenID Connect provider (Authentik, Authelia, Keycloak, Google, ...). Orbs, models, context and chats belong to one account and nobody else sees them.
 - First-run setup: the first account becomes the admin and keeps everything already on the server.
 - Account page: display name, password, passkeys and signed-in devices. Admins manage people under **Accounts**.
+- Web page sources refuse private, loopback and link-local addresses (SSRF protection). Admins can allow hosts with `Orbs:Network:AllowedHosts`, block hosts with `Orbs:Network:BlockedHosts`, or allow all private networks with `Orbs:Network:AllowPrivateNetworks`. Downloads are capped at 10 MB.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

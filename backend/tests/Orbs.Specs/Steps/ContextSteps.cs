@@ -1,7 +1,9 @@
+using System.Net.Http.Json;
 using Orbs.Application.Context;
 using Orbs.Application.Orbs;
 using Orbs.Domain.Context;
 using Orbs.Specs.Support;
+using Orbs.Testing;
 using Reqnroll;
 
 namespace Orbs.Specs.Steps;
@@ -18,6 +20,21 @@ public sealed class ContextSteps(SpecContext context)
     [When("I create an orb named {string} that knows {string}")]
     public async Task CreateOrbThatKnows(string orbName, string sourceName) =>
         context.Orbs[orbName] = await context.Api.CreateOrbAsync(new SaveOrbRequest(orbName, ContextSourceIds: [context.Sources[sourceName].Id]));
+
+    [When("I add the web page {string} as {string}")]
+    public async Task WhenIAddTheWebPage(string url, string name)
+    {
+        var response = await context.Api.Http.PostAsJsonAsync("/api/context-sources", new SaveContextSourceRequest(name, "url", Location: url), ApiClient.Json);
+        context.Sources[name] = await ApiClient.ReadAsync<ContextSourceDto>(response);
+    }
+
+    [Then("the source {string} failed because {string}")]
+    public async Task ThenTheSourceFailedBecause(string name, string reason)
+    {
+        var source = await context.Api.GetAsync<ContextSourceDto>($"/api/context-sources/{context.Sources[name].Id}");
+        source.Status.ShouldBe(ContextSourceStatus.Failed);
+        source.LastError.ShouldNotBeNull().ShouldContain(reason);
+    }
 
     [When("I delete the source {string}")]
     public async Task WhenIDeleteTheSource(string name) =>

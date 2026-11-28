@@ -51,5 +51,5 @@ Please give me reasonable time to fix the problem before you share details publi
 - Only set `Orbs__ApiToken` when a script needs it, and keep it long and secret: it acts as the first admin.
 - Change the default PostgreSQL password in `.env` and do not publish the database port.
 - Back up the database volume; it also holds the keys that decrypt your provider API keys.
-- The web page connector fetches URLs from the server. If your server can reach internal services, only let trusted people add sources.
+- Web pages and tools never fetch addresses on private networks (10.x, 192.168.x, localhost, cloud metadata, ...). Allow specific internal hosts with `Orbs__Network__AllowedHosts` (comma-separated), or all with `Orbs__Network__AllowPrivateNetworks=true` on a server only you use. `Orbs__Network__BlockedHosts` blocks hosts on top. Model providers are not limited, so local runtimes such as Ollama keep working.
 - Set spending limits with your model providers.
