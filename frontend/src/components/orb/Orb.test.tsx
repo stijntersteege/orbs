@@ -27,6 +27,29 @@ describe('Orb', () => {
     expect(screen.getByTestId('orb-glow')).toBeInTheDocument()
   })
 
+  it('shows each state on its face', () => {
+    const { container, rerender } = render(
+      <Orb appearance={{ eyes: 'dots', mouth: 'none' }} state="listening" />,
+    )
+    expect(screen.getByTestId('orb-ring')).toBeInTheDocument()
+    expect(container.firstElementChild).toHaveAttribute('data-state', 'listening')
+
+    rerender(<Orb appearance={{ mouth: 'none' }} state="speaking" />)
+    expect(screen.getByTestId('orb-mouth').querySelector('ellipse')).not.toBeNull()
+    expect(screen.getByTestId('orb-mouth')).toHaveStyle({
+      animation: 'orb-speak 0.32s ease-in-out infinite alternate',
+    })
+
+    rerender(<Orb state="waiting" />)
+    expect(screen.getByTestId('orb-question')).toBeInTheDocument()
+    expect(screen.queryByTestId('orb-ring')).not.toBeInTheDocument()
+  })
+
+  it('treats the old thinking flag as the thinking state', () => {
+    const { container } = render(<Orb thinking />)
+    expect(container.firstElementChild).toHaveAttribute('data-state', 'thinking')
+  })
+
   const parts = [
     ...ORB_COLORS.map((color) => ({ color })),
     ...ORB_SHAPES.map((shape) => ({ shape })),
