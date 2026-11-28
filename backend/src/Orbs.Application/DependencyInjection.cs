@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Channels;
 using Orbs.Application.Common;
 using Orbs.Application.Context;
 using Orbs.Application.Conversations;
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<ContextSyncDispatcher>();
         services.AddScoped<IJobHandler, ContextSyncJob>();
         services.AddScoped<NotificationService>();
+        services.AddScoped<ChannelService>();
+        services.AddSingleton<ChannelRelay>();
         services.AddScoped<IJobHandler, NotificationJob>();
         services.AddScoped<ScheduleService>();
         services.AddScoped<ScheduleDispatcher>();

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Orbs.Domain.Channels;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Jobs;
@@ -358,5 +359,34 @@ internal sealed class ServerSettingConfiguration : IEntityTypeConfiguration<Noti
         builder.HasKey(s => s.Key);
         builder.Property(s => s.Key).HasMaxLength(100);
         builder.Property(s => s.Value).HasMaxLength(4_096).IsRequired();
+    }
+}
+
+internal sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
+{
+    public void Configure(EntityTypeBuilder<Channel> builder)
+    {
+        builder.ToTable("channels");
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.HasIndex(c => c.OwnerId);
+        builder.Property(c => c.Kind).HasMaxLength(64).IsRequired();
+        builder.Property(c => c.Settings).HasMaxLength(Channel.MaxSettingsLength).IsRequired();
+        builder.Property(c => c.ProtectedSecret).HasMaxLength(4_096);
+        builder.Property(c => c.Address).HasMaxLength(200);
+        builder.Property(c => c.Cursor).HasMaxLength(500);
+        builder.Property(c => c.PairingCodeHash).HasMaxLength(128);
+        builder.Property(c => c.LastError).HasMaxLength(1_000);
+        builder.HasOne<Orb>().WithMany().HasForeignKey(c => c.OrbId).OnDelete(DeleteBehavior.Cascade);
+        builder.OwnsMany(c => c.Chats, chat =>
+        {
+            chat.ToTable("channel_chats");
+            chat.WithOwner().HasForeignKey("ChannelId");
+            chat.HasKey(x => x.Id);
+            chat.Property(x => x.Id).ValueGeneratedNever();
+            chat.Property(x => x.ExternalChatId).HasMaxLength(200).IsRequired();
+            chat.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        });
+        builder.Navigation(c => c.Chats).HasField("_chats").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

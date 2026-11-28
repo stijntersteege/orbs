@@ -441,3 +441,35 @@ export interface NotificationSettings {
   timeZone: string
   devices: number
 }
+
+// Channels
+
+export interface ChannelKind {
+  kind: string
+  displayName: string
+  description: string
+  fields: IntegrationField[]
+}
+
+export interface Channel {
+  id: string
+  orbId: string
+  kind: string
+  address?: string
+  settings: Record<string, string>
+  isEnabled: boolean
+  lastError?: string
+  chats: { id: string; name: string; pairedAt: string; conversationId?: string }[]
+  createdAt: string
+  /** Only right after connecting or asking for a new one. */
+  pairingCode?: string
+  note?: string
+}
+
+export interface SaveChannelRequest {
+  orbId: string
+  kind: string
+  settings?: Record<string, string>
+  secret?: string
+  isEnabled?: boolean
+}

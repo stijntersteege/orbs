@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
+using Orbs.Application.Channels;
 using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
@@ -8,6 +9,7 @@ using Orbs.Application.Memories;
 using Orbs.Application.Notifications;
 using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
+using Orbs.Domain.Channels;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
@@ -177,4 +179,10 @@ internal sealed class PushSubscriptionRepository(OrbsDbContext db) : EfRepositor
 
     public async Task<IReadOnlyList<PushSubscription>> ListForUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
         await Db.PushSubscriptions.IgnoreQueryFilters().Where(s => s.OwnerId == userId).ToListAsync(cancellationToken);
+}
+
+internal sealed class ChannelRepository(OrbsDbContext db) : EfRepository<Channel>(db), IChannelRepository
+{
+    public async Task<IReadOnlyList<Channel>> ListEnabledAsync(CancellationToken cancellationToken = default) =>
+        await Query.Where(c => c.IsEnabled).ToListAsync(cancellationToken);
 }

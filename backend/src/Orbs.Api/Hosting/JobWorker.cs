@@ -1,4 +1,5 @@
 using Orbs.Application.Accounts;
+using Orbs.Application.Channels;
 using Orbs.Application.Context;
 using Orbs.Application.Jobs;
 using Orbs.Application.Schedules;
@@ -9,7 +10,7 @@ namespace Orbs.Api.Hosting;
 /// Runs background jobs inside the Orbs process: every few seconds it picks up whatever is due.
 /// <c>Orbs:Jobs:Enabled=false</c> turns it off (tests run jobs by hand); <c>Orbs:Jobs:PollSeconds</c> sets the pace.
 /// </summary>
-internal sealed partial class JobWorker(JobRunner runner, IServiceScopeFactory scopes, IConfiguration configuration, ILogger<JobWorker> logger) : BackgroundService
+internal sealed partial class JobWorker(JobRunner runner, ChannelRelay channels, IServiceScopeFactory scopes, IConfiguration configuration, ILogger<JobWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -34,6 +35,7 @@ internal sealed partial class JobWorker(JobRunner runner, IServiceScopeFactory s
                 }
 
                 await runner.RunDueAsync(stoppingToken);
+                await channels.PollAllAsync(stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
