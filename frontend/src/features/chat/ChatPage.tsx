@@ -20,6 +20,7 @@ import {
   type ModelRef,
   type Orb as OrbModel,
 } from '@/api/types'
+import { Markdown } from '@/components/markdown/Markdown'
 import { Orb, type OrbState } from '@/components/orb/Orb'
 import { Button, ErrorNotice, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
@@ -686,7 +687,7 @@ export function ChatPage() {
                       />
                       <div className={styles.assistant}>
                         {isGroup && author && <span className={styles.author}>{author.name}</span>}
-                        {m.content}
+                        <Markdown>{m.content}</Markdown>
                         <Cites sources={citations.get(m.id)} />
                         <MessageActions message={m} onDelete={chat.removeMessage} />
                       </div>
@@ -708,7 +709,9 @@ export function ChatPage() {
                       {isGroup && orbById(chat.replyingOrbId) && (
                         <span className={styles.author}>{orbById(chat.replyingOrbId)!.name}</span>
                       )}
-                      {chat.streaming || (
+                      {chat.streaming ? (
+                        <Markdown>{chat.streaming}</Markdown>
+                      ) : (
                         <span className={styles.thinking}>
                           {runningTool ? `Using ${runningTool}…` : 'Thinking…'}
                         </span>
