@@ -28,6 +28,9 @@ public sealed record ChangePasswordRequest(string? CurrentPassword, string NewPa
 
 public sealed record CreateUserRequest(string Email, string? DisplayName, string Password, bool IsAdmin = false);
 
+/// <summary>An admin changes someone's account. A new password signs that person out everywhere.</summary>
+public sealed record UpdateUserRequest(string DisplayName, bool IsAdmin, string? NewPassword = null);
+
 public sealed record PasskeyOptionsDto(string CeremonyId, string Options);
 
 public sealed record CompletePasskeyRequest(string CeremonyId, string Response, string? Name = null);

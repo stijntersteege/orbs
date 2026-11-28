@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '@/api/endpoints'
 import { keys, useAccount, useUsers } from '@/api/queries'
 import { Button, Card, Chip, ErrorNotice, PageHeader, Spinner, Switch, TextField } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
+import type { User } from '@/api/types'
 import shared from '../shared.module.css'
 import styles from './account.module.css'
 
@@ -54,13 +55,7 @@ export function UsersPage() {
           ) : (
             <ul aria-label="Accounts" className={shared.list}>
               {users.map((u) => (
-                <li key={u.id} className={styles.item}>
-                  <span className={styles.itemText}>
-                    <span>
-                      {u.displayName} {u.isAdmin && <Chip>Admin</Chip>}
-                    </span>
-                    <span>{u.email}</span>
-                  </span>
+                <UserRow key={u.id} user={u} isMe={u.id === account?.user.id} onChange={refresh}>
                   {u.id !== account?.user.id && (
                     <Button
                       small
@@ -74,7 +69,7 @@ export function UsersPage() {
                       <Icon name="trash" />
                     </Button>
                   )}
-                </li>
+                </UserRow>
               ))}
             </ul>
           )}
@@ -118,5 +113,86 @@ export function UsersPage() {
         </Card>
       </div>
     </>
+  )
+}
+
+/** One account: its name, email and admin badge, or a form to change them. */
+function UserRow({
+  user,
+  isMe,
+  onChange,
+  children,
+}: {
+  user: User
+  isMe: boolean
+  onChange: () => void
+  children: ReactNode
+}) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(user.displayName)
+  const [admin, setAdmin] = useState(user.isAdmin)
+  const [password, setPassword] = useState('')
+  const save = useMutation({
+    mutationFn: () =>
+      usersApi.update(user.id, { displayName: name, isAdmin: admin, newPassword: password || undefined }),
+    onSuccess: () => {
+      setEditing(false)
+      setPassword('')
+      onChange()
+    },
+  })
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    save.mutate()
+  }
+
+  if (editing)
+    return (
+      <li className={shared.editBox}>
+        <form className={shared.stack} onSubmit={submit} aria-label={`Edit ${user.email}`}>
+          <strong>{user.email}</strong>
+          <TextField label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
+          {!isMe && (
+            <Switch label="Admin" description="Can manage accounts." checked={admin} onChange={setAdmin} />
+          )}
+          {isMe ? (
+            <p className={shared.muted}>Change your own password on the Account page.</p>
+          ) : (
+            <TextField
+              label="New password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              hint="Optional. Signs them out on every device."
+            />
+          )}
+          <ErrorNotice error={save.error} />
+          <div className={shared.actions}>
+            <Button type="submit" variant="primary" disabled={save.isPending || !name.trim()}>
+              Save changes
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </li>
+    )
+
+  return (
+    <li className={styles.item}>
+      <span className={styles.itemText}>
+        <span>
+          {user.displayName} {user.isAdmin && <Chip>Admin</Chip>}
+        </span>
+        <span>{user.email}</span>
+      </span>
+      <Button small onClick={() => setEditing(true)}>
+        Edit
+      </Button>
+      {children}
+    </li>
   )
 }

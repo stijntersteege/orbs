@@ -89,6 +89,12 @@ public sealed class User : AggregateRoot
         Touch(now);
     }
 
+    public void SetAdmin(bool isAdmin, DateTimeOffset now)
+    {
+        IsAdmin = isAdmin;
+        Touch(now);
+    }
+
     public void SetPasswordHash(string? passwordHash, DateTimeOffset now)
     {
         PasswordHash = passwordHash;

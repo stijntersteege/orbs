@@ -165,6 +165,9 @@ export const accountApi = {
 export const usersApi = {
   list: () => http.get<User[]>('/api/users'),
   create: (body: CreateUserRequest) => http.post<User>('/api/users', body),
+  /** A new password signs that person out everywhere. */
+  update: (id: string, body: { displayName: string; isAdmin: boolean; newPassword?: string }) =>
+    http.put<User>(`/api/users/${id}`, body),
   remove: (id: string) => http.delete(`/api/users/${id}`),
 }
 
@@ -243,6 +246,8 @@ export const channelsApi = {
   kinds: () => http.get<ChannelKind[]>('/api/channels/kinds'),
   list: () => http.get<Channel[]>('/api/channels'),
   create: (body: SaveChannelRequest) => http.post<Channel>('/api/channels', body),
+  /** A blank secret keeps the saved one. */
+  update: (id: string, body: SaveChannelRequest) => http.put<Channel>(`/api/channels/${id}`, body),
   pairingCode: (id: string) => http.post<Channel>(`/api/channels/${id}/pairing-code`),
   unpair: (id: string, chatId: string) => http.delete(`/api/channels/${id}/chats/${chatId}`),
   remove: (id: string) => http.delete(`/api/channels/${id}`),

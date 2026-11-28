@@ -41,6 +41,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Orb editor: the save button now sits in a bar at the bottom of the screen, always in reach. It says when there are unsaved changes, offers **Undo changes**, and Orbs asks before you leave with unsaved changes. On phones the preview is a compact strip, so the form starts right away. Headings read "What your orb knows" until the orb has a name.
 - Tools page: connected apps and MCP servers are listed first; **Connect an app** and **Connect an MCP server** open their forms when you need them. Built-in tools describe themselves in plain words for people, apart from the instructions the model reads.
 - Managing chats: rename or delete the open chat from its **⋯** menu, see every chat with an orb under **Chats > All chats** (open, rename, delete), and copy or delete single messages. A deleted message is gone for the orb too. `PUT /api/conversations/{id}` and `DELETE /api/conversations/{id}/messages/{messageId}`.
+- Edit everything: schedules (plus **Pause** and **Resume**), channels, connected apps, MCP servers and accounts now have **Edit**, which opens the item in place. Saved tokens and passwords stay when their field is left empty. Admins can rename an account, change its admin rights or set a new password, which signs that person out everywhere (`PUT /api/users/{id}`). Orbs keeps at least one admin and admins cannot remove their own rights.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

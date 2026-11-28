@@ -269,6 +269,43 @@ public sealed class AccountService(
         return user.ToDto();
     }
 
+    public async Task<UserDto> UpdateUserAsync(Guid userId, UpdateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        currentUser.RequireAdmin();
+        var user = await users.FindAsync(userId, cancellationToken) ?? throw new NotFoundException("User", userId);
+        if (user.IsAdmin && !request.IsAdmin)
+        {
+            if (userId == currentUser.UserId)
+            {
+                throw new DomainException("You cannot take away your own admin rights.");
+            }
+
+            if ((await users.ListAsync(cancellationToken)).Count(u => u.IsAdmin) <= 1)
+            {
+                throw new DomainException("Orbs needs at least one admin.");
+            }
+        }
+
+        var now = clock.GetUtcNow();
+        user.Rename(request.DisplayName, now);
+        user.SetAdmin(request.IsAdmin, now);
+        if (!string.IsNullOrEmpty(request.NewPassword))
+        {
+            User.EnsureStrongEnough(request.NewPassword);
+            user.SetPasswordHash(hasher.Hash(request.NewPassword), now);
+
+            // Whoever knew the old password is signed out.
+            foreach (var session in await sessions.ListForUserAsync(userId, cancellationToken))
+            {
+                sessions.Remove(session);
+            }
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return user.ToDto();
+    }
+
     public async Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         currentUser.RequireAdmin();

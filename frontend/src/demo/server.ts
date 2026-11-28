@@ -270,6 +270,8 @@ export class DemoServer {
 
       case 'users':
         if (method === 'GET') return json([this.account().user])
+        if (method === 'PUT')
+          throw new HttpError(400, 'The live demo has a single account, and it stays an admin.')
         throw new HttpError(400, 'The live demo has a single account.')
 
       case 'skills':
