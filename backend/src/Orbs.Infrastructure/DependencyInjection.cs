@@ -8,6 +8,7 @@ using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
+using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 using Orbs.Infrastructure.Context;
 using Orbs.Infrastructure.Integrations;
@@ -15,6 +16,7 @@ using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Persistence;
 using Orbs.Infrastructure.Persistence.Repositories;
 using Orbs.Infrastructure.Persistence.Sqlite;
+using Orbs.Infrastructure.Schedules;
 using Orbs.Infrastructure.Security;
 using Orbs.Infrastructure.Tools;
 
@@ -56,6 +58,9 @@ public static class DependencyInjection
         services.AddScoped<IMemoryRepository, MemoryRepository>();
         services.AddScoped<IContextChunkRepository, ContextChunkRepository>();
         services.AddScoped<IContextFileRepository, ContextFileRepository>();
+        services.AddScoped<IScheduleRepository, ScheduleRepository>();
+        services.AddSingleton<ICronCalculator, CronCalculator>();
+        services.AddSingleton<IFeedReader, FeedReader>();
         services.AddSingleton<IDocumentReader, DocumentReader>();
         services.AddSingleton<IIntegrationKind, WebSearchIntegration>();
         services.AddSingleton<IIntegrationKind, CalDavIntegration>();

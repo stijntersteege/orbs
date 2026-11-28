@@ -391,3 +391,38 @@ export interface Memory {
   createdAt: string
   updatedAt: string
 }
+
+// Schedules
+
+export type TriggerKind = 'time' | 'webhook' | 'rss' | 'email'
+
+export interface Schedule {
+  id: string
+  orbId: string
+  name: string
+  prompt: string
+  trigger: TriggerKind
+  cron?: string
+  timeZone: string
+  feedUrl?: string
+  integrationId?: string
+  isEnabled: boolean
+  nextCheckAt?: string
+  lastRunAt?: string
+  conversationId?: string
+  createdAt: string
+  /** Only right after creating a webhook schedule: the secret address. */
+  webhookPath?: string
+}
+
+export interface SaveScheduleRequest {
+  orbId: string
+  name: string
+  prompt: string
+  trigger: TriggerKind
+  cron?: string
+  timeZone?: string
+  feedUrl?: string
+  integrationId?: string
+  isEnabled?: boolean
+}

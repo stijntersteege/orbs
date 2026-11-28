@@ -8,6 +8,7 @@ using Orbs.Domain.Jobs;
 using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Schedules;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -301,5 +302,26 @@ internal sealed class ContextFileConfiguration : IEntityTypeConfiguration<Contex
         builder.Ignore(f => f.Size);
         builder.Ignore(f => f.IsImage);
         builder.HasOne<ContextSource>().WithMany().HasForeignKey(f => f.SourceId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ScheduleConfiguration : IEntityTypeConfiguration<Schedule>
+{
+    public void Configure(EntityTypeBuilder<Schedule> builder)
+    {
+        builder.ToTable("schedules");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasIndex(s => s.OwnerId);
+        builder.HasIndex(s => new { s.IsEnabled, s.NextCheckAt });
+        builder.Property(s => s.Name).HasMaxLength(Schedule.MaxNameLength).IsRequired();
+        builder.Property(s => s.Prompt).HasMaxLength(Schedule.MaxPromptLength).IsRequired();
+        builder.Property(s => s.Trigger).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Cron).HasMaxLength(100);
+        builder.Property(s => s.TimeZone).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.FeedUrl).HasMaxLength(2_048);
+        builder.Property(s => s.WebhookSecretHash).HasMaxLength(128);
+        builder.Property(s => s.LastSeen).HasMaxLength(Schedule.MaxLastSeenLength);
+        builder.HasOne<Orb>().WithMany().HasForeignKey(s => s.OrbId).OnDelete(DeleteBehavior.Cascade);
     }
 }

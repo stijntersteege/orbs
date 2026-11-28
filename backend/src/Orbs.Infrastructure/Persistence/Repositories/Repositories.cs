@@ -5,6 +5,7 @@ using Orbs.Application.Context;
 using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
+using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
@@ -13,6 +14,7 @@ using Orbs.Domain.Jobs;
 using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Schedules;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -156,4 +158,10 @@ internal sealed class ContextFileRepository(OrbsDbContext db) : EfRepository<Con
         var ids = sourceIds.ToList();
         return await Query.AsNoTracking().Where(f => ids.Contains(f.SourceId) && f.ContentType.StartsWith("image/")).ToListAsync(cancellationToken);
     }
+}
+
+internal sealed class ScheduleRepository(OrbsDbContext db) : EfRepository<Schedule>(db), IScheduleRepository
+{
+    public async Task<IReadOnlyList<Schedule>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+        await Query.Where(s => s.IsEnabled && s.NextCheckAt != null && s.NextCheckAt <= now).OrderBy(s => s.NextCheckAt).Take(limit).ToListAsync(cancellationToken);
 }

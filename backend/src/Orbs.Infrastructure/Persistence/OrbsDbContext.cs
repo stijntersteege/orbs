@@ -10,6 +10,7 @@ using Orbs.Domain.Jobs;
 using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Schedules;
 using Orbs.Domain.Tools;
 using Orbs.Domain.Users;
 
@@ -53,6 +54,8 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
 
     public DbSet<ContextFile> ContextFiles => Set<ContextFile>();
 
+    public DbSet<Schedule> Schedules => Set<Schedule>();
+
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
@@ -94,6 +97,7 @@ public class OrbsDbContext : DbContext, IUnitOfWork, IDataProtectionKeyContext
         FilterOwned<Memory>(modelBuilder);
         FilterOwned<ContextChunk>(modelBuilder);
         FilterOwned<ContextFile>(modelBuilder);
+        FilterOwned<Schedule>(modelBuilder);
     }
 
     /// <summary>Applies the owner filter to one owned aggregate. Every owned aggregate is listed in <see cref="OnModelCreating"/>.</summary>

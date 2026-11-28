@@ -542,6 +542,85 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.ToTable("providers", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Schedules.Schedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cron")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FeedUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("IntegrationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("LastRunAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastSeen")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("NextCheckAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("WebhookSecretHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrbId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("IsEnabled", "NextCheckAt");
+
+                    b.ToTable("schedules", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Tools.Integration", b =>
                 {
                     b.Property<Guid>("Id")
@@ -822,6 +901,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         });
 
                     b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Schedules.Schedule", b =>
+                {
+                    b.HasOne("Orbs.Domain.Orbs.Orb", null)
+                        .WithMany()
+                        .HasForeignKey("OrbId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
