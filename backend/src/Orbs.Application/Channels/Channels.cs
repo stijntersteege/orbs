@@ -302,8 +302,9 @@ public sealed class ChannelRelay(IServiceScopeFactory scopes, TimeProvider clock
         if (chat is null)
         {
             // Only a chat that sends the pairing code gets in; everyone else is ignored without a word.
-            var code = message.Text.Replace("/start", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
-            if (channel.PairingCodeHash is null || code.Length == 0 || ChannelService.Hash(code) != channel.PairingCodeHash)
+            // The code may sit anywhere in the message, such as the subject of an email.
+            var words = message.Text.Split([' ', '\n', '\r', '\t', ':', ',', '.'], StringSplitOptions.RemoveEmptyEntries);
+            if (channel.PairingCodeHash is null || !words.Any(w => w.Length == 6 && ChannelService.Hash(w) == channel.PairingCodeHash))
             {
                 return null;
             }

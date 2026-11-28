@@ -66,6 +66,10 @@ public static class DependencyInjection
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddSingleton<IChannelAdapter, TelegramChannel>();
+        services.AddSingleton<IChannelAdapter, MatrixChannel>();
+        services.AddSingleton<IChannelAdapter, DiscordChannel>();
+        services.AddSingleton<IChannelAdapter, SignalChannel>();
+        services.AddSingleton<IChannelAdapter, EmailChannel>();
         services.AddSingleton<VapidKeys>();
         services.AddSingleton<IPushSender, WebPushSender>();
         services.AddHttpClient(WebPushSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
