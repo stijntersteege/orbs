@@ -272,6 +272,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 
+                    b.PrimitiveCollection<string>("_attachedSourceIds")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("attached_source_ids");
+
                     b.PrimitiveCollection<string>("_guestOrbIds")
                         .IsRequired()
                         .HasColumnType("TEXT")

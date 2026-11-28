@@ -94,6 +94,11 @@ export const conversationsApi = {
   start: (orbId: string, withOrbs?: string[]) =>
     http.post<Conversation>('/api/conversations', { orbId, with: withOrbs }),
   remove: (id: string) => http.delete(`/api/conversations/${id}`),
+  /** Gives the chat a file; `remember` gives it to the chat's orb for every chat instead. */
+  attach: (id: string, contextSourceId: string, remember = false) =>
+    http.post<ConversationSummary>(`/api/conversations/${id}/attachments`, { contextSourceId, remember }),
+  detach: (id: string, contextSourceId: string) =>
+    http.delete(`/api/conversations/${id}/attachments/${contextSourceId}`),
   rename: (id: string, title: string) => http.put<ConversationSummary>(`/api/conversations/${id}`, { title }),
   /** Deletes one message; the orb no longer sees it. */
   deleteMessage: (id: string, messageId: string) =>

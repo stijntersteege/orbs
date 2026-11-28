@@ -33,12 +33,19 @@ public sealed record ConversationDto(
     DateTimeOffset UpdatedAt,
     bool HasMoreMessages = false,
     ApprovalDto? PendingApproval = null,
-    IReadOnlyList<Guid>? OrbIds = null);
+    IReadOnlyList<Guid>? OrbIds = null,
+    IReadOnlyList<Guid>? AttachedSourceIds = null);
 
 /// <summary>A page of older messages, oldest first.</summary>
 public sealed record MessagePageDto(IReadOnlyList<MessageDto> Messages, bool HasMore);
 
 /// <summary>Starts a chat with one orb, or a group chat with others too.</summary>
+/// <summary>
+/// Gives a chat a context source, usually a file just uploaded from the message box. <see cref="Remember"/>
+/// also gives it to the chat's orb, so its later chats can read it too.
+/// </summary>
+public sealed record AttachRequest(Guid ContextSourceId, bool Remember = false);
+
 /// <summary>Renames a chat.</summary>
 public sealed record RenameConversationRequest(string Title);
 
@@ -119,7 +126,8 @@ internal static class ConversationMapping
         [.. c.Messages.OrderBy(m => m.CreatedAt).Select(ToDto)],
         c.CreatedAt,
         c.UpdatedAt,
-        OrbIds: c.OrbIds);
+        OrbIds: c.OrbIds,
+        AttachedSourceIds: c.AttachedSourceIds);
 
     public static MessageDto ToDto(this Message m) => new(
         m.Id,

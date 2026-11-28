@@ -43,6 +43,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Managing chats: rename or delete the open chat from its **⋯** menu, see every chat with an orb under **Chats > All chats** (open, rename, delete), and copy or delete single messages. A deleted message is gone for the orb too. `PUT /api/conversations/{id}` and `DELETE /api/conversations/{id}/messages/{messageId}`.
 - Edit everything: schedules (plus **Pause** and **Resume**), channels, connected apps, MCP servers and accounts now have **Edit**, which opens the item in place. Saved tokens and passwords stay when their field is left empty. Admins can rename an account, change its admin rights or set a new password, which signs that person out everywhere (`PUT /api/users/{id}`). Orbs keeps at least one admin and admins cannot remove their own rights.
 - The microphone button is always in the chat box. When talking cannot work yet, clicking it says why: no speech-to-text model chosen under Models (with a link), an address that is not https (browsers only allow the microphone on secure addresses), or a browser that cannot record.
+- Files in a chat: attach PDFs, Word and Markdown documents, text or pictures with the paperclip in the message box, or drop or paste them in. A file is for that chat only, unless you tick **Remember for (orb), in every chat**. Files in a chat show above the message box and can be taken out again; the files themselves stay under Context. `POST /api/conversations/{id}/attachments` and `DELETE /api/conversations/{id}/attachments/{sourceId}`.
+- Upgrading Postgres databases that already have chats no longer fails on the group-chat migration.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

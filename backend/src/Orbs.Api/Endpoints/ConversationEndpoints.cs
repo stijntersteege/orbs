@@ -29,6 +29,16 @@ internal static class ConversationEndpoints
         group.MapPut("/{id:guid}", (Guid id, RenameConversationRequest request, ChatService chat, CancellationToken ct) => chat.RenameAsync(id, request, ct))
             .WithSummary("Rename a conversation");
 
+        group.MapPost("/{id:guid}/attachments", (Guid id, AttachRequest request, ChatService chat, CancellationToken ct) => chat.AttachAsync(id, request, ct))
+            .WithSummary("Attach a context source (such as an uploaded file) to this chat, or let its orb remember it");
+
+        group.MapDelete("/{id:guid}/attachments/{sourceId:guid}", async (Guid id, Guid sourceId, ChatService chat, CancellationToken ct) =>
+            {
+                await chat.DetachAsync(id, sourceId, ct);
+                return TypedResults.NoContent();
+            })
+            .WithSummary("Take a file back out of this chat");
+
         group.MapDelete("/{id:guid}/messages/{messageId:guid}", async (Guid id, Guid messageId, ChatService chat, CancellationToken ct) =>
             {
                 await chat.DeleteMessageAsync(id, messageId, ct);

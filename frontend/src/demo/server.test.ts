@@ -211,4 +211,31 @@ describe('DemoServer', () => {
     ])
     expect((await call(server, 'DELETE', `${path}/messages/nope`)).status).toBe(404)
   })
+
+  it('lets one chat read a note, and remembers it for the orb when asked', async () => {
+    const server = new DemoServer({ wordDelay: 0 })
+    const read = async (path: string) => {
+      const response = await server.handle('POST', new URL(`${path}/messages`, base), { content: 'hi' })
+      const events: ChatEvent[] = []
+      for await (const event of readServerSentEvents<ChatEvent>(response.body!)) events.push(event)
+      const start = events[0]
+      return start?.type === 'start' ? (start.sources ?? []).map((x) => x.name) : []
+    }
+    const chat = await call<Conversation>(server, 'POST', '/api/conversations', { orbId: 'demo-orb-nova' })
+    const other = await call<Conversation>(server, 'POST', '/api/conversations', { orbId: 'demo-orb-nova' })
+    const path = `/api/conversations/${chat.body.id}`
+
+    await call(server, 'POST', `${path}/attachments`, { contextSourceId: 'demo-source-groceries' })
+    expect(await read(path)).toContain('Grocery list')
+    expect(await read(`/api/conversations/${other.body.id}`)).not.toContain('Grocery list')
+
+    await call(server, 'POST', `${path}/attachments`, {
+      contextSourceId: 'demo-source-groceries',
+      remember: true,
+    })
+    expect((await call<Orb>(server, 'GET', '/api/orbs/demo-orb-nova')).body.contextSourceIds).toContain(
+      'demo-source-groceries',
+    )
+    expect((await call<Conversation>(server, 'GET', path)).body.attachedSourceIds).toEqual([])
+  })
 })
