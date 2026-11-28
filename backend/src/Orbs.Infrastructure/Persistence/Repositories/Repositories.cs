@@ -130,5 +130,5 @@ internal sealed class IntegrationRepository(OrbsDbContext db) : EfRepository<Int
 internal sealed class MemoryRepository(OrbsDbContext db) : EfRepository<Memory>(db), IMemoryRepository
 {
     public async Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default) =>
-        await Query.Where(m => m.OrbId == orbId).OrderByDescending(m => m.UpdatedAt).ToListAsync(cancellationToken);
+        await Query.Where(m => m.OrbId == orbId || m.OrbId == null).OrderByDescending(m => m.UpdatedAt).ToListAsync(cancellationToken);
 }

@@ -171,7 +171,7 @@ export class DemoServer {
         if (!id) return method === 'GET' ? json(s.orbs) : json(this.saveOrb(undefined, body), 201)
         if (action === 'memories') {
           this.find(s.orbs, id, 'orb')
-          if (method === 'GET') return json((s.memories ?? []).filter((m) => m.orbId === id))
+          if (method === 'GET') return json((s.memories ?? []).filter((m) => m.shared || m.orbId === id))
           return json(this.addMemory(id, body), 201)
         }
         if (method === 'GET') return json(this.find(s.orbs, id, 'orb'))
@@ -315,9 +315,11 @@ export class DemoServer {
 
   private addMemory(orbId: string, body: unknown): Memory {
     const now = this.timestamp()
+    const shared = (body as { shared?: boolean })?.shared === true
     const memory: Memory = {
       id: newId(),
-      orbId,
+      orbId: shared ? undefined : orbId,
+      shared,
       content: required((body as { content?: string })?.content, 'memory'),
       source: 'manual',
       createdAt: now,
@@ -330,9 +332,13 @@ export class DemoServer {
 
   private editMemory(id: string, body: unknown): Memory {
     const existing = this.find(this.state.memories ?? [], id, 'memory')
+    const request = body as { content?: string; shared?: boolean; orbId?: string }
+    const shared = request.shared ?? existing.shared
     const memory = {
       ...existing,
-      content: required((body as { content?: string })?.content, 'memory'),
+      content: required(request.content, 'memory'),
+      shared,
+      orbId: shared ? undefined : (request.orbId ?? existing.orbId),
       updatedAt: this.timestamp(),
     }
     this.state.memories = (this.state.memories ?? []).map((m) => (m.id === id ? memory : m))

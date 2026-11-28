@@ -13,6 +13,10 @@ public sealed class MemorySteps(SpecContext context)
     public async Task GivenRemembers(string orb, string fact) =>
         await ApiClient.ReadAsync<MemoryDto>(await context.Api.Http.PostAsJsonAsync($"/api/orbs/{context.Orbs[orb].Id}/memories", new SaveMemoryRequest(fact), ApiClient.Json));
 
+    [Given("{string} remembers for all orbs that {string}")]
+    public async Task GivenRemembersForAll(string orb, string fact) =>
+        await ApiClient.ReadAsync<MemoryDto>(await context.Api.Http.PostAsJsonAsync($"/api/orbs/{context.Orbs[orb].Id}/memories", new SaveMemoryRequest(fact, Shared: true), ApiClient.Json));
+
     [When("I forget the memory {string}")]
     public async Task WhenIForget(string fact)
     {

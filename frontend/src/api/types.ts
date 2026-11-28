@@ -372,7 +372,9 @@ export interface SaveIntegrationRequest {
 
 export interface Memory {
   id: string
-  orbId: string
+  /** Empty for a memory every orb shares. */
+  orbId?: string
+  shared: boolean
   content: string
   source: 'manual' | 'learned'
   conversationId?: string

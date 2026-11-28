@@ -61,7 +61,7 @@ internal sealed class InMemoryStore : IUnitOfWork
     private sealed class MemoryRepo(InMemoryRepo<Memory> inner) : Delegating<Memory>(inner), IMemoryRepository
     {
         public Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<Memory>>([.. Inner.Items.Where(m => m.OrbId == orbId).OrderByDescending(m => m.UpdatedAt)]);
+            Task.FromResult<IReadOnlyList<Memory>>([.. Inner.Items.Where(m => m.OrbId == orbId || m.OrbId == null).OrderByDescending(m => m.UpdatedAt)]);
     }
 
     private sealed class ApprovalRepo(InMemoryRepo<ToolApproval> inner) : Delegating<ToolApproval>(inner), IToolApprovalRepository

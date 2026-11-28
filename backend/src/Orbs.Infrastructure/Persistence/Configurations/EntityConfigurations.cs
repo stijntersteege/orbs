@@ -264,6 +264,7 @@ internal sealed class MemoryConfiguration : IEntityTypeConfiguration<Memory>
         builder.HasIndex(m => new { m.OrbId, m.UpdatedAt });
         builder.Property(m => m.Content).HasMaxLength(Memory.MaxContentLength).IsRequired();
         builder.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
+        builder.Ignore(m => m.IsShared);
         builder.HasOne<Orb>().WithMany().HasForeignKey(m => m.OrbId).OnDelete(DeleteBehavior.Cascade);
     }
 }
