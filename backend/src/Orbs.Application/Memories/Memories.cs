@@ -101,6 +101,8 @@ public sealed class RememberTool(MemoryService memories) : ITool
         {"type":"object","properties":{"fact":{"type":"string","description":"The fact, as one short sentence."},"shared":{"type":"boolean","description":"True when the fact is about the person and useful to all their orbs, such as their name or where they live."}},"required":["fact"]}
         """;
 
+    public string Summary => "Saves lasting facts about you for later chats, such as your name or a preference. You can see and edit them under Memory.";
+
     public ToolRisk Risk => ToolRisk.Read;
 
     public bool AllowedByDefault => true;
@@ -127,6 +129,8 @@ public sealed class ForgetTool(IMemoryRepository repository, MemoryService memor
     public string ParametersSchema => """
         {"type":"object","properties":{"memory":{"type":"string","description":"Words from the memory to forget."}},"required":["memory"]}
         """;
+
+    public string Summary => "Forgets a saved memory when you ask it to.";
 
     public ToolRisk Risk => ToolRisk.Read;
 

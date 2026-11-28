@@ -17,6 +17,8 @@ internal sealed class CurrentTimeTool(TimeProvider clock) : ITool
         {"type":"object","properties":{"timeZone":{"type":"string","description":"IANA time zone, for example Europe/Amsterdam. Defaults to UTC."}}}
         """;
 
+    public string Summary => "Knows the current date and time, in any time zone.";
+
     public ToolRisk Risk => ToolRisk.Read;
 
     public Task<string> InvokeAsync(ToolInvocation invocation, CancellationToken cancellationToken = default)
@@ -51,6 +53,8 @@ internal sealed class CalculatorTool : ITool
     public string ParametersSchema => """
         {"type":"object","properties":{"expression":{"type":"string","description":"The expression to evaluate."}},"required":["expression"]}
         """;
+
+    public string Summary => "Works out sums exactly instead of guessing.";
 
     public ToolRisk Risk => ToolRisk.Read;
 

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { mcpApi } from '@/api/endpoints'
 import { keys, useMcpServers, useTools } from '@/api/queries'
 import type { McpServer, McpServerTools } from '@/api/types'
-import { Button, Card, Chip, ErrorNotice, PageHeader, Spinner, TextField } from '@/components/ui'
+import { Button, Card, Chip, ErrorNotice, PageHeader, Reveal, Spinner, TextField } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import shared from '../shared.module.css'
 import { IntegrationsCard } from './IntegrationsCard'
@@ -38,7 +38,17 @@ export function ToolsPage() {
             {servers.data?.map((s) => (
               <ServerRow key={s.id} server={s} onChange={refresh} />
             ))}
-            <AddServer onAdded={refresh} />
+            {servers.data?.length === 0 && <p className={shared.muted}>No servers connected yet.</p>}
+            <Reveal label="Connect an MCP server">
+              {(close) => (
+                <AddServer
+                  onAdded={() => {
+                    close()
+                    void refresh()
+                  }}
+                />
+              )}
+            </Reveal>
           </div>
         </Card>
 

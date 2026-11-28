@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { integrationsApi } from '@/api/endpoints'
 import { useIntegrationKinds, useIntegrations } from '@/api/queries'
 import type { Integration, IntegrationKind } from '@/api/types'
-import { Button, Card, Chip, ErrorNotice, SelectField, TextField } from '@/components/ui'
+import { Button, Card, Chip, ErrorNotice, Reveal, SelectField, TextField } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import shared from '../shared.module.css'
 
@@ -25,7 +25,20 @@ export function IntegrationsCard({ onChange }: { onChange: () => void }) {
             onChange={onChange}
           />
         ))}
-        {kinds.data && kinds.data.length > 0 && <ConnectApp kinds={kinds.data} onAdded={onChange} />}
+        {integrations.data?.length === 0 && <p className={shared.muted}>No apps connected yet.</p>}
+        {kinds.data && kinds.data.length > 0 && (
+          <Reveal label="Connect an app">
+            {(close) => (
+              <ConnectApp
+                kinds={kinds.data}
+                onAdded={() => {
+                  close()
+                  onChange()
+                }}
+              />
+            )}
+          </Reveal>
+        )}
       </div>
     </Card>
   )

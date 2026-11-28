@@ -128,6 +128,12 @@ public interface ITool : IPlugin
     ToolRisk Risk { get; }
 
     /// <summary>
+    /// What people read about the tool in the app. <see cref="IPlugin.Description"/> is written for the model,
+    /// so tools whose description is full of model instructions say it plainly here.
+    /// </summary>
+    string Summary => Description;
+
+    /// <summary>
     /// True for tools that only touch the orb's own, visible state (such as its memory): they run without asking
     /// unless the person changes the orb's setting. Everything else asks first.
     /// </summary>

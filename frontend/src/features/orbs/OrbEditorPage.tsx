@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useBlocker, useNavigate, useParams } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
 import { orbsApi } from '@/api/endpoints'
 import { useContextSources, useDeleteOrb, useOrb, useProviders, useSaveOrb } from '@/api/queries'
 import { DEFAULT_APPEARANCE, type Orb as OrbModel, type SaveOrbRequest } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
 import { saveText } from '@/lib/download'
+import { plural } from '@/lib/format'
+import { useMediaQuery } from '@/lib/useMediaQuery'
 import {
   Button,
   ButtonLink,
@@ -66,7 +68,28 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
   const sources = useContextSources()
   const save = useSaveOrb()
   const remove = useDeleteOrb()
-  const [form, setForm] = useState<SaveOrbRequest>(() => toForm(orb))
+  const [saved] = useState<SaveOrbRequest>(() => toForm(orb))
+  const [form, setForm] = useState<SaveOrbRequest>(saved)
+  const narrow = useMediaQuery('(max-width: 1099px)')
+
+  // Leaving with unsaved changes asks first; saving itself moves on without asking.
+  const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  const leaving = useRef(false)
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname,
+  )
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    if (window.confirm('Leave without saving? Your changes will be lost.')) blocker.proceed()
+    else blocker.reset()
+  }, [blocker])
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
 
   const appearance = form.appearance ?? DEFAULT_APPEARANCE
   const selectedSources = new Set(form.contextSourceIds)
@@ -81,17 +104,22 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    const saved = await save.mutateAsync({ id: orbId, body: form })
-    navigate(`/orbs/${saved.id}/chat`)
+    const result = await save.mutateAsync({ id: orbId, body: form })
+    leaving.current = true
+    navigate(`/orbs/${result.id}/chat`)
   }
 
   const onDelete = async () => {
     if (!orbId || !window.confirm(`Delete ${form.name} and all its chats? This cannot be undone.`)) return
     await remove.mutateAsync(orbId)
+    leaving.current = true
     navigate('/orbs')
   }
 
-  const name = form.name.trim() || 'Your orb'
+  const typed = form.name.trim()
+  // "Your orb" starts a sentence; "your orb" sits inside one.
+  const name = typed || 'Your orb'
+  const inline = typed || 'your orb'
 
   return (
     <form onSubmit={onSubmit} aria-label={isNew ? 'New orb' : `Set up ${name}`}>
@@ -99,19 +127,13 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
         title={isNew ? 'New orb' : name}
         subtitle={isNew ? 'Pick what it knows, a brain and a face.' : 'Changes apply after you save.'}
         actions={
-          <div className={styles.actions}>
-            {!isNew && (
-              <ButtonLink to={`/orbs/${orbId}/chat`}>
-                <Icon name="chat" size={18} /> Open chat
-              </ButtonLink>
-            )}
-            <Button type="submit" variant="primary" disabled={save.isPending || !form.name.trim()}>
-              {isNew ? `Create ${name}` : 'Save'}
-            </Button>
-          </div>
+          !isNew && (
+            <ButtonLink to={`/orbs/${orbId}/chat`}>
+              <Icon name="chat" size={18} /> Open chat
+            </ButtonLink>
+          )
         }
       />
-      <ErrorNotice error={save.error ?? remove.error} />
 
       <div className={styles.editor}>
         <div className={styles.sections}>
@@ -142,7 +164,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
           <Card>
             <div className={styles.sectionHead}>
               <span className={styles.step}>2</span>
-              <h2>What {name} knows</h2>
+              <h2>What {inline} knows</h2>
             </div>
             <p className={styles.muted} style={{ marginBottom: 16 }}>
               {name} only sees what you switch on here.
@@ -205,7 +227,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
           </Card>
 
           <ToolsCard
-            name={name}
+            name={inline}
             step={4}
             permissions={form.toolPermissions ?? {}}
             onChange={(toolPermissions) => set({ toolPermissions })}
@@ -214,7 +236,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
           <Card>
             <div className={styles.sectionHead}>
               <span className={styles.step}>5</span>
-              <h2>How {name} behaves</h2>
+              <h2>How {inline} behaves</h2>
             </div>
             <TextArea
               label="Brief"
@@ -234,7 +256,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
             </div>
             <OrbMaker value={appearance} onChange={(a) => set({ appearance: a })} />
             <div style={{ marginTop: 24 }}>
-              <VoicePicker name={name} value={form.voice ?? ''} onChange={(voice) => set({ voice })} />
+              <VoicePicker name={inline} value={form.voice ?? ''} onChange={(voice) => set({ voice })} />
             </div>
           </Card>
 
@@ -251,14 +273,32 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
         </div>
 
         <aside className={styles.preview} aria-label="Preview">
-          <Orb appearance={appearance} size={200} label={`${name}, preview`} />
-          <span className={styles.previewName}>{name}</span>
-          {form.description && <span className={styles.muted}>{form.description}</span>}
-          <div className={styles.toggles} style={{ justifyContent: 'center' }}>
-            <Chip tone="mono">{form.model?.model ?? 'auto'}</Chip>
-            <Chip tone="ok">{selectedSources.size} contexts linked</Chip>
+          <Orb appearance={appearance} size={narrow ? 88 : 200} label={`${name}, preview`} />
+          <div className={styles.previewText}>
+            <span className={styles.previewName}>{name}</span>
+            {form.description && <span className={styles.muted}>{form.description}</span>}
+            <div className={styles.toggles}>
+              <Chip tone="mono">{form.model?.model ?? 'auto'}</Chip>
+              <Chip tone="ok">{plural(selectedSources.size, 'source')} linked</Chip>
+            </div>
           </div>
         </aside>
+      </div>
+
+      {/* Always in reach, however far down the form you are. */}
+      <div className={styles.saveBar}>
+        <ErrorNotice error={save.error ?? remove.error} />
+        <span className={styles.saveStatus} aria-live="polite">
+          {!typed ? 'Give it a name to continue.' : dirty ? 'Unsaved changes' : isNew ? '' : 'No changes'}
+        </span>
+        {!isNew && dirty && (
+          <Button variant="ghost" onClick={() => setForm(saved)}>
+            Undo changes
+          </Button>
+        )}
+        <Button type="submit" variant="primary" disabled={save.isPending || !typed || (!isNew && !dirty)}>
+          {save.isPending ? 'Saving…' : isNew ? (typed ? `Create ${typed}` : 'Create orb') : 'Save changes'}
+        </Button>
       </div>
     </form>
   )

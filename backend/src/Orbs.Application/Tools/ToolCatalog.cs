@@ -4,7 +4,7 @@ using Orbs.Domain.Orbs;
 
 namespace Orbs.Application.Tools;
 
-/// <summary>A tool as listed in the app.</summary>
+/// <summary>A tool as listed in the app. <see cref="Description"/> is the summary written for people.</summary>
 public sealed record ToolDto(string Name, string DisplayName, string Description, ToolRisk Risk, bool AllowedByDefault = false);
 
 /// <summary>
@@ -39,7 +39,7 @@ public sealed partial class ToolCatalog(IEnumerable<IToolSource> sources)
     }
 
     public async Task<IReadOnlyList<ToolDto>> DescribeAsync(CancellationToken cancellationToken = default) =>
-        [.. (await ListAsync(cancellationToken)).Select(t => new ToolDto(t.Kind, t.DisplayName, t.Description, t.Risk, t.AllowedByDefault))];
+        [.. (await ListAsync(cancellationToken)).Select(t => new ToolDto(t.Kind, t.DisplayName, t.Summary, t.Risk, t.AllowedByDefault))];
 
     public static ToolDefinition Define(ITool tool)
     {
