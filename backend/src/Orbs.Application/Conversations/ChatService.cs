@@ -67,6 +67,12 @@ public sealed class ChatService(
         ArgumentNullException.ThrowIfNull(request);
         _ = await LoadOrbAsync(request.OrbId, cancellationToken);
         var conversation = Conversation.Start(request.OrbId, clock.GetUtcNow());
+        foreach (var guest in request.With ?? [])
+        {
+            _ = await LoadOrbAsync(guest, cancellationToken);
+            conversation.Invite(guest, clock.GetUtcNow());
+        }
+
         conversations.Add(conversation);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return conversation.ToDto();
@@ -80,7 +86,8 @@ public sealed class ChatService(
     }
 
     /// <summary>
-    /// Stores the user's message, then streams the orb's reply and stores it when complete.
+    /// Stores the user's message, then streams the reply and stores it when complete. Mention other orbs with
+    /// "@Name" to hand the question to them: they join the chat and answer in turn, in one stream.
     /// When the model asks for tools, Orbs runs them (or asks the person first), reports each call and result,
     /// and lets the model continue. Validation problems throw before streaming starts; provider failures arrive
     /// as an error event.
@@ -89,11 +96,15 @@ public sealed class ChatService(
     {
         ArgumentNullException.ThrowIfNull(request);
         var conversation = await LoadAsync(conversationId, cancellationToken);
-        var orb = await LoadOrbAsync(conversation.OrbId, cancellationToken);
-        var resolved = ModelResolver.Resolve(orb, await providers.ListAsync(cancellationToken));
-        var adapter = adapters.Get(resolved.Provider.Kind);
-        var context = await contextSources.ListAsync(orb.ContextSourceIds, cancellationToken);
-        var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
+        var allOrbs = await orbs.ListAsync(cancellationToken);
+        var responders = Mentions.Find(request.Content, allOrbs);
+        if (responders.Count == 0)
+        {
+            responders = [await LoadOrbAsync(conversation.OrbId, cancellationToken)];
+        }
+
+        // Fail before storing anything when the first orb has no model.
+        _ = ModelResolver.Resolve(responders[0], await providers.ListAsync(cancellationToken));
 
         // A new message moves on from any tool call still waiting for an answer.
         foreach (var pending in await approvals.ListPendingAsync(conversation.Id, cancellationToken))
@@ -101,20 +112,80 @@ public sealed class ChatService(
             pending.Expire(clock.GetUtcNow());
         }
 
+        foreach (var orb in responders)
+        {
+            conversation.Invite(orb.Id, clock.GetUtcNow());
+        }
+
         conversation.AddUserMessage(request.Content, clock.GetUtcNow());
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        var names = allOrbs.Where(o => conversation.OrbIds.Contains(o.Id)).ToDictionary(o => o.Id, o => o.Name);
+        return ReplyAllAsync(conversation, responders, request.Content, names, cancellationToken);
+    }
 
-        var retrieved = await retriever.RetrieveAsync(context, request.Content, cancellationToken);
+    /// <summary>Each responder answers in turn and sees what the ones before it said. A pause or error ends the round.</summary>
+    private async IAsyncEnumerable<ChatEvent> ReplyAllAsync(
+        Conversation conversation,
+        IReadOnlyList<Orb> responders,
+        string question,
+        IReadOnlyDictionary<Guid, string> names,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var orb in responders)
+        {
+            var stopped = false;
+            await foreach (var e in await ReplyAsync(conversation, orb, question, names, cancellationToken))
+            {
+                yield return e;
+                stopped |= e.Type is ChatEvent.ErrorType or ChatEvent.ApprovalType;
+            }
+
+            if (stopped)
+            {
+                yield break;
+            }
+        }
+    }
+
+    private async Task<IAsyncEnumerable<ChatEvent>> ReplyAsync(Conversation conversation, Orb orb, string question, IReadOnlyDictionary<Guid, string> names, CancellationToken cancellationToken)
+    {
+        ResolvedModel resolved;
+        try
+        {
+            resolved = ModelResolver.Resolve(orb, await providers.ListAsync(cancellationToken));
+        }
+        catch (ModelUnavailableException ex)
+        {
+            return One(ChatEvent.Error($"{orb.Name} has no model: {ex.Message}"));
+        }
+
+        var adapter = adapters.Get(resolved.Provider.Kind);
+        var context = await contextSources.ListAsync(orb.ContextSourceIds, cancellationToken);
+        var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
+        var retrieved = await retriever.RetrieveAsync(context, question, cancellationToken);
         var images = adapter.SupportsImages ? await files.ImagesForAsync(context, cancellationToken) : [];
         var state = new ReplyState
         {
             ProviderId = resolved.Provider.Id,
             Model = resolved.Model,
-            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken), retrieved: retrieved, images: images)],
+            Turns = [.. PromptBuilder.Build(
+                orb,
+                context,
+                conversation.Messages,
+                memories: await memories.ForPromptAsync(orb, cancellationToken),
+                retrieved: retrieved,
+                images: images,
+                groupNames: conversation.IsGroup ? names : null)],
         };
         var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(resolved.Provider), toolSet);
-        var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context, retrieved: retrieved));
+        var start = ChatEvent.StartFor(orb.Id, orb.Name, resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context, retrieved: retrieved));
         return engine.RunAsync(reply, state, start, cancellationToken);
+    }
+
+    private static async IAsyncEnumerable<ChatEvent> One(ChatEvent e)
+    {
+        await Task.CompletedTask;
+        yield return e;
     }
 
     /// <summary>

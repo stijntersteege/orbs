@@ -12,12 +12,13 @@ public sealed class Message : Entity
 
     private readonly List<ToolCallRecord> _toolCalls = [];
 
-    internal Message(Guid id, MessageRole role, string content, DateTimeOffset createdAt, string? model, IEnumerable<ToolCallRecord>? toolCalls) : base(id)
+    internal Message(Guid id, MessageRole role, string content, DateTimeOffset createdAt, string? model, IEnumerable<ToolCallRecord>? toolCalls, Guid? orbId = null) : base(id)
     {
         Role = role;
         Content = content;
         CreatedAt = createdAt;
         Model = model;
+        OrbId = orbId;
         _toolCalls.AddRange(toolCalls ?? []);
     }
 
@@ -32,6 +33,9 @@ public sealed class Message : Entity
     public string Content { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>The orb that wrote an assistant message. Null in older chats, where it is the chat's orb.</summary>
+    public Guid? OrbId { get; private set; }
 
     /// <summary>The model that wrote an assistant message, for the audit trail.</summary>
     public string? Model { get; private set; }
@@ -92,6 +96,9 @@ public sealed class Conversation : OwnedAggregateRoot
 
     private readonly List<Message> _messages = [];
 
+    // Other orbs in a group chat. A list (not a set) so EF Core can store it as a primitive collection.
+    private readonly List<Guid> _guestOrbIds = [];
+
     private Conversation(Guid id, Guid orbId, DateTimeOffset now) : base(id, now)
     {
         OrbId = orbId;
@@ -105,6 +112,22 @@ public sealed class Conversation : OwnedAggregateRoot
     public string Title { get; private set; } = DefaultTitle;
 
     public IReadOnlyList<Message> Messages => _messages;
+
+    /// <summary>Every orb in the chat: the one it started with, then the others who joined.</summary>
+    public IReadOnlyList<Guid> OrbIds => [OrbId, .. _guestOrbIds];
+
+    public bool IsGroup => _guestOrbIds.Count > 0;
+
+    /// <summary>Brings another orb into the chat, such as when someone mentions it.</summary>
+    public void Invite(Guid orbId, DateTimeOffset now)
+    {
+        Guard.NotEmpty(orbId, nameof(orbId));
+        if (orbId != OrbId && !_guestOrbIds.Contains(orbId))
+        {
+            _guestOrbIds.Add(orbId);
+            Touch(now);
+        }
+    }
 
     public static Conversation Start(Guid orbId, DateTimeOffset now, Guid? id = null)
     {
@@ -125,8 +148,8 @@ public sealed class Conversation : OwnedAggregateRoot
     }
 
     /// <summary>Adds the orb's reply, with the model that wrote it and the tools it used on the way.</summary>
-    public Message AddAssistantMessage(string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null) =>
-        Append(MessageRole.Assistant, content, now, model, toolCalls);
+    public Message AddAssistantMessage(string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null, Guid? orbId = null) =>
+        Append(MessageRole.Assistant, content, now, model, toolCalls, orbId);
 
     public void Retitle(string title, DateTimeOffset now)
     {
@@ -134,11 +157,11 @@ public sealed class Conversation : OwnedAggregateRoot
         Touch(now);
     }
 
-    private Message Append(MessageRole role, string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null)
+    private Message Append(MessageRole role, string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null, Guid? orbId = null)
     {
         var text = Guard.Text(content, nameof(content), Message.MaxContentLength);
         var modelName = model is null ? null : Guard.Text(model, nameof(model), Message.MaxModelLength, required: false);
-        var message = new Message(Guid.NewGuid(), role, text, now, modelName, toolCalls);
+        var message = new Message(Guid.NewGuid(), role, text, now, modelName, toolCalls, orbId);
         _messages.Add(message);
         Touch(now);
         return message;

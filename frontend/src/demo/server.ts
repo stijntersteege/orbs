@@ -573,6 +573,23 @@ export class DemoServer {
     const conversation = this.find(this.state.conversations, id, 'conversation')
     const content = required((body as { content?: string })?.content, 'content')
     const orb = this.find(this.state.orbs, conversation.orbId, 'orb')
+    // "@Name" hands the question to other orbs, like the real server.
+    const mentioned = this.state.orbs
+      .map((o) => ({ o, at: content.toLowerCase().indexOf(`@${o.name.toLowerCase()}`) }))
+      .filter((x) => x.at >= 0)
+      .sort((a, b) => a.at - b.at)
+      .map((x) => x.o)
+    if (mentioned.length > 0) {
+      const ids = [
+        ...new Set([...(conversation.orbIds ?? [conversation.orbId]), ...mentioned.map((o) => o.id)]),
+      ]
+      this.state.conversations = this.state.conversations.map((c) =>
+        c.id === id ? { ...c, orbIds: ids } : c,
+      )
+      this.append(conversation, 'user', content)
+      return sse(this.groupReply(conversation, mentioned, content, signal))
+    }
+
     const { provider, model } = this.resolve(orb)
     const sources = this.sourcesUsed(orb)
 
@@ -634,6 +651,31 @@ export class DemoServer {
     return sse(this.reply(conversation, waiting.model, start, waiting.tool, verdict, '', signal))
   }
 
+  /** Each mentioned orb echoes in turn, like a group chat with the Echo provider. */
+  private async *groupReply(
+    conversation: Conversation,
+    responders: Orb[],
+    content: string,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ChatEvent> {
+    let heard = content
+    for (const orb of responders) {
+      const { provider, model } = this.resolve(orb)
+      const start: ChatEvent = {
+        type: 'start',
+        model,
+        provider: provider.name,
+        sources: this.sourcesUsed(orb),
+        orbId: orb.id,
+        orbName: orb.name,
+      }
+      const text = provider.kind === ECHO_KIND ? `You said: ${heard}` : OFFLINE_REPLY
+      for await (const e of this.reply(conversation, model, start, null, undefined, text, signal, orb.id))
+        yield e
+      heard = `${orb.name} said: ${text}`
+    }
+  }
+
   /** Streams a reply: optionally one tool call first, then the words; then saves it. */
   private async *reply(
     conversation: Conversation,
@@ -643,6 +685,7 @@ export class DemoServer {
     decision: string | undefined,
     fallback: string,
     signal?: AbortSignal,
+    orbId?: string,
   ): AsyncGenerator<ChatEvent> {
     yield start
     let text = fallback
@@ -679,7 +722,7 @@ export class DemoServer {
       await delay(this.wordDelay, signal)
       yield { type: 'delta', text: i === 0 ? word : ` ${word}` }
     }
-    const message = this.append(conversation, 'assistant', text, model, toolCalls)
+    const message = this.append(conversation, 'assistant', text, model, toolCalls, orbId)
     yield { type: 'done', messageId: message.id }
   }
 
@@ -699,9 +742,10 @@ export class DemoServer {
     content: string,
     model?: string,
     toolCalls?: Message['toolCalls'],
+    orbId?: string,
   ): Message {
     const now = this.timestamp()
-    const message: Message = { id: newId(), role, content, createdAt: now, model, toolCalls }
+    const message: Message = { id: newId(), role, content, createdAt: now, model, toolCalls, orbId }
     const current = this.find(this.state.conversations, conversation.id, 'conversation')
     const title = current.title === 'New chat' && role === 'user' ? titleFrom(content) : current.title
     const updated = { ...current, title, updatedAt: now, messages: [...current.messages, message] }

@@ -118,6 +118,20 @@ describe('reduceChatEvent', () => {
     expect(state.streaming).toBe('')
   })
 
+  it('remembers which orb wrote each reply in a group chat', () => {
+    let state = reduceChatEvent(empty, { type: 'start', model: 'm', orbId: 'nova', orbName: 'Nova' })
+    state = reduceChatEvent(state, { type: 'delta', text: 'Hi' })
+    state = reduceChatEvent(state, { type: 'done', messageId: 'a1' })
+    state = reduceChatEvent(state, { type: 'start', model: 'm', orbId: 'pip', orbName: 'Pip' })
+    state = reduceChatEvent(state, { type: 'delta', text: 'Hello' })
+    state = reduceChatEvent(state, { type: 'done', messageId: 'a2' })
+
+    expect(state.messages.map((m) => [m.content, m.orbId])).toEqual([
+      ['Hi', 'nova'],
+      ['Hello', 'pip'],
+    ])
+  })
+
   it('marks the activity of a failed reply', () => {
     let state = reduceChatEvent(empty, { type: 'start', model: 'm' })
     state = reduceChatEvent(state, { type: 'error', text: 'boom' })

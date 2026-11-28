@@ -83,7 +83,8 @@ export const conversationsApi = {
       `/api/conversations${orbId ? `?orbId=${encodeURIComponent(orbId)}` : ''}`,
     ),
   get: (id: string) => http.get<Conversation>(`/api/conversations/${id}`),
-  start: (orbId: string) => http.post<Conversation>('/api/conversations', { orbId }),
+  start: (orbId: string, withOrbs?: string[]) =>
+    http.post<Conversation>('/api/conversations', { orbId, with: withOrbs }),
   remove: (id: string) => http.delete(`/api/conversations/${id}`),
   /** Older messages, written before `before` (an ISO timestamp), oldest first. */
   messages: (id: string, before: string, limit = 50) =>

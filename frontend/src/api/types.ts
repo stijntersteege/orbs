@@ -167,6 +167,8 @@ export interface Message {
   model?: string
   /** Tools the orb used while writing this reply: the audit trail. */
   toolCalls?: ToolCallRecord[]
+  /** The orb that wrote an assistant message. Missing in older chats: then it is the chat's orb. */
+  orbId?: string
 }
 
 export interface ToolCallRecord {
@@ -205,6 +207,8 @@ export interface ConversationSummary {
   title: string
   createdAt: string
   updatedAt: string
+  /** Every orb in the chat; more than one makes it a group chat. */
+  orbIds?: string[]
 }
 
 export interface Conversation extends ConversationSummary {
@@ -232,7 +236,16 @@ export interface ChatSource {
 }
 
 export type ChatEvent =
-  | { type: 'start'; model: string; provider?: string; sources?: ChatSource[]; resumed?: boolean }
+  | {
+      type: 'start'
+      model: string
+      provider?: string
+      sources?: ChatSource[]
+      resumed?: boolean
+      /** Which orb answers; in a group chat several replies follow each other. */
+      orbId?: string
+      orbName?: string
+    }
   | { type: 'approval_required'; approvalId: string; callId: string; tool: string; arguments: string }
   | { type: 'delta'; text: string }
   | { type: 'tool_call'; callId: string; tool: string; arguments: string }

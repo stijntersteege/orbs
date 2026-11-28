@@ -182,7 +182,7 @@ public sealed class ReplyEngine(ToolRunner tools, IToolApprovalRepository approv
         }
 
         var records = state.Records.Select(r => new ToolCallRecord(r.Tool, r.Arguments, r.Result, r.IsError, r.DurationMs, r.Decision));
-        var message = context.Conversation.AddAssistantMessage(state.ReplyText, clock.GetUtcNow(), state.Model, records);
+        var message = context.Conversation.AddAssistantMessage(state.ReplyText, clock.GetUtcNow(), state.Model, records, context.Orb.Id);
         await unitOfWork.SaveChangesAsync(CancellationToken.None);
         yield return ChatEvent.Done(message.Id);
     }
