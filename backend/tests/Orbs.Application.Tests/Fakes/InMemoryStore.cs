@@ -1,8 +1,10 @@
 using Orbs.Application.Abstractions;
 using Orbs.Application.Conversations;
+using Orbs.Application.Memories;
 using Orbs.Domain.Common;
 using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
+using Orbs.Domain.Memories;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
 
@@ -20,6 +22,10 @@ internal sealed class InMemoryStore : IUnitOfWork
     public InMemoryRepo<Conversation> ConversationItems { get; } = new();
 
     public InMemoryRepo<ToolApproval> ApprovalItems { get; } = new();
+
+    public InMemoryRepo<Memory> MemoryItems { get; } = new();
+
+    public IMemoryRepository Memories => new MemoryRepo(MemoryItems);
 
     public IToolApprovalRepository Approvals => new ApprovalRepo(ApprovalItems);
 
@@ -50,6 +56,12 @@ internal sealed class InMemoryStore : IUnitOfWork
             var set = ids.ToHashSet();
             return Task.FromResult<IReadOnlyList<ContextSource>>([.. Inner.Items.Where(s => set.Contains(s.Id))]);
         }
+    }
+
+    private sealed class MemoryRepo(InMemoryRepo<Memory> inner) : Delegating<Memory>(inner), IMemoryRepository
+    {
+        public Task<IReadOnlyList<Memory>> ListForOrbAsync(Guid orbId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Memory>>([.. Inner.Items.Where(m => m.OrbId == orbId).OrderByDescending(m => m.UpdatedAt)]);
     }
 
     private sealed class ApprovalRepo(InMemoryRepo<ToolApproval> inner) : Delegating<ToolApproval>(inner), IToolApprovalRepository

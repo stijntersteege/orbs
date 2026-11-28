@@ -42,6 +42,7 @@ api.MapContextEndpoints();
 api.MapConversationEndpoints();
 api.MapJobEndpoints();
 api.MapMcpEndpoints();
+api.MapMemoryEndpoints();
 
 // Single-page app: any other path that is not a file goes to the web client, when it is bundled.
 app.MapFallbackToFile("index.html");

@@ -20,12 +20,7 @@ interface ToolsCardProps {
 export function ToolsCard({ name, step, permissions, onChange }: ToolsCardProps) {
   const { data: tools } = useTools()
 
-  const set = (tool: string, access: ToolAccess) => {
-    const next = { ...permissions }
-    if (access === 'ask') delete next[tool]
-    else next[tool] = access
-    onChange(next)
-  }
+  const set = (tool: string, access: ToolAccess) => onChange({ ...permissions, [tool]: access })
 
   return (
     <Card>
@@ -40,7 +35,7 @@ export function ToolsCard({ name, step, permissions, onChange }: ToolsCardProps)
       {tools?.length === 0 && <p className={styles.muted}>No tools are connected yet.</p>}
       <ul className={styles.checkList} aria-label="Tools">
         {tools?.map((tool) => {
-          const access = permissions[tool.name] ?? 'ask'
+          const access = permissions[tool.name] ?? (tool.allowedByDefault ? 'allow' : 'ask')
           return (
             <li key={tool.name} className={styles.toolRow}>
               <span className={styles.checkText}>

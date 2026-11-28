@@ -1,5 +1,6 @@
 using Orbs.Application.Abstractions;
 using Orbs.Application.Common;
+using Orbs.Application.Memories;
 using Orbs.Application.Providers;
 using Orbs.Application.Tools;
 using Orbs.Domain.Conversations;
@@ -18,6 +19,7 @@ public sealed class ChatService(
     ToolRunner tools,
     ReplyEngine engine,
     IToolApprovalRepository approvals,
+    MemoryService memories,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -103,7 +105,7 @@ public sealed class ChatService(
         {
             ProviderId = resolved.Provider.Id,
             Model = resolved.Model,
-            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages)],
+            Turns = [.. PromptBuilder.Build(orb, context, conversation.Messages, memories: await memories.ForPromptAsync(orb, cancellationToken))],
         };
         var reply = new ReplyContext(conversation, orb, adapter, providerService.ConnectionFor(resolved.Provider), toolSet);
         var start = ChatEvent.Start(resolved.Model, resolved.Provider.Name, PromptBuilder.SourcesUsed(context));

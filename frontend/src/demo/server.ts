@@ -9,6 +9,7 @@ import type {
   ChatSource,
   ContextSource,
   Conversation,
+  Memory,
   Message,
   Orb,
   Provider,
@@ -168,6 +169,11 @@ export class DemoServer {
     switch (resource) {
       case 'orbs':
         if (!id) return method === 'GET' ? json(s.orbs) : json(this.saveOrb(undefined, body), 201)
+        if (action === 'memories') {
+          this.find(s.orbs, id, 'orb')
+          if (method === 'GET') return json((s.memories ?? []).filter((m) => m.orbId === id))
+          return json(this.addMemory(id, body), 201)
+        }
         if (method === 'GET') return json(this.find(s.orbs, id, 'orb'))
         if (method === 'PUT') return json(this.saveOrb(id, body))
         if (method === 'DELETE') return this.removeOrb(id)
@@ -226,6 +232,15 @@ export class DemoServer {
       case 'users':
         if (method === 'GET') return json([this.account().user])
         throw new HttpError(400, 'The live demo has a single account.')
+
+      case 'memories':
+        if (method === 'PUT') return json(this.editMemory(id!, body))
+        if (method === 'DELETE') {
+          this.state.memories = (this.state.memories ?? []).filter((m) => m.id !== id)
+          this.save()
+          return new Response(null, { status: 204 })
+        }
+        break
 
       case 'conversations': {
         if (!id) {
@@ -294,6 +309,35 @@ export class DemoServer {
       ],
       hasExternalLogin: false,
     }
+  }
+
+  // Memory
+
+  private addMemory(orbId: string, body: unknown): Memory {
+    const now = this.timestamp()
+    const memory: Memory = {
+      id: newId(),
+      orbId,
+      content: required((body as { content?: string })?.content, 'memory'),
+      source: 'manual',
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.state.memories = [memory, ...(this.state.memories ?? [])]
+    this.save()
+    return memory
+  }
+
+  private editMemory(id: string, body: unknown): Memory {
+    const existing = this.find(this.state.memories ?? [], id, 'memory')
+    const memory = {
+      ...existing,
+      content: required((body as { content?: string })?.content, 'memory'),
+      updatedAt: this.timestamp(),
+    }
+    this.state.memories = (this.state.memories ?? []).map((m) => (m.id === id ? memory : m))
+    this.save()
+    return memory
   }
 
   // Orbs

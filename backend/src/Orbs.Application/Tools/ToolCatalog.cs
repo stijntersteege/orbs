@@ -5,7 +5,7 @@ using Orbs.Domain.Orbs;
 namespace Orbs.Application.Tools;
 
 /// <summary>A tool as listed in the app.</summary>
-public sealed record ToolDto(string Name, string DisplayName, string Description, ToolRisk Risk);
+public sealed record ToolDto(string Name, string DisplayName, string Description, ToolRisk Risk, bool AllowedByDefault = false);
 
 /// <summary>
 /// Every tool the current user's orbs could use, gathered from all tool sources
@@ -39,7 +39,7 @@ public sealed partial class ToolCatalog(IEnumerable<IToolSource> sources)
     }
 
     public async Task<IReadOnlyList<ToolDto>> DescribeAsync(CancellationToken cancellationToken = default) =>
-        [.. (await ListAsync(cancellationToken)).Select(t => new ToolDto(t.Kind, t.DisplayName, t.Description, t.Risk))];
+        [.. (await ListAsync(cancellationToken)).Select(t => new ToolDto(t.Kind, t.DisplayName, t.Description, t.Risk, t.AllowedByDefault))];
 
     public static ToolDefinition Define(ITool tool)
     {

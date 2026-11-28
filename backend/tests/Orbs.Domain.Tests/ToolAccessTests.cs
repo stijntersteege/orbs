@@ -22,14 +22,14 @@ public class ToolAccessTests
     }
 
     [Fact]
-    public void Setting_the_default_again_removes_the_rule()
+    public void An_explicit_ask_overrides_a_tool_that_is_allowed_by_default()
     {
         var orb = Orb.Create("Pip", Now);
-        orb.SetToolPermission("calculator", ToolAccess.Allow, Now);
+        orb.PermissionFor("remember", fallback: ToolAccess.Allow).ShouldBe(ToolAccess.Allow);
 
-        orb.SetToolPermission("calculator", ToolAccess.Ask, Now);
+        orb.SetToolPermission("remember", ToolAccess.Ask, Now);
 
-        orb.ToolPermissions.ShouldBeEmpty();
+        orb.PermissionFor("remember", fallback: ToolAccess.Allow).ShouldBe(ToolAccess.Ask);
     }
 
     [Fact]

@@ -79,4 +79,16 @@ public class PromptBuilderTests
         turns.Skip(1).Select(t => t.Content).ShouldBe(["a3", "q4", "a4"]);
         turns[^1].Role.ShouldBe(ChatRole.Assistant);
     }
+
+    [Fact]
+    public void Memories_go_into_the_system_prompt()
+    {
+        var orb = Orb.Create("Pip", DateTimeOffset.UnixEpoch);
+        var memory = global::Orbs.Domain.Memories.Memory.Create(orb.Id, "Sam prefers mornings", global::Orbs.Domain.Memories.MemorySource.Learned, DateTimeOffset.UnixEpoch);
+
+        var turns = PromptBuilder.Build(orb, [], [], memories: [memory]);
+
+        turns[0].Content.ShouldContain("## What you remember");
+        turns[0].Content.ShouldContain("- Sam prefers mornings");
+    }
 }

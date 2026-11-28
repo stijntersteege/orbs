@@ -6,6 +6,7 @@ import {
   conversationsApi,
   jobsApi,
   toolsApi,
+  memoriesApi,
   mcpApi,
   integrationsApi,
   orbsApi,
@@ -30,6 +31,7 @@ export const keys = {
   users: ['users'] as const,
   jobs: ['jobs'] as const,
   tools: ['tools'] as const,
+  memories: (orbId: string) => ['memories', orbId] as const,
   mcpServers: ['mcp-servers'] as const,
   integrations: ['integrations'] as const,
   integrationKinds: ['integrations', 'kinds'] as const,
@@ -155,3 +157,10 @@ export const useIntegrationKinds = () =>
   useQuery({ queryKey: keys.integrationKinds, queryFn: integrationsApi.kinds, staleTime: Infinity })
 
 export const useIntegrations = () => useQuery({ queryKey: keys.integrations, queryFn: integrationsApi.list })
+
+export const useMemories = (orbId: string | undefined) =>
+  useQuery({
+    queryKey: keys.memories(orbId ?? ''),
+    queryFn: () => memoriesApi.list(orbId!),
+    enabled: !!orbId,
+  })

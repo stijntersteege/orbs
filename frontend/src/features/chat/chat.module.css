@@ -703,3 +703,72 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
+.panelTabs {
+  display: flex;
+  gap: var(--space-1, 4px);
+}
+
+.panelTab {
+  border: 0;
+  background: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.panelTab[aria-selected='true'] {
+  background: var(--chip);
+  color: inherit;
+}
+
+.memory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.memoryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.memoryItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1, 4px);
+  font-size: 14px;
+}
+
+.memoryText {
+  flex: 1;
+  min-width: 0;
+}
+
+.memoryForm {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.memoryInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
