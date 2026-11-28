@@ -326,3 +326,42 @@ export interface McpServerTools {
   tools: ToolInfo[]
   error?: string
 }
+
+// Integrations: apps that bring tools
+
+export interface IntegrationField {
+  key: string
+  label: string
+  required: boolean
+  secret: boolean
+  placeholder?: string
+  hint?: string
+  options?: string[]
+}
+
+export interface IntegrationKind {
+  kind: string
+  displayName: string
+  description: string
+  fields: IntegrationField[]
+}
+
+export interface Integration {
+  id: string
+  kind: string
+  name: string
+  settings: Record<string, string>
+  hasSecret: boolean
+  isEnabled: boolean
+  tools: string[]
+  createdAt: string
+}
+
+export interface SaveIntegrationRequest {
+  kind: string
+  name: string
+  settings?: Record<string, string>
+  /** On update: undefined keeps the stored secret, '' removes it. */
+  secret?: string
+  isEnabled?: boolean
+}

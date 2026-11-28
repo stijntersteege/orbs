@@ -35,5 +35,6 @@ internal sealed class OwnershipMaintenance(OrbsDbContext db) : IOwnershipMainten
         yield return db.ContextSources;
         yield return db.Providers;
         yield return db.McpServers;
+        yield return db.Integrations;
     }
 }

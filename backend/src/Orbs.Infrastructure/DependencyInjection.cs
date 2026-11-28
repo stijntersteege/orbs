@@ -8,6 +8,7 @@ using Orbs.Application.Conversations;
 using Orbs.Application.Jobs;
 using Orbs.Application.Tools;
 using Orbs.Infrastructure.Context;
+using Orbs.Infrastructure.Integrations;
 using Orbs.Infrastructure.Models;
 using Orbs.Infrastructure.Persistence;
 using Orbs.Infrastructure.Persistence.Repositories;
@@ -49,6 +50,14 @@ public static class DependencyInjection
         services.AddScoped<IJobRepository, JobRepository>();
         services.AddScoped<IToolApprovalRepository, ToolApprovalRepository>();
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
+        services.AddSingleton<IIntegrationKind, WebSearchIntegration>();
+        services.AddSingleton<IIntegrationKind, CalDavIntegration>();
+        services.AddSingleton<IIntegrationKind, EmailIntegration>();
+        services.AddSingleton<IIntegrationKind, HomeAssistantIntegration>();
+        services.AddHttpClient(IntegrationKit.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
+        services.AddHttpClient(IntegrationKit.RestrictedHttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30))
+            .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
         services.AddSingleton<IMcpClient, McpClientAdapter>();
         services.AddSingleton(new McpSettings(AllowStdio: configuration.GetValue("Orbs:Mcp:AllowStdio", false)));
 

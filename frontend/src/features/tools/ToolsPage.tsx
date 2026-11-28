@@ -6,6 +6,7 @@ import type { McpServer, McpServerTools } from '@/api/types'
 import { Button, Card, Chip, ErrorNotice, PageHeader, Spinner, TextField } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import shared from '../shared.module.css'
+import { IntegrationsCard } from './IntegrationsCard'
 
 /** Everything orbs can do: built-in tools and the tools of connected MCP servers. */
 export function ToolsPage() {
@@ -15,6 +16,7 @@ export function ToolsPage() {
   const refresh = () => {
     void client.invalidateQueries({ queryKey: keys.mcpServers })
     void client.invalidateQueries({ queryKey: keys.tools })
+    void client.invalidateQueries({ queryKey: keys.integrations })
   }
 
   return (
@@ -24,6 +26,8 @@ export function ToolsPage() {
         subtitle="What your orbs can do. Each orb asks before using a tool unless you allow it in the orb's settings."
       />
       <div className={shared.stack} style={{ maxWidth: 760 }}>
+        <IntegrationsCard onChange={refresh} />
+
         <Card>
           <div className={shared.stack}>
             <h2>MCP servers</h2>

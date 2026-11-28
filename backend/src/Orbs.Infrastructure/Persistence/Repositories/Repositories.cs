@@ -122,3 +122,5 @@ internal sealed class ToolApprovalRepository(OrbsDbContext db) : EfRepository<To
 }
 
 internal sealed class McpServerRepository(OrbsDbContext db) : EfRepository<McpServer>(db), IMcpServerRepository;
+
+internal sealed class IntegrationRepository(OrbsDbContext db) : EfRepository<Integration>(db), IIntegrationRepository;
