@@ -5,16 +5,8 @@ import { keys, useSkills } from '@/api/queries'
 import type { Skill } from '@/api/types'
 import { Button, Card, ErrorNotice, PageHeader, Spinner, TextArea, TextField } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
+import { saveText } from '@/lib/download'
 import shared from '../shared.module.css'
-
-/** Saves text as a file in the browser's downloads. */
-function saveText(fileName: string, text: string) {
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }))
-  link.download = fileName
-  link.click()
-  URL.revokeObjectURL(link.href)
-}
 
 /** Routines every orb can follow. Orbs read them with the use_skill tool. */
 export function SkillsPage() {
@@ -84,7 +76,7 @@ function SkillRow({ skill, onEdit, onChange }: { skill: Skill; onEdit: () => voi
   const remove = useMutation({ mutationFn: () => skillsApi.remove(skill.id), onSuccess: onChange })
   const download = useMutation({
     mutationFn: () => skillsApi.export(skill.id),
-    onSuccess: (text) => saveText(`${skill.name}.SKILL.md`, text),
+    onSuccess: (text) => saveText(`${skill.name}.SKILL.md`, text, 'text/markdown'),
   })
   return (
     <li className={shared.row}>

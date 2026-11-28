@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { useMutation } from '@tanstack/react-query'
+import { orbsApi } from '@/api/endpoints'
 import { useContextSources, useDeleteOrb, useOrb, useProviders, useSaveOrb } from '@/api/queries'
 import { DEFAULT_APPEARANCE, type Orb as OrbModel, type SaveOrbRequest } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
+import { saveText } from '@/lib/download'
 import {
   Button,
   ButtonLink,
@@ -235,6 +238,8 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
             </div>
           </Card>
 
+          {!isNew && orbId && <ShareCard orbId={orbId} name={name} />}
+
           {!isNew && (
             <Card>
               <h2 style={{ marginBottom: 12 }}>Danger zone</h2>
@@ -256,5 +261,27 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
         </aside>
       </div>
     </form>
+  )
+}
+
+/** Exports the saved orb as a template file others can import. */
+function ShareCard({ orbId, name }: { orbId: string; name: string }) {
+  const exportTemplate = useMutation({
+    mutationFn: () => orbsApi.template(orbId),
+    onSuccess: (template) =>
+      saveText(`${name || 'orb'}.orb.json`, JSON.stringify(template, null, 2) + '\n', 'application/json'),
+  })
+  return (
+    <Card>
+      <h2 style={{ marginBottom: 8 }}>Share</h2>
+      <p className={styles.muted} style={{ marginBottom: 12 }}>
+        Save {name} as a template file: its face, brief, voice, tool settings and schedules. Anyone can import
+        it under Your orbs. The model, what it can read, chats and memories stay here.
+      </p>
+      <ErrorNotice error={exportTemplate.error} />
+      <Button onClick={() => exportTemplate.mutate()} disabled={exportTemplate.isPending}>
+        Export as template
+      </Button>
+    </Card>
   )
 }

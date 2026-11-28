@@ -30,5 +30,15 @@ internal static class OrbEndpoints
                 return TypedResults.NoContent();
             })
             .WithSummary("Delete an orb and its conversations");
+
+        group.MapGet("/{id:guid}/template", (Guid id, OrbTemplateService templates, CancellationToken ct) => templates.ExportAsync(id, ct))
+            .WithSummary("The orb as a template to share: face, brief, voice, tool permissions and schedules");
+
+        group.MapPost("/import", async (OrbTemplate template, OrbTemplateService templates, CancellationToken ct) =>
+            {
+                var result = await templates.ImportAsync(template, ct);
+                return TypedResults.Created($"/api/orbs/{result.Orb.Id}", result);
+            })
+            .WithSummary("Create a new orb from a template");
     }
 }

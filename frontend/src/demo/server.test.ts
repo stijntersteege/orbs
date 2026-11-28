@@ -175,4 +175,19 @@ describe('DemoServer', () => {
     ).toBe(400)
     expect((await call(server, 'POST', '/api/skills/import', { markdown: 'nope' })).status).toBe(400)
   })
+
+  it('exports an orb as a template and imports it under a free name', async () => {
+    const server = new DemoServer()
+    const template = await call<{ format: string; orb: { name: string } }>(
+      server,
+      'GET',
+      '/api/orbs/demo-orb-pip/template',
+    )
+    expect(template.body).toMatchObject({ format: 'orbs-template', orb: { name: 'Pip' } })
+
+    const imported = await call<{ orb: Orb }>(server, 'POST', '/api/orbs/import', template.body)
+    expect(imported.status).toBe(201)
+    expect(imported.body.orb.name).toBe('Pip 2')
+    expect((await call(server, 'POST', '/api/orbs/import', { format: 'other' })).status).toBe(400)
+  })
 })
