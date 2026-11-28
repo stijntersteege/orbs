@@ -94,6 +94,10 @@ export const conversationsApi = {
   start: (orbId: string, withOrbs?: string[]) =>
     http.post<Conversation>('/api/conversations', { orbId, with: withOrbs }),
   remove: (id: string) => http.delete(`/api/conversations/${id}`),
+  rename: (id: string, title: string) => http.put<ConversationSummary>(`/api/conversations/${id}`, { title }),
+  /** Deletes one message; the orb no longer sees it. */
+  deleteMessage: (id: string, messageId: string) =>
+    http.delete(`/api/conversations/${id}/messages/${messageId}`),
   /** Older messages, written before `before` (an ISO timestamp), oldest first. */
   messages: (id: string, before: string, limit = 50) =>
     http.get<MessagePage>(

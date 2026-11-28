@@ -3,6 +3,7 @@ import { createBrowserRouter, createHashRouter, RouterProvider, type RouteObject
 import { AppShell, PageLayout } from '@/components/layout/AppShell'
 import { ButtonLink, EmptyState } from '@/components/ui'
 import { Orb } from '@/components/orb/Orb'
+import { ChatsPage } from '@/features/chat/ChatsPage'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { ContextPage } from '@/features/context/ContextPage'
 import { ModelsPage } from '@/features/models/ModelsPage'
@@ -47,6 +48,7 @@ export const routes: RouteObject[] = [
           { path: 'orbs', element: <OrbsPage /> },
           { path: 'orbs/new', element: <OrbEditorPage /> },
           { path: 'orbs/:orbId', element: <OrbEditorPage /> },
+          { path: 'orbs/:orbId/chats', element: <ChatsPage /> },
           { path: 'context', element: <ContextPage /> },
           { path: 'models', element: <ModelsPage /> },
           { path: 'tools', element: <ToolsPage /> },

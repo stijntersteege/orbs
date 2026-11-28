@@ -190,4 +190,25 @@ describe('DemoServer', () => {
     expect(imported.body.orb.name).toBe('Pip 2')
     expect((await call(server, 'POST', '/api/orbs/import', { format: 'other' })).status).toBe(400)
   })
+
+  it('renames a chat and deletes one message', async () => {
+    const server = new DemoServer({ wordDelay: 0 })
+    const chat = await call<Conversation>(server, 'POST', '/api/conversations', { orbId: 'demo-orb-pip' })
+    const path = `/api/conversations/${chat.body.id}`
+    const response = await server.handle('POST', new URL(`${path}/messages`, base), { content: 'hello' })
+    const events: ChatEvent[] = []
+    for await (const event of readServerSentEvents<ChatEvent>(response.body!)) events.push(event)
+    expect(events.at(-1)?.type).toBe('done')
+
+    expect((await call<{ title: string }>(server, 'PUT', path, { title: 'Greetings' })).body.title).toBe(
+      'Greetings',
+    )
+    const saved = await call<Conversation>(server, 'GET', path)
+    const reply = saved.body.messages.at(-1)!
+    expect((await call(server, 'DELETE', `${path}/messages/${reply.id}`)).status).toBe(204)
+    expect((await call<Conversation>(server, 'GET', path)).body.messages.map((m) => m.content)).toEqual([
+      'hello',
+    ])
+    expect((await call(server, 'DELETE', `${path}/messages/nope`)).status).toBe(404)
+  })
 })

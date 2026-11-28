@@ -40,6 +40,12 @@ public interface IConversationRepository : IRepository<Conversation>
     /// newest first. Check that the caller may see the conversation before calling this.
     /// </summary>
     Task<IReadOnlyList<Message>> ListMessagesAsync(Guid conversationId, DateTimeOffset? before, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes one message, also one older than the loaded history. False when the conversation has no such message.
+    /// Check that the caller may see the conversation before calling this.
+    /// </summary>
+    Task<bool> RemoveMessageAsync(Guid conversationId, Guid messageId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Commits every change made through the repositories as one transaction.</summary>

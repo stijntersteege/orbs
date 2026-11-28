@@ -279,6 +279,21 @@ export function useChat(
     }
   }, [conversationId, loadingEarlier, state.messages])
 
+  /** Deletes one saved message from the chat. */
+  const removeMessage = useCallback(
+    async (messageId: string) => {
+      if (!conversationId) return
+      await conversationsApi.deleteMessage(conversationId, messageId)
+      setState((s) => ({
+        ...s,
+        messages: s.messages.filter((m) => m.id !== messageId),
+        activity: s.activity.filter((a) => a.id !== messageId),
+      }))
+      void client.invalidateQueries({ queryKey: keys.conversation(conversationId) })
+    },
+    [client, conversationId],
+  )
+
   /** Call when a new conversation is created for the first message, so its activity is kept. */
   const adopt = useCallback((id: string) => {
     activityFor.current = id
@@ -288,6 +303,7 @@ export function useChat(
     ...state,
     isStreaming: state.streaming !== null,
     send,
+    removeMessage,
     decide,
     stop,
     adopt,

@@ -151,6 +151,16 @@ public sealed class Conversation : OwnedAggregateRoot
     public Message AddAssistantMessage(string content, DateTimeOffset now, string? model = null, IEnumerable<ToolCallRecord>? toolCalls = null, Guid? orbId = null) =>
         Append(MessageRole.Assistant, content, now, model, toolCalls, orbId);
 
+    /// <summary>
+    /// Removes a message from the loaded history (older ones are removed by the repository) and counts it as a
+    /// change, so the chat moves up in the list.
+    /// </summary>
+    public void RemoveMessage(Guid messageId, DateTimeOffset now)
+    {
+        _messages.RemoveAll(m => m.Id == messageId);
+        Touch(now);
+    }
+
     public void Retitle(string title, DateTimeOffset now)
     {
         Title = Guard.Text(title, nameof(Title), MaxTitleLength);

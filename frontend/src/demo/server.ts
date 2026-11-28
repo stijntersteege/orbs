@@ -299,6 +299,15 @@ export class DemoServer {
         }
         if (action === 'messages' && parts[4] === 'skill')
           return json(this.skillFromReply(id, parts[3]!, body), 201)
+        if (action === 'messages' && method === 'DELETE') {
+          const chat = this.find(s.conversations, id, 'conversation')
+          const before = chat.messages.length
+          chat.messages = chat.messages.filter((m) => m.id !== parts[3])
+          if (chat.messages.length === before) throw new HttpError(404, 'Message not found.')
+          chat.updatedAt = this.timestamp()
+          this.save()
+          return new Response(null, { status: 204 })
+        }
         if (action === 'messages' && method === 'GET') return json(this.olderMessages(id, url))
         if (action === 'approvals') return this.decide(id, parts[3], body, signal)
         if (action === 'messages') return this.send(id, body, signal)
@@ -316,6 +325,14 @@ export class DemoServer {
                 }
               : undefined,
           })
+        }
+        if (method === 'PUT') {
+          const chat = this.find(s.conversations, id, 'conversation')
+          chat.title = required((body as { title?: string })?.title, 'title').slice(0, 120)
+          chat.updatedAt = this.timestamp()
+          this.save()
+          const { messages: _messages, ...summary } = chat
+          return json(summary)
         }
         if (method === 'DELETE') {
           s.conversations = s.conversations.filter((c) => c.id !== id)
