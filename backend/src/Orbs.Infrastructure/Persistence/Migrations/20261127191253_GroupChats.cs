@@ -22,7 +22,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                 name: "guest_orb_ids",
                 table: "conversations",
                 type: "uuid[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'::uuid[]");
         }
 
         /// <inheritdoc />
