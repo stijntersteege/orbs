@@ -157,6 +157,45 @@ describe('ChatPage', () => {
     await userEvent.click(toggle)
 
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.queryByRole('button', { name: 'Talk' })).not.toBeInTheDocument()
+  })
+
+  it('always shows the microphone and explains how to set up talking', async () => {
+    vi.stubGlobal('MediaRecorder', function MediaRecorder() {})
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn<() => Promise<MediaStream>>() },
+      configurable: true,
+    })
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+      'GET /api/voice': { canListen: false, canSpeak: false, voices: [] },
+    })
+    renderRoute(routes, '/orbs/o1/chat')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Talk (not set up yet)' }))
+
+    expect(screen.getByText(/choose a speech-to-text model/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Models' })).toHaveAttribute('href', '/models')
+    vi.unstubAllGlobals()
+    Reflect.deleteProperty(navigator, 'mediaDevices')
+  })
+
+  it('says why the microphone is off on an address that is not secure', async () => {
+    vi.stubGlobal('isSecureContext', false)
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+      'GET /api/voice': { canListen: true, canSpeak: false, voices: [] },
+    })
+    renderRoute(routes, '/orbs/o1/chat')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Talk (not set up yet)' }))
+
+    expect(screen.getByText(/only allow the microphone on a secure address/)).toBeInTheDocument()
+    vi.unstubAllGlobals()
   })
 })

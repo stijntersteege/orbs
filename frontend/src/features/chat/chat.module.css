@@ -908,6 +908,22 @@
   cursor: pointer;
 }
 
+.voiceButton[data-unavailable] {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.voiceHelp {
+  display: block;
+  margin: 0 4px 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--chip);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .voiceButton[aria-pressed='true'] {
   color: var(--accent-text);
   border-color: currentColor;

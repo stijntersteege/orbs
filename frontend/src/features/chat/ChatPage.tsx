@@ -172,6 +172,7 @@ export function ChatPage() {
     conversation.data?.pendingApproval ?? null,
   )
   const [draft, setDraft] = useState('')
+  const [voiceHelp, setVoiceHelp] = useState(false)
   const [pendingModel, setPendingModel] = useState<ModelRef | undefined>()
   const [error, setError] = useState<unknown>(null)
   const [activityOpen, setActivityOpen] = useState(false)
@@ -238,7 +239,15 @@ export function ChatPage() {
       : (orbs.data ?? [])
           .filter((o) => o.name.toLowerCase().startsWith(mentionQuery.toLowerCase()))
           .slice(0, 5)
-  const canListen = voiceStatus.data?.canListen && recordingSupported()
+  // The microphone is always on offer; when talking cannot work yet, it says why instead of hiding.
+  const canListen = !!voiceStatus.data?.canListen && recordingSupported()
+  const voiceBlocker = !recordingSupported()
+    ? globalThis.isSecureContext === false
+      ? 'insecure'
+      : 'unsupported'
+    : voiceStatus.data && !voiceStatus.data.canListen
+      ? 'no-model'
+      : null
   // The orb's face shows what it is doing right now.
   const faceState: OrbState =
     voice.state === 'listening' || voice.state === 'transcribing'
@@ -358,6 +367,24 @@ export function ChatPage() {
         onChange={(e) => onDraft(e.target)}
         onKeyDown={onKeyDown}
       />
+      {voiceHelp && voiceBlocker && (
+        <output className={styles.voiceHelp}>
+          {voiceBlocker === 'insecure' ? (
+            <>
+              Browsers only allow the microphone on a secure address. Open Orbs over https (or on localhost)
+              to talk to {name}.
+            </>
+          ) : voiceBlocker === 'unsupported' ? (
+            <>This browser cannot record audio. Try a current Chrome, Edge, Firefox or Safari.</>
+          ) : (
+            <>
+              To talk to {name}, choose a speech-to-text model on one of your providers under{' '}
+              <Link to="/models">Models</Link>, such as whisper-1 on OpenAI or a local Whisper server. Add a
+              text-to-speech model too and {name} can answer out loud.
+            </>
+          )}
+        </output>
+      )}
       <div className={styles.composerBar}>
         <span className={styles.composerHint}>
           {orb
@@ -379,15 +406,28 @@ export function ChatPage() {
             <Icon name="speaker" size={18} />
           </button>
         )}
-        {canListen && !chat.isStreaming && (
+        {!chat.isStreaming && (
           <button
             type="button"
             className={styles.voiceButton}
             data-state={voice.state}
+            data-unavailable={!canListen || undefined}
             aria-pressed={voice.state === 'listening'}
-            aria-label={voice.state === 'listening' ? 'Stop and send' : 'Talk'}
+            aria-expanded={canListen ? undefined : voiceHelp}
+            aria-label={
+              voice.state === 'listening'
+                ? 'Stop and send'
+                : canListen
+                  ? `Talk to ${name}`
+                  : 'Talk (not set up yet)'
+            }
+            title={canListen ? `Talk to ${name}` : 'Talking needs one more step'}
             disabled={voice.state === 'transcribing'}
-            onClick={() => (voice.state === 'listening' ? voice.stopListening() : void voice.listen())}
+            onClick={() => {
+              if (!canListen) setVoiceHelp((open) => !open)
+              else if (voice.state === 'listening') voice.stopListening()
+              else void voice.listen()
+            }}
           >
             <Icon name="mic" size={18} />
           </button>
