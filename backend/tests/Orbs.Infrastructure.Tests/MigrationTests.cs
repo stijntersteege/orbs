@@ -1,5 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Orbs.Infrastructure.Persistence;
 using Orbs.Infrastructure.Persistence.Sqlite;
 
@@ -43,18 +45,20 @@ public sealed class MigrationTests : IDisposable
     {
         await using (var old = CreateSqlite())
         {
-            // Orbs 0.2 built SQLite schemas without a migration history.
-            await old.Database.EnsureCreatedAsync();
-            old.Orbs.Add(Domain.Orbs.Orb.Create("Pip", DateTimeOffset.UnixEpoch));
-            await old.SaveChangesAsync();
+            // Orbs 0.2 built its SQLite schema (the first migration) without a migration history.
+            var first = old.Database.GetMigrations().First();
+            await old.GetService<IMigrator>().MigrateAsync(first);
+            await old.Database.ExecuteSqlRawAsync("DROP TABLE \"__EFMigrationsHistory\"");
+            await old.Database.ExecuteSqlRawAsync(
+                "INSERT INTO providers (Id, Name, Kind, IsEnabled, CreatedAt, UpdatedAt) VALUES ('6f1c1b1e-0000-4000-8000-000000000001', 'Echo', 'echo', 1, 0, 0)");
         }
 
         await using var db = CreateSqlite();
         await SqliteBaseline.EnsureAsync(db, CancellationToken.None);
         await db.Database.MigrateAsync();
 
-        (await db.Database.GetAppliedMigrationsAsync()).ShouldNotBeEmpty();
-        (await db.Orbs.SingleAsync()).Name.ShouldBe("Pip");
+        (await db.Database.GetPendingMigrationsAsync()).ShouldBeEmpty();
+        (await db.Providers.SingleAsync()).Name.ShouldBe("Echo");
     }
 
     public void Dispose() => _connection.Dispose();

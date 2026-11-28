@@ -18,8 +18,12 @@ export function apiBase(): string {
   return configured.replace(/\/+$/, '')
 }
 
+/** Fired when the server says nobody is signed in, so the app can show the sign-in screen. */
+export const SIGNED_OUT_EVENT = 'orbs:signed-out'
+
 function headers(json: boolean): HeadersInit {
-  const token = loadSettings().apiToken.trim()
+  const settings = loadSettings()
+  const token = settings.apiToken.trim() || settings.sessionToken.trim()
   return {
     Accept: 'application/json',
     ...(json ? { 'Content-Type': 'application/json' } : {}),
@@ -27,7 +31,7 @@ function headers(json: boolean): HeadersInit {
   }
 }
 
-async function toError(response: Response): Promise<ApiError> {
+async function toError(response: Response, path: string): Promise<ApiError> {
   let message = `${response.status} ${response.statusText}`.trim()
   try {
     const problem = (await response.json()) as ProblemDetails
@@ -35,7 +39,10 @@ async function toError(response: Response): Promise<ApiError> {
   } catch {
     // Not JSON: keep the status line.
   }
-  if (response.status === 401) message = 'This server needs an API token. Add it under Settings.'
+  if (response.status === 401 && !path.startsWith('/api/auth/')) {
+    message = 'Sign in to continue.'
+    globalThis.dispatchEvent?.(new Event(SIGNED_OUT_EVENT))
+  }
   return new ApiError(response.status, message)
 }
 
@@ -48,7 +55,7 @@ export async function request(path: string, init: RequestInit = {}): Promise<Res
   } catch {
     throw new ApiError(0, 'Cannot reach the Orbs server. Check the server address under Settings.')
   }
-  if (!response.ok) throw await toError(response)
+  if (!response.ok) throw await toError(response, path)
   return response
 }
 

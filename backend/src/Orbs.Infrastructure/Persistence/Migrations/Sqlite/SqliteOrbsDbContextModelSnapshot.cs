@@ -73,6 +73,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -82,6 +85,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("context_sources", (string)null);
                 });
@@ -97,6 +102,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<Guid>("OrbId")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -106,6 +114,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
 
                     b.HasIndex("OrbId", "UpdatedAt");
 
@@ -161,6 +171,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
                         .HasColumnType("TEXT");
 
                     b.Property<long>("UpdatedAt")
@@ -220,6 +233,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("orbs", (string)null);
                 });
 
@@ -252,6 +267,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ProtectedApiKey")
                         .HasMaxLength(4096)
                         .HasColumnType("TEXT");
@@ -261,7 +279,85 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("providers", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LastSeenAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>
@@ -307,6 +403,100 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         });
 
                     b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.Session", b =>
+                {
+                    b.HasOne("Orbs.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Users.User", b =>
+                {
+                    b.OwnsMany("Orbs.Domain.Users.ExternalLogin", "ExternalLogins", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<long>("CreatedAt")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<string>("Issuer")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Subject")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("UserId");
+
+                            b1.HasIndex("Issuer", "Subject")
+                                .IsUnique();
+
+                            b1.ToTable("external_logins", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.OwnsMany("Orbs.Domain.Users.Passkey", "Passkeys", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<long>("CreatedAt")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<byte[]>("CredentialId")
+                                .IsRequired()
+                                .HasMaxLength(1024)
+                                .HasColumnType("BLOB");
+
+                            b1.Property<long?>("LastUsedAt")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(80)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<byte[]>("PublicKey")
+                                .IsRequired()
+                                .HasColumnType("BLOB");
+
+                            b1.Property<uint>("SignCount")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("CredentialId")
+                                .IsUnique();
+
+                            b1.HasIndex("UserId");
+
+                            b1.ToTable("passkeys", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("ExternalLogins");
+
+                    b.Navigation("Passkeys");
                 });
 
             modelBuilder.Entity("Orbs.Domain.Conversations.Conversation", b =>

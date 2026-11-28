@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Orbs.Application.Accounts;
 
 namespace Orbs.Infrastructure.Persistence.Sqlite;
 
@@ -8,7 +9,8 @@ namespace Orbs.Infrastructure.Persistence.Sqlite;
 /// <c>Persistence/Migrations/Sqlite</c>. SQLite and PostgreSQL need different migration code,
 /// so each provider keeps a separate history.
 /// </summary>
-public sealed class SqliteOrbsDbContext(DbContextOptions<SqliteOrbsDbContext> options) : OrbsDbContext(options);
+public sealed class SqliteOrbsDbContext(DbContextOptions<SqliteOrbsDbContext> options, CurrentUser? currentUser = null)
+    : OrbsDbContext(options, currentUser);
 
 /// <summary>Used only by <c>dotnet ef</c> to create SQLite migrations.</summary>
 internal sealed class SqliteDesignTimeDbContextFactory : IDesignTimeDbContextFactory<SqliteOrbsDbContext>

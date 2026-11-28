@@ -4,7 +4,7 @@
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| **No user accounts** yet; a single shared API token protects the API. | Anyone with the token sees everything. Not suitable for shared servers. | Documented in SECURITY.md; accounts (passkeys, OAuth) are first on the roadmap. Run on private networks or behind an authenticating proxy until then. |
+| **First-run claim**: until the first account exists, anyone who reaches the server can create it. | A stranger could become admin of a fresh install. | Create the account right after the first start; documented in SECURITY.md and the self-hosting guide. |
 | **Server-side fetching** of web pages (SSRF). | A user could make the server request internal URLs. | Only trusted users should have access today; add an allow/deny list and private-range blocking before multi-user support. |
 | **Large context** is cut to a character budget. | Answers may miss information in big sources. | Retrieval with embeddings behind the `PromptBuilder` seam. |
 | **Provider API drift** (streaming formats, model lists). | Adapters break. | Adapters are small and isolated; unit tests for parsing; community can add native adapters. |

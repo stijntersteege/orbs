@@ -10,11 +10,26 @@
 ```bash
 git clone https://github.com/stijntersteege/orbs.git && cd orbs
 cp .env.example .env
-# edit .env: set POSTGRES_PASSWORD, and ORBS_API_TOKEN if the server is reachable from the internet
+# edit .env: set POSTGRES_PASSWORD and ORBS_PUBLIC_URL
 docker compose up -d
 ```
 
-Open `http://<server>:8080`. Check health with `curl http://<server>:8080/health`.
+Open `http://<server>:8080` and create the first account. It becomes the admin and receives the demo orb and anything else already on the server. Check health with `curl http://<server>:8080/health`.
+
+## Accounts and sign-in
+
+Every person on the server has their own account with their own orbs, models, context and chats. Admins add people under **Settings and more > Accounts**; they can then change their password and add passkeys under **Account**.
+
+| Setting | What it does |
+| --- | --- |
+| `Orbs__PublicUrl` | The address people open Orbs on. Passkeys only work on this address. |
+| `Orbs__ApiToken` | Optional. Scripts that send it as a bearer token act as the first admin. |
+| `Orbs__Auth__Oidc__Authority` | Your OpenID Connect provider (Authentik, Authelia, Keycloak, Google, ...). Turns on a "Continue with ..." button. |
+| `Orbs__Auth__Oidc__ClientId`, `ClientSecret` | The client registered at that provider. Its redirect URI is `<PublicUrl>/api/auth/oidc/callback`. |
+| `Orbs__Auth__Oidc__DisplayName` | The provider's name on the button. |
+| `Orbs__Auth__Oidc__CreateAccounts` | `true` creates an account for anyone the provider signs in. Default `false`: only existing accounts (matched by verified email) can use it. |
+
+The mobile app and other clients sign in the same way and send the session token as a bearer token.
 
 Prefer a prebuilt image? Replace `build: .` in `compose.yaml` with the published `image: ghcr.io/stijntersteege/orbs:<version>`.
 

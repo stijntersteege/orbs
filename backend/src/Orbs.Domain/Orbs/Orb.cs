@@ -5,7 +5,7 @@ namespace Orbs.Domain.Orbs;
 /// <summary>
 /// An orb is a model, its context and a face: an AI companion the user talks to.
 /// </summary>
-public sealed class Orb : AggregateRoot
+public sealed class Orb : OwnedAggregateRoot
 {
     public const int MaxNameLength = 40;
     public const int MaxDescriptionLength = 280;

@@ -30,7 +30,7 @@ public sealed class Message : Entity
 }
 
 /// <summary>A chat between the user and one orb.</summary>
-public sealed class Conversation : AggregateRoot
+public sealed class Conversation : OwnedAggregateRoot
 {
     public const int MaxTitleLength = 120;
     public const string DefaultTitle = "New chat";

@@ -1,6 +1,7 @@
 using Orbs.Api.Endpoints;
 using Orbs.Api.Hosting;
 using Orbs.Application;
+using Orbs.Application.Accounts;
 using Orbs.Application.Demo;
 using Orbs.Infrastructure;
 
@@ -17,6 +18,7 @@ await app.Services.InitializeDatabaseAsync();
 if (app.Configuration.GetValue("Orbs:SeedDemoData", defaultValue: false))
 {
     await using var scope = app.Services.CreateAsyncScope();
+    scope.ServiceProvider.GetRequiredService<CurrentUser>().ActAsSystem();
     await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
 }
 
@@ -25,13 +27,15 @@ app.UseStatusCodePages();
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.UseMiddleware<ApiTokenMiddleware>();
+app.UseAuthentication();
+app.UseMiddleware<AuthMiddleware>();
 
 app.MapOpenApi();
 app.MapScalarApiReference();
 app.MapHealthChecks("/health");
 
 var api = app.MapGroup("/api");
+api.MapAuthEndpoints();
 api.MapOrbEndpoints();
 api.MapProviderEndpoints();
 api.MapContextEndpoints();

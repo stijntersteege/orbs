@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Orbs.Application.Accounts;
 using Orbs.Application.Common;
 using Orbs.Domain.Common;
 
@@ -15,6 +16,9 @@ internal sealed class ProblemExceptionHandler(IProblemDetailsService problemDeta
             DomainException => (StatusCodes.Status400BadRequest, "The request breaks a rule"),
             NotFoundException => (StatusCodes.Status404NotFound, "Not found"),
             ModelUnavailableException => (StatusCodes.Status409Conflict, "No model available"),
+            ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
+            UnauthorizedException => (StatusCodes.Status401Unauthorized, "Sign in first"),
+            ForbiddenException => (StatusCodes.Status403Forbidden, "Not allowed"),
             ExternalServiceException => (StatusCodes.Status502BadGateway, "An external service failed"),
             BadHttpRequestException => (StatusCodes.Status400BadRequest, "Malformed request"),
             _ => (0, string.Empty),

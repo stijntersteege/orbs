@@ -9,7 +9,7 @@ public enum ContextSourceStatus { Pending, Ready, Failed }
 /// Connected once, then shared with the orbs the user picks.
 /// <see cref="Kind"/> names the connector that reads it.
 /// </summary>
-public sealed class ContextSource : AggregateRoot
+public sealed class ContextSource : OwnedAggregateRoot
 {
     public const int MaxNameLength = 80;
     public const int MaxLocationLength = 2_048;

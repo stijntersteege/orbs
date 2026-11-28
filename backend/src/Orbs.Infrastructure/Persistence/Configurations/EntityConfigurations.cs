@@ -4,6 +4,7 @@ using Orbs.Domain.Context;
 using Orbs.Domain.Conversations;
 using Orbs.Domain.Orbs;
 using Orbs.Domain.Providers;
+using Orbs.Domain.Users;
 
 namespace Orbs.Infrastructure.Persistence.Configurations;
 
@@ -14,6 +15,7 @@ internal sealed class OrbConfiguration : IEntityTypeConfiguration<Orb>
         builder.ToTable("orbs");
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Id).ValueGeneratedNever();
+        builder.HasIndex(o => o.OwnerId);
         builder.Property(o => o.Name).HasMaxLength(Orb.MaxNameLength).IsRequired();
         builder.Property(o => o.Description).HasMaxLength(Orb.MaxDescriptionLength).IsRequired();
         builder.Property(o => o.Instructions).HasMaxLength(Orb.MaxInstructionsLength).IsRequired();
@@ -50,6 +52,7 @@ internal sealed class ModelProviderConfiguration : IEntityTypeConfiguration<Mode
         builder.ToTable("providers");
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.HasIndex(p => p.OwnerId);
         builder.Property(p => p.Name).HasMaxLength(ModelProvider.MaxNameLength).IsRequired();
         builder.Property(p => p.Kind).HasMaxLength(64).IsRequired();
         builder.Property(p => p.BaseUrl).HasMaxLength(2_048);
@@ -66,6 +69,7 @@ internal sealed class ContextSourceConfiguration : IEntityTypeConfiguration<Cont
         builder.ToTable("context_sources");
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasIndex(s => s.OwnerId);
         builder.Property(s => s.Name).HasMaxLength(ContextSource.MaxNameLength).IsRequired();
         builder.Property(s => s.Kind).HasMaxLength(64).IsRequired();
         builder.Property(s => s.Location).HasMaxLength(ContextSource.MaxLocationLength).IsRequired();
@@ -83,6 +87,7 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
         builder.ToTable("conversations");
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.HasIndex(c => c.OwnerId);
         builder.Property(c => c.Title).HasMaxLength(Conversation.MaxTitleLength).IsRequired();
         builder.HasIndex(c => new { c.OrbId, c.UpdatedAt });
 
@@ -102,5 +107,60 @@ internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(m => m.Content).HasMaxLength(Message.MaxContentLength).IsRequired();
+    }
+}
+
+internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
+{
+    public void Configure(EntityTypeBuilder<User> builder)
+    {
+        builder.ToTable("users");
+        builder.HasKey(u => u.Id);
+        builder.Property(u => u.Id).ValueGeneratedNever();
+        builder.Property(u => u.Email).HasMaxLength(User.MaxEmailLength).IsRequired();
+        builder.HasIndex(u => u.Email).IsUnique();
+        builder.Property(u => u.DisplayName).HasMaxLength(User.MaxNameLength).IsRequired();
+        builder.Property(u => u.PasswordHash).HasMaxLength(500);
+        builder.Ignore(u => u.HasPassword);
+
+        builder.OwnsMany(u => u.Passkeys, p =>
+        {
+            p.ToTable("passkeys");
+            p.WithOwner().HasForeignKey("UserId");
+            p.HasKey(x => x.Id);
+            p.Property(x => x.Id).ValueGeneratedNever();
+            p.Property(x => x.CredentialId).HasMaxLength(1_024).IsRequired();
+            p.HasIndex(x => x.CredentialId).IsUnique();
+            p.Property(x => x.PublicKey).IsRequired();
+            p.Property(x => x.Name).HasMaxLength(Passkey.MaxNameLength).IsRequired();
+        });
+        builder.Navigation(u => u.Passkeys).HasField("_passkeys").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.OwnsMany(u => u.ExternalLogins, l =>
+        {
+            l.ToTable("external_logins");
+            l.WithOwner().HasForeignKey("UserId");
+            l.HasKey(x => x.Id);
+            l.Property(x => x.Id).ValueGeneratedNever();
+            l.Property(x => x.Issuer).HasMaxLength(ExternalLogin.MaxIssuerLength).IsRequired();
+            l.Property(x => x.Subject).HasMaxLength(ExternalLogin.MaxSubjectLength).IsRequired();
+            l.HasIndex(x => new { x.Issuer, x.Subject }).IsUnique();
+        });
+        builder.Navigation(u => u.ExternalLogins).HasField("_externalLogins").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
+{
+    public void Configure(EntityTypeBuilder<Session> builder)
+    {
+        builder.ToTable("sessions");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.TokenHash).HasMaxLength(128).IsRequired();
+        builder.HasIndex(s => s.TokenHash).IsUnique();
+        builder.Property(s => s.Description).HasMaxLength(Session.MaxDescriptionLength).IsRequired();
+        builder.HasIndex(s => s.UserId);
+        builder.HasOne<User>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

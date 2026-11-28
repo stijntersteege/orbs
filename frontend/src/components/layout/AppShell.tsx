@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useMatch } from 'react-router'
-import { useContextSources, useOrbs } from '@/api/queries'
+import { useAccount, useContextSources, useOrbs } from '@/api/queries'
 import type { ContextSource, Orb as OrbModel } from '@/api/types'
 import { Orb } from '@/components/orb/Orb'
 import { Icon, type IconName } from '@/components/ui/icons'
@@ -10,10 +10,12 @@ import { usePopover } from '@/lib/usePopover'
 import styles from './AppShell.module.css'
 
 /** Everything that is not chatting with an orb lives behind one menu. */
-export const MENU: { to: string; label: string; hint: string; icon: IconName }[] = [
+export const MENU: { to: string; label: string; hint: string; icon: IconName; admin?: boolean }[] = [
   { to: '/models', label: 'Models', hint: 'Providers and API keys', icon: 'models' },
   { to: '/context', label: 'Context', hint: 'Notes and web pages', icon: 'context' },
   { to: '/orbs', label: 'Manage orbs', hint: 'Faces, instructions, delete', icon: 'orbs' },
+  { to: '/account', label: 'Account', hint: 'Password, passkeys, devices', icon: 'user' },
+  { to: '/users', label: 'Accounts', hint: 'People on this server', icon: 'users', admin: true },
   { to: '/settings', label: 'Settings', hint: 'Theme, motion and server', icon: 'settings' },
 ]
 
@@ -29,12 +31,14 @@ function statusOf(orb: OrbModel, sources: ContextSource[] | undefined): OrbStatu
 
 function SettingsMenu() {
   const { open, setOpen, ref, toggle } = usePopover()
+  const { data: account } = useAccount()
+  const items = MENU.filter((item) => !item.admin || account?.user.isAdmin)
 
   return (
     <div className={styles.menuWrap} ref={ref}>
       {open && (
         <nav aria-label="Menu" className={styles.menu}>
-          {MENU.map((item) => (
+          {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

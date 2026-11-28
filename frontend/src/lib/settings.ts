@@ -9,6 +9,11 @@ export interface Settings {
   serverUrl: string
   /** Optional shared secret, when the server sets Orbs__ApiToken. */
   apiToken: string
+  /**
+   * Session token for a server on another address (the mobile app). A server on the same address
+   * uses an HttpOnly cookie instead, which scripts cannot read.
+   */
+  sessionToken: string
   /** The orb a new chat starts with. Empty means "the first orb". */
   lastOrbId: string
 }
@@ -18,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   animations: true,
   serverUrl: '',
   apiToken: '',
+  sessionToken: '',
   lastOrbId: '',
 }
 

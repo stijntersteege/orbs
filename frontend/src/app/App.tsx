@@ -9,6 +9,9 @@ import { ModelsPage } from '@/features/models/ModelsPage'
 import { OrbEditorPage } from '@/features/orbs/OrbEditorPage'
 import { OrbsPage } from '@/features/orbs/OrbsPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { AccountPage } from '@/features/account/AccountPage'
+import { AuthGate } from '@/features/account/AuthGate'
+import { UsersPage } from '@/features/account/UsersPage'
 import { IS_DEMO } from '@/demo/mode'
 import { SettingsProvider } from './SettingsContext'
 
@@ -43,6 +46,8 @@ export const routes: RouteObject[] = [
           { path: 'context', element: <ContextPage /> },
           { path: 'models', element: <ModelsPage /> },
           { path: 'settings', element: <SettingsPage /> },
+          { path: 'account', element: <AccountPage /> },
+          { path: 'users', element: <UsersPage /> },
           { path: '*', element: <NotFound /> },
         ],
       },
@@ -62,7 +67,9 @@ export function App() {
   return (
     <SettingsProvider>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <AuthGate>
+          <RouterProvider router={router} />
+        </AuthGate>
       </QueryClientProvider>
     </SettingsProvider>
   )

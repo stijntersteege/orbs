@@ -33,3 +33,22 @@ public abstract class AggregateRoot : Entity
 
     protected void Touch(DateTimeOffset now) => UpdatedAt = now;
 }
+
+/// <summary>An aggregate that belongs to one user account. Other users never see it.</summary>
+public abstract class OwnedAggregateRoot : AggregateRoot
+{
+    protected OwnedAggregateRoot(Guid id, DateTimeOffset createdAt) : base(id, createdAt) { }
+
+    // For EF Core materialization.
+    protected OwnedAggregateRoot() { }
+
+    /// <summary>The user it belongs to. Empty for data from before accounts existed, until the first user claims it.</summary>
+    public Guid OwnerId { get; private set; }
+
+    /// <summary>Hands the aggregate to a user. Set once when it is first stored.</summary>
+    public void AssignOwner(Guid ownerId)
+    {
+        Guard.NotEmpty(ownerId, nameof(ownerId));
+        OwnerId = ownerId;
+    }
+}

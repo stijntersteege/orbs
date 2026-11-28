@@ -142,6 +142,27 @@ export class DemoServer {
         if (method === 'DELETE') return this.removeSource(id)
         break
 
+      case 'auth':
+        if (id === 'status') return json({ setupRequired: false, passwordSignIn: true, passkeys: false })
+        if (id === 'sign-out') return new Response(null, { status: 204 })
+        throw new HttpError(400, 'The live demo has no sign-in: you are always the demo user.')
+
+      case 'account':
+        if (!id && method === 'GET') return json(this.account())
+        if (!id && method === 'PUT') {
+          this.state.user = {
+            ...this.account().user,
+            displayName: required((body as { displayName?: string }).displayName, 'name'),
+          }
+          this.save()
+          return json(this.state.user)
+        }
+        throw new HttpError(400, 'Passwords and passkeys are not part of the live demo.')
+
+      case 'users':
+        if (method === 'GET') return json([this.account().user])
+        throw new HttpError(400, 'The live demo has a single account.')
+
       case 'conversations': {
         if (!id) {
           if (method === 'GET') {
@@ -166,6 +187,33 @@ export class DemoServer {
       }
     }
     throw new HttpError(404, 'Not found.')
+  }
+
+  // Account
+
+  private account() {
+    const user = this.state.user ?? {
+      id: '00000000-0000-4000-8000-000000000001',
+      email: 'demo@orbs.local',
+      displayName: 'Demo',
+      isAdmin: true,
+      hasPassword: false,
+      createdAt: this.timestamp(),
+    }
+    return {
+      user,
+      passkeys: [],
+      sessions: [
+        {
+          id: 'demo',
+          description: 'This browser',
+          createdAt: user.createdAt,
+          lastSeenAt: this.timestamp(),
+          current: true,
+        },
+      ],
+      hasExternalLogin: false,
+    }
   }
 
   // Orbs

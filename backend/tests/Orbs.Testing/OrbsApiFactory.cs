@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -5,7 +8,9 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
+using Orbs.Application.Accounts;
 using Orbs.Infrastructure.Models;
+using Orbs.Infrastructure.Security;
 
 namespace Orbs.Testing;
 
@@ -30,6 +35,66 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     public bool SeedDemoData { get; init; }
 
+    public const string OwnerEmail = "owner@orbs.test";
+    public const string Password = "correct horse battery";
+
+    private bool _anonymous;
+
+    /// <summary>A client that is not signed in.</summary>
+    public HttpClient CreateAnonymousClient()
+    {
+        _anonymous = true;
+        try
+        {
+            return CreateClient();
+        }
+        finally
+        {
+            _anonymous = false;
+        }
+    }
+
+    /// <summary>A client signed in as a second, non-admin account, created by the owner.</summary>
+    public async Task<HttpClient> CreateClientForNewUserAsync(string email)
+    {
+        var owner = new ApiClient(CreateClient());
+        await ApiClient.ReadAsync<UserDto>(await owner.Http.PostAsJsonAsync("/api/users", new CreateUserRequest(email, null, Password), ApiClient.Json));
+        var client = CreateAnonymousClient();
+        await SignInAsync(client, email);
+        return client;
+    }
+
+    /// <summary>Every client is signed in as the owner (the first account), unless asked otherwise.</summary>
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        ArgumentNullException.ThrowIfNull(client);
+        if (!_anonymous)
+        {
+            // Sign in on a separate client: this one may not send anything before it is fully set up.
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", OwnerTokenAsync().GetAwaiter().GetResult());
+        }
+    }
+
+    private async Task<string> OwnerTokenAsync()
+    {
+        using var raw = Server.CreateClient();
+        var setup = await raw.PostAsJsonAsync("/api/auth/setup", new SetupRequest(OwnerEmail, "Owner", Password), ApiClient.Json);
+        if (setup.StatusCode != HttpStatusCode.Conflict)
+        {
+            return (await ApiClient.ReadAsync<SignInResult>(setup)).Token;
+        }
+
+        var signIn = await raw.PostAsJsonAsync("/api/auth/sign-in", new SignInRequest(OwnerEmail, Password), ApiClient.Json);
+        return (await ApiClient.ReadAsync<SignInResult>(signIn)).Token;
+    }
+
+    private static async Task SignInAsync(HttpClient client, string email)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/sign-in", new SignInRequest(email, Password), ApiClient.Json);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await ApiClient.ReadAsync<SignInResult>(response)).Token);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -46,6 +111,10 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IModelAdapter>(new EchoModelAdapter { WordDelay = TimeSpan.Zero });
             services.AddSingleton<IModelAdapter, OpenAiCompatibleModelAdapter>();
             services.AddSingleton<IModelAdapter>(new FailingModelAdapter());
+
+            // Fewer hashing rounds keep sign-in fast in tests.
+            services.RemoveAll<IPasswordHasher>();
+            services.AddSingleton<IPasswordHasher>(new Pbkdf2PasswordHasher(iterations: 1_000));
         });
     }
 

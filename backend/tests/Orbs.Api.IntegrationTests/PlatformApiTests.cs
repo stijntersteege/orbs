@@ -92,7 +92,8 @@ public sealed class HostingTests
     public async Task With_an_api_token_requests_without_it_are_refused()
     {
         using var factory = new OrbsApiFactory { ApiToken = "letmein" };
-        var client = factory.CreateClient();
+        _ = factory.CreateClient(); // creates the first account
+        var client = factory.CreateAnonymousClient();
 
         (await client.GetAsync(new Uri("/api/orbs", UriKind.Relative))).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
