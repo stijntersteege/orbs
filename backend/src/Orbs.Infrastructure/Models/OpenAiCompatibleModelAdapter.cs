@@ -125,8 +125,10 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         ArgumentNullException.ThrowIfNull(connection);
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(audio);
-        file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-        form.Add(file, "file", "speech" + AudioExtension(contentType));
+        // The type and name come from a fixed list, never straight from the upload.
+        var extension = AudioExtension(contentType);
+        file.Headers.ContentType = new MediaTypeHeaderValue(AudioMediaType(extension));
+        form.Add(file, "file", "speech" + extension);
         form.Add(new StringContent(model), "model");
         if (!string.IsNullOrWhiteSpace(language))
         {
@@ -157,6 +159,15 @@ internal sealed class OpenAiCompatibleModelAdapter(IHttpClientFactory httpClient
         await EnsureSuccessAsync(response, cancellationToken);
         return new SpokenAudio(await response.Content.ReadAsByteArrayAsync(cancellationToken), response.Content.Headers.ContentType?.MediaType ?? "audio/mpeg");
     }
+
+    internal static string AudioMediaType(string extension) => extension switch
+    {
+        ".ogg" => "audio/ogg",
+        ".m4a" => "audio/mp4",
+        ".mp3" => "audio/mpeg",
+        ".wav" => "audio/wav",
+        _ => "audio/webm",
+    };
 
     internal static string AudioExtension(string contentType) => contentType.Split(';')[0].Trim() switch
     {
