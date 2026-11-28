@@ -85,6 +85,19 @@ internal sealed class ConversationRepository(OrbsDbContext db) : EfRepository<Co
 
         return await query.OrderByDescending(m => m.CreatedAt).Take(limit).ToListAsync(cancellationToken);
     }
+
+    public async Task<bool> RemoveMessageAsync(Guid conversationId, Guid messageId, CancellationToken cancellationToken = default)
+    {
+        var message = await Db.Set<Message>()
+            .FirstOrDefaultAsync(m => m.Id == messageId && EF.Property<Guid>(m, "ConversationId") == conversationId, cancellationToken);
+        if (message is null)
+        {
+            return false;
+        }
+
+        Db.Remove(message);
+        return true;
+    }
 }
 
 internal sealed class UserRepository(OrbsDbContext db) : EfRepository<User>(db), IUserRepository

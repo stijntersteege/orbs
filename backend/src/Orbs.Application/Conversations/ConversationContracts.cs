@@ -39,6 +39,9 @@ public sealed record ConversationDto(
 public sealed record MessagePageDto(IReadOnlyList<MessageDto> Messages, bool HasMore);
 
 /// <summary>Starts a chat with one orb, or a group chat with others too.</summary>
+/// <summary>Renames a chat.</summary>
+public sealed record RenameConversationRequest(string Title);
+
 public sealed record StartConversationRequest(Guid OrbId, IReadOnlyList<Guid>? With = null);
 
 public sealed record SendMessageRequest(string Content);

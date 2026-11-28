@@ -26,6 +26,16 @@ internal static class ConversationEndpoints
             })
             .WithSummary("Start a conversation with an orb");
 
+        group.MapPut("/{id:guid}", (Guid id, RenameConversationRequest request, ChatService chat, CancellationToken ct) => chat.RenameAsync(id, request, ct))
+            .WithSummary("Rename a conversation");
+
+        group.MapDelete("/{id:guid}/messages/{messageId:guid}", async (Guid id, Guid messageId, ChatService chat, CancellationToken ct) =>
+            {
+                await chat.DeleteMessageAsync(id, messageId, ct);
+                return TypedResults.NoContent();
+            })
+            .WithSummary("Delete one message from a conversation");
+
         group.MapDelete("/{id:guid}", async (Guid id, ChatService chat, CancellationToken ct) =>
             {
                 await chat.DeleteAsync(id, ct);

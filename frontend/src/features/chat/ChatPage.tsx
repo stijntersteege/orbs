@@ -12,7 +12,13 @@ import {
   useProviders,
   useSaveOrb,
 } from '@/api/queries'
-import { DEFAULT_APPEARANCE, type ChatSource, type ModelRef, type Orb as OrbModel } from '@/api/types'
+import {
+  DEFAULT_APPEARANCE,
+  type ChatSource,
+  type Message,
+  type ModelRef,
+  type Orb as OrbModel,
+} from '@/api/types'
 import { Orb, type OrbState } from '@/components/orb/Orb'
 import { Button, ErrorNotice, Spinner } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
@@ -22,6 +28,7 @@ import { useChat } from './useChat'
 import { recordingSupported, useVoice } from './useVoice'
 import { ModelPicker } from './ModelPicker'
 import { ActivityPanel, kindLabel } from './ActivityPanel'
+import { ChatOptions } from './ChatOptions'
 import { usePopover } from '@/lib/usePopover'
 import styles from './chat.module.css'
 
@@ -80,10 +87,62 @@ function ChatsMenu({ orb, current }: { orb: OrbModel; current?: string }) {
                 <span className={styles.modelName}>{c.title}</span>
               </Link>
             ))}
+            <Link
+              to={`/orbs/${orb.id}/chats`}
+              role="menuitem"
+              className={styles.modelOption}
+              onClick={popover.close}
+            >
+              <Icon name="chat" size={16} />
+              <span className={styles.modelName}>All chats…</span>
+            </Link>
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+/** Copy and delete, under each saved message. */
+function MessageActions({
+  message,
+  onDelete,
+}: {
+  message: Message
+  onDelete: (id: string) => Promise<void>
+}) {
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // Messages that are still on their way have no id on the server yet.
+  if (message.id.startsWith('local-')) return null
+  return (
+    <span className={styles.messageActions}>
+      <button
+        type="button"
+        className={styles.messageAction}
+        onClick={() => {
+          void navigator.clipboard?.writeText(message.content)
+          setCopied(true)
+        }}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+      <button
+        type="button"
+        className={styles.messageAction}
+        onClick={async () => {
+          if (!window.confirm('Delete this message? The orb will no longer see it.')) return
+          try {
+            await onDelete(message.id)
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'Deleting failed.')
+          }
+        }}
+      >
+        Delete
+      </button>
+      {error && <span className={styles.actDetail}>{error}</span>}
+    </span>
   )
 }
 
@@ -385,6 +444,9 @@ export function ChatPage() {
           )}
           <span className={styles.spacer} />
           {orb && <ChatsMenu orb={orb} current={conversationId} />}
+          {orb && conversationId && conversation.data && (
+            <ChatOptions orbId={orb.id} chat={{ id: conversationId, title: conversation.data.title }} />
+          )}
           <button
             type="button"
             className={[styles.headerButton, styles.activityToggle].join(' ')}
@@ -436,8 +498,9 @@ export function ChatPage() {
                 {chat.messages.map((m) => {
                   if (m.role === 'user') {
                     return (
-                      <div key={m.id} className={styles.user}>
-                        {m.content}
+                      <div key={m.id} className={styles.userRow}>
+                        <div className={styles.user}>{m.content}</div>
+                        <MessageActions message={m} onDelete={chat.removeMessage} />
                       </div>
                     )
                   }
@@ -456,6 +519,7 @@ export function ChatPage() {
                         {isGroup && author && <span className={styles.author}>{author.name}</span>}
                         {m.content}
                         <Cites sources={citations.get(m.id)} />
+                        <MessageActions message={m} onDelete={chat.removeMessage} />
                       </div>
                     </div>
                   )

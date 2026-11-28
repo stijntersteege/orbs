@@ -78,6 +78,28 @@ public sealed class ChatService(
         return conversation.ToDto();
     }
 
+    public async Task<ConversationSummaryDto> RenameAsync(Guid id, RenameConversationRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var conversation = await LoadAsync(id, cancellationToken);
+        conversation.Retitle(request.Title, clock.GetUtcNow());
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return conversation.ToSummary();
+    }
+
+    /// <summary>Deletes one message from a chat, such as a reply that went wrong. The orb no longer sees it.</summary>
+    public async Task DeleteMessageAsync(Guid id, Guid messageId, CancellationToken cancellationToken = default)
+    {
+        var conversation = await LoadAsync(id, cancellationToken);
+        if (!await conversations.RemoveMessageAsync(id, messageId, cancellationToken))
+        {
+            throw new NotFoundException("Message", messageId);
+        }
+
+        conversation.RemoveMessage(messageId, clock.GetUtcNow());
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var conversation = await LoadAsync(id, cancellationToken);

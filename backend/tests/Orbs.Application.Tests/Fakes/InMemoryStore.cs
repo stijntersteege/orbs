@@ -136,6 +136,10 @@ internal sealed class InMemoryStore : IUnitOfWork
                     .Where(m => before is null || m.CreatedAt < before)
                     .OrderByDescending(m => m.CreatedAt)
                     .Take(limit)]);
+
+        // The service removes the message from the aggregate itself; here it only has to exist.
+        public Task<bool> RemoveMessageAsync(Guid conversationId, Guid messageId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Inner.Items.Single(c => c.Id == conversationId).Messages.Any(m => m.Id == messageId));
     }
 
     private abstract class Delegating<T>(InMemoryRepo<T> inner) : IRepository<T> where T : AggregateRoot
