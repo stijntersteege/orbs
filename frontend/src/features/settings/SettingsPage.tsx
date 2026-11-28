@@ -105,7 +105,8 @@ export function SettingsPage() {
           <div className={styles.stack}>
             <h2>About</h2>
             <p className={styles.muted}>
-              Orbs v0.2.0 · open source under the MIT license. API reference at <a href="/scalar">/scalar</a>.
+              Orbs v{import.meta.env.VITE_ORBS_VERSION} · open source under the MIT license. API reference at{' '}
+              <a href="/scalar">/scalar</a>.
             </p>
           </div>
         </Card>

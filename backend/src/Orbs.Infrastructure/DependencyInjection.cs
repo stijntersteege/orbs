@@ -28,6 +28,9 @@ namespace Orbs.Infrastructure;
 
 public static class DependencyInjection
 {
+    /// <summary>The version of this build, from <c>Directory.Build.props</c>, such as 1.0.0.</summary>
+    public static string OrbsVersion { get; } = typeof(DependencyInjection).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
     /// <summary>
     /// Registers the database, repositories, model adapters, context connectors and secret storage.
     /// <c>Database:Provider</c> picks <c>Sqlite</c> (default, zero setup) or <c>Postgres</c>.
@@ -113,7 +116,7 @@ public static class DependencyInjection
             {
                 c.Timeout = TimeSpan.FromSeconds(30);
                 c.MaxResponseContentBufferSize = SafeHttp.MaxResponseBytes;
-                c.DefaultRequestHeaders.UserAgent.ParseAdd("Orbs/0.2.0 (+https://github.com/stijntersteege/orbs)");
+                c.DefaultRequestHeaders.UserAgent.ParseAdd($"Orbs/{OrbsVersion} (+https://github.com/stijntersteege/orbs)");
             })
             .ConfigurePrimaryHttpMessageHandler(sp => SafeHttp.CreateHandler(sp.GetRequiredService<NetworkPolicy>()));
 

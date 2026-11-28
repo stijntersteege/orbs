@@ -11,6 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591: public XML docs are encouraged, not enforced. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Version>1.0.0</Version>
     <Authors>Orbs contributors</Authors>
     <Copyright>Copyright (c) Orbs contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

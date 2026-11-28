@@ -32,11 +32,11 @@ Plug in any model, connect any context and give every orb its own face.
 
 An **orb** is three things: **a model, its context and a face**.
 
-- **A model**: any provider you connect. A hosted API, a model on your own machine, or any OpenAI-compatible endpoint.
-- **Its context**: the sources it is allowed to read, such as notes and web pages. An orb sees only what you switch on.
+- **A model**: any provider you connect. OpenAI, Anthropic, Gemini, OpenRouter, a model on your own machine, or any OpenAI-compatible endpoint.
+- **Its context**: the sources it is allowed to read: notes, web pages and files. An orb sees only what you switch on.
 - **A face**: color, shape, eyes, mouth and an accessory. It is how you tell your orbs apart at a glance.
 
-Orbs runs on your server, keeps your data there, and works the same in the browser and on your phone.
+Orbs can also act for you, with tools that ask before they change anything; remember what matters; work on a schedule; answer in Telegram, Matrix, Discord, Signal or email; and talk out loud. It runs on your server, keeps your data there, and works the same in the browser and on your phone.
 
 ### Principles
 
@@ -49,19 +49,42 @@ Orbs runs on your server, keeps your data there, and works the same in the brows
 
 ## Features
 
-- 🟣 **Orbs** with a name, a one-line purpose, a brief (instructions) and a customizable face
-- 🧠 **Any model**: an OpenAI-compatible adapter covers OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM and more; per-orb model or "Auto"
-- 🔗 **Context**: notes and web pages out of the box; connect once, share with the orbs you pick
-- 💬 **Streaming chat** over server-sent events, with history per orb
-- 👥 **Accounts**: sign in with a password, a passkey or your OpenID Connect provider; everyone sees only their own orbs
-- 🔐 **Secrets stay secret**: API keys are encrypted at rest and never returned by the API
-- 🌗 **Light and dark themes**, reduced-motion support, keyboard and screen-reader friendly
-- 📱 **Web and mobile** from one codebase (responsive web app, PWA manifest, Capacitor for iOS and Android)
-- 🐳 **One container** serves the API and the web app; PostgreSQL or zero-setup SQLite
-- 🧪 **Tested**: domain, application and adapter unit tests, API integration tests, architecture rules, Reqnroll (Gherkin) specs, Vitest and Playwright
-- 🧩 **Extensible**: add a provider or a context connector by adding one class
+**Orbs**
+- 🟣 **Orbs** with a name, a purpose, a brief and a face of their own, with face states for listening, thinking and speaking
+- 📦 **Templates**: export an orb (face, brief, voice, tools, schedules) as one file and import it anywhere
 
-> Emoji in this README are for skimming only; the app itself uses a custom icon set.
+**Models**
+- 🧠 **Any model**: native adapters for OpenAI-compatible APIs (OpenAI, OpenRouter, Ollama, LM Studio, vLLM, LiteLLM, ...), Anthropic and Google Gemini, with tool calling; per-orb model or "Auto"
+- 🔎 **Retrieval**: set an embedding model and orbs read the passages of big sources that match the question
+
+**Chat**
+- 💬 **Streaming chat** with Markdown, tables and highlighted code; rename, delete and browse every chat; copy or delete single messages
+- 👥 **Group chats**: `@mention` another orb to bring it in; orbs answer in turn and hear each other
+- 📎 **Files in a chat**: drop in a PDF, document or picture for one chat, or let the orb remember it
+- 🎙️ **Voice**: talk to orbs (speech-to-text) and hear them answer, each orb with its own voice
+
+**Context and memory**
+- 🔗 **Context**: notes, web pages kept in sync, and files (PDF, Word, Markdown, text, CSV, JSON, pictures); view, edit and download every source
+- 🧷 **Memory**: orbs remember lasting facts, privately or shared with all your orbs; see and edit everything they remember
+
+**Acting for you**
+- 🛠️ **Tools** with per-orb permissions (allow, ask first, block), approval cards and a full audit trail
+- 🔌 **Connected apps**: web search, CalDAV calendar, email and Home Assistant, plus any **MCP server**
+- 🧭 **Coordinator orbs** that ask specialist orbs, and **skills**: reusable routines in the SKILL.md format
+- ⏰ **Schedules**: orbs work on their own at set times, on a webhook, on new feed items or new email
+- 📨 **Channels**: talk to your orbs in Telegram, Matrix, Discord, Signal or email
+- 🔔 **Notifications** with Web Push and quiet hours
+
+**Server**
+- 👤 **Accounts**: passwords, passkeys or OpenID Connect; everyone sees only their own orbs; admins manage accounts
+- 🔐 **Secure by default**: encrypted secrets, a strict Content Security Policy, rate-limited sign-in, private-network protection for everything Orbs fetches
+- 🐳 **One container** serves the API and the web app; PostgreSQL or zero-setup SQLite; background work runs inside it
+- 🌗 **Light and dark themes**, reduced-motion support, keyboard and screen-reader friendly
+- 📱 **Web and mobile** from one codebase (responsive web app, PWA, Capacitor for iOS and Android)
+- 🧪 **Tested**: domain, application and adapter unit tests, API integration tests, architecture rules, Reqnroll (Gherkin) specs, Vitest and Playwright
+- 🧩 **Extensible**: add a provider, context connector, tool, app or channel by adding one class
+
+A tour of everything is in [Using Orbs](docs/guides/using-orbs.md).
 
 ## Quick start
 
@@ -79,9 +102,10 @@ Open **http://localhost:8080** and create the first account. A demo orb called *
 ### Just the container (SQLite)
 
 ```bash
-docker build -t orbs .
-docker run -p 8080:8080 -v orbs-data:/data orbs
+docker run -p 8080:8080 -v orbs-data:/data ghcr.io/stijntersteege/orbs:1.0.0
 ```
+
+Or build it yourself: `docker build -t orbs . && docker run -p 8080:8080 -v orbs-data:/data orbs`.
 
 ### Connect a model
 
@@ -124,7 +148,7 @@ flowchart LR
 
 - **Backend**: .NET 10, ASP.NET Core Minimal APIs, Clean Architecture (Domain, Application, Infrastructure, Api), EF Core with PostgreSQL or SQLite, OpenAPI with a Scalar reference at `/scalar`.
 - **Frontend**: React 19, TypeScript, Vite, React Router, TanStack Query, CSS Modules on design tokens, Capacitor for native shells.
-- **Extensibility**: model providers implement `IModelAdapter`, context sources implement `IContextConnector`. Both are registered in one place and discovered by kind.
+- **Extensibility**: model providers implement `IModelAdapter`, context sources `IContextConnector`, tools `ITool`, connected apps `IIntegrationKind` and channels `IChannelAdapter`. All are registered in one place and discovered by kind.
 
 Read the full design in the [arc42 architecture documentation](docs/architecture/README.md) and the [architecture decision records](docs/adr/README.md).
 
@@ -194,7 +218,10 @@ Settings use standard ASP.NET Core configuration, so every key can be set as an 
 | --- | --- | --- |
 | `Database__Provider` | `Sqlite` | `Sqlite` or `Postgres` |
 | `ConnectionStrings__Orbs` | `Data Source=orbs.db` | Connection string for the chosen database |
-| `Orbs__ApiToken` | empty | Shared secret for `/api`. Set it before exposing Orbs publicly |
+| `Orbs__PublicUrl` | `http://localhost:8080` | The address people open Orbs on (passkeys and secure cookies depend on it) |
+| `Orbs__TrustForwardedHeaders` | `false` | Turn on behind a reverse proxy |
+| `Orbs__ApiToken` | empty | Optional token for scripts; it acts as the first admin |
+| `Orbs__Auth__Oidc__Authority` | empty | Turns on sign-in with your OpenID Connect provider |
 | `Orbs__SeedDemoData` | `true` | Create the Echo provider and Pip on an empty install |
 | `Orbs__Cors__Origins__0` | none | Extra origins allowed to call the API (for a separately hosted web app) |
 
@@ -217,18 +244,18 @@ On first launch, set your server address under **Settings > Server**. Details in
 
 - [Add a model provider](docs/guides/adding-a-model-provider.md): implement `IModelAdapter`, register it, done. The UI picks it up from `/api/providers/kinds`.
 - [Add a context connector](docs/guides/adding-a-context-connector.md): implement `IContextConnector` for a new kind of source (a repository, a calendar, an API).
+- [Add tools, apps and channels](docs/guides/adding-tools-apps-and-channels.md): implement `ITool`, `IIntegrationKind` or `IChannelAdapter` to let orbs act in other apps and talk in messaging apps.
 
 ## Roadmap
 
-Things I'd like to add some day. Orbs is a hobby project, so there are no dates or promises.
+1.0 brings everything on the original roadmap: accounts, retrieval, files, native adapters, tools with approvals, voice and scheduled sync, and much more. Things I'd like to add some day (no dates or promises, Orbs is a hobby project):
 
-- [ ] Accounts and sign-in (passkeys, OAuth) for multi-user servers
-- [ ] Retrieval with embeddings for large context sources
-- [ ] File uploads (PDF, Markdown) as context
-- [ ] Native adapters for providers without an OpenAI-compatible API
-- [ ] Tool use, with orbs asking before they act
-- [ ] Voice mode
-- [ ] Scheduled context sync
+- [ ] Native apps in the App Store and Google Play
+- [ ] More connected apps and channels (contributions welcome)
+- [ ] Translations of the app
+- [ ] pgvector or sqlite-vec for very large knowledge bases
+
+Deliberately not planned: payments, phone calls and a browser-automation sidecar.
 
 Ideas welcome in [Discussions](https://github.com/stijntersteege/orbs/discussions).
 

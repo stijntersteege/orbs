@@ -1,6 +1,6 @@
 # Adding a context connector
 
-A connector teaches orbs to read a new kind of source: a repository, a calendar, a database, an API. Orbs ships with `text` (notes) and `url` (web pages).
+A connector teaches orbs to read a new kind of source: a repository, a calendar, a database, an API. Orbs ships with `text` (notes), `url` (web pages, kept in sync on a schedule) and `file` (uploads: PDF, Word, Markdown, text and pictures).
 
 ## 1. Implement `IContextConnector`
 

@@ -85,8 +85,8 @@ Write Gherkin scenarios in the language of the product (orbs, sources, models), 
 ## Releasing
 
 1. Update [CHANGELOG.md](CHANGELOG.md): move items from *Unreleased* to the new version.
-2. Tag: `git tag v0.2.0 && git push --tags`.
-3. The release workflow publishes the image to GHCR and drafts GitHub release notes.
+2. Bump the version in `frontend/package.json` and `backend/Directory.Build.props`, then tag: `git tag v1.0.0 && git push --tags`.
+3. The release workflow publishes the image to GHCR (`1.0.0`, `1.0` and `latest`) and creates the GitHub release from the changelog section.
 
 ## License
 

@@ -14,6 +14,7 @@ services:
       ConnectionStrings__Orbs: "Host=db;Database=orbs;Username=orbs;Password=${POSTGRES_PASSWORD:-orbs}"
       Orbs__ApiToken: "${ORBS_API_TOKEN:-}"
       Orbs__PublicUrl: "${ORBS_PUBLIC_URL:-http://localhost:8080}"
+      Orbs__TrustForwardedHeaders: "${ORBS_TRUST_FORWARDED_HEADERS:-false}"
       Orbs__Auth__Oidc__Authority: "${ORBS_OIDC_AUTHORITY:-}"
       Orbs__Auth__Oidc__ClientId: "${ORBS_OIDC_CLIENT_ID:-}"
       Orbs__Auth__Oidc__ClientSecret: "${ORBS_OIDC_CLIENT_SECRET:-}"
