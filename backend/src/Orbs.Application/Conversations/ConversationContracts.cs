@@ -6,13 +6,18 @@ public sealed record MessageDto(Guid Id, MessageRole Role, string Content, DateT
 
 public sealed record ConversationSummaryDto(Guid Id, Guid OrbId, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
+/// <summary>A conversation with its newest messages. <see cref="HasMoreMessages"/> says whether older ones exist.</summary>
 public sealed record ConversationDto(
     Guid Id,
     Guid OrbId,
     string Title,
     IReadOnlyList<MessageDto> Messages,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    bool HasMoreMessages = false);
+
+/// <summary>A page of older messages, oldest first.</summary>
+public sealed record MessagePageDto(IReadOnlyList<MessageDto> Messages, bool HasMore);
 
 public sealed record StartConversationRequest(Guid OrbId);
 
@@ -56,7 +61,13 @@ internal static class ConversationMapping
         c.Id,
         c.OrbId,
         c.Title,
-        [.. c.Messages.OrderBy(m => m.CreatedAt).Select(m => new MessageDto(m.Id, m.Role, m.Content, m.CreatedAt))],
+        [.. c.Messages.OrderBy(m => m.CreatedAt).Select(ToDto)],
         c.CreatedAt,
         c.UpdatedAt);
+
+    public static MessageDto ToDto(this Message m) => new(m.Id, m.Role, m.Content, m.CreatedAt);
+
+    /// <summary>Turns a newest-first page fetched with one extra row into an oldest-first page.</summary>
+    public static (IReadOnlyList<MessageDto> Messages, bool HasMore) ToPage(this IReadOnlyList<Message> newestFirst, int limit) =>
+        ([.. newestFirst.Take(limit).Reverse().Select(ToDto)], newestFirst.Count > limit);
 }

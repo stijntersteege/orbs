@@ -31,6 +31,12 @@ public interface IConversationRepository : IRepository<Conversation>
 {
     /// <summary>Most recently updated first, without messages.</summary>
     Task<IReadOnlyList<Conversation>> ListRecentAsync(Guid? orbId, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Up to <paramref name="limit"/> messages written before <paramref name="before"/> (or the newest, when null),
+    /// newest first. Check that the caller may see the conversation before calling this.
+    /// </summary>
+    Task<IReadOnlyList<Message>> ListMessagesAsync(Guid conversationId, DateTimeOffset? before, int limit, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Commits every change made through the repositories as one transaction.</summary>

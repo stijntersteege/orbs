@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Account page: display name, password, passkeys and signed-in devices. Admins manage people under **Accounts**.
 - Web page sources refuse private, loopback and link-local addresses (SSRF protection). Admins can allow hosts with `Orbs:Network:AllowedHosts`, block hosts with `Orbs:Network:BlockedHosts`, or allow all private networks with `Orbs:Network:AllowPrivateNetworks`. Downloads are capped at 10 MB.
 - Background jobs: a job table and a worker inside the Orbs process that runs due work as the job's owner, with retries (30 s, 60 s, 120 s ...). Settings shows your recent background work. Expired sessions are cleaned up daily. `Orbs:Jobs:Enabled` and `Orbs:Jobs:PollSeconds` control the worker.
+- Long chats load their newest 50 messages and page back on request (**Load earlier messages**). `GET /api/conversations/{id}/messages?before=...&limit=...` pages through older ones; `GET /api/conversations/{id}` takes `limit` and says `hasMoreMessages`.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed

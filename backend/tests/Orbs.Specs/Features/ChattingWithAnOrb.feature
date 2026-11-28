@@ -21,3 +21,10 @@ Feature: Chatting with an orb
     When I say "Hello there" to "Pip"
     Then I see an error mentioning "provider exploded"
     And the conversation has 1 message
+
+  Scenario: A long chat opens at its newest messages
+    Given the demo model is connected
+    When I say "one" to "Pip"
+    And I say "two" to "Pip"
+    Then the chat opens with the 2 newest messages when it shows 2 at a time
+    And paging back shows "one" and "You said: one"

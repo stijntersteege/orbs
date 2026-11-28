@@ -44,7 +44,9 @@ internal sealed class ContextSourceRepository(OrbsDbContext db) : EfRepository<C
 
 internal sealed class ConversationRepository(OrbsDbContext db) : EfRepository<Conversation>(db), IConversationRepository
 {
-    protected override IQueryable<Conversation> Query => Db.Conversations.Include(c => c.Messages);
+    // Only the newest messages come along; long histories are paged with ListMessagesAsync.
+    protected override IQueryable<Conversation> Query =>
+        Db.Conversations.Include(c => c.Messages.OrderByDescending(m => m.CreatedAt).Take(Conversation.LoadedHistory));
 
     public async Task<IReadOnlyList<Conversation>> ListRecentAsync(Guid? orbId, int limit, CancellationToken cancellationToken = default)
     {
@@ -55,6 +57,17 @@ internal sealed class ConversationRepository(OrbsDbContext db) : EfRepository<Co
         }
 
         return await query.OrderByDescending(c => c.UpdatedAt).Take(limit).ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Message>> ListMessagesAsync(Guid conversationId, DateTimeOffset? before, int limit, CancellationToken cancellationToken = default)
+    {
+        var query = Db.Set<Message>().AsNoTracking().Where(m => EF.Property<Guid>(m, "ConversationId") == conversationId);
+        if (before is { } cursor)
+        {
+            query = query.Where(m => m.CreatedAt < cursor);
+        }
+
+        return await query.OrderByDescending(m => m.CreatedAt).Take(limit).ToListAsync(cancellationToken);
     }
 }
 

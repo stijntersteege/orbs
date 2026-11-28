@@ -180,6 +180,7 @@ export class DemoServer {
           }
           return json(this.startConversation(body), 201)
         }
+        if (action === 'messages' && method === 'GET') return json(this.olderMessages(id, url))
         if (action === 'messages') return this.send(id, body, signal)
         if (method === 'GET') return json(this.find(s.conversations, id, 'conversation'))
         if (method === 'DELETE') {
@@ -443,6 +444,16 @@ export class DemoServer {
       },
     })
     return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
+  }
+
+  /** Same paging as the server: messages before `before`, oldest first. */
+  private olderMessages(id: string, url: URL) {
+    const before = url.searchParams.get('before') ?? '9999'
+    const limit = Number(url.searchParams.get('limit') ?? 50)
+    const older = this.find(this.state.conversations, id, 'conversation').messages.filter(
+      (m) => m.createdAt < before,
+    )
+    return { messages: older.slice(-limit), hasMore: older.length > limit }
   }
 
   private append(conversation: Conversation, role: Message['role'], content: string): Message {

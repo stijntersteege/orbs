@@ -32,6 +32,9 @@ public sealed class SpecContext : IDisposable
 
     public ConversationDto? Conversation { get; set; }
 
+    /// <summary>The oldest message time on the last page shown, for paging back.</summary>
+    public DateTimeOffset? LastPageStart { get; set; }
+
     /// <summary>Swaps in a differently configured server. Call before anything uses <see cref="Api"/>.</summary>
     public void UseServer(OrbsApiFactory factory)
     {

@@ -13,8 +13,11 @@ internal static class ConversationEndpoints
         group.MapGet("/", (Guid? orbId, ChatService chat, CancellationToken ct) => chat.ListAsync(orbId, ct))
             .WithSummary("List recent conversations, optionally for one orb");
 
-        group.MapGet("/{id:guid}", (Guid id, ChatService chat, CancellationToken ct) => chat.GetAsync(id, ct))
-            .WithSummary("Get a conversation with its messages");
+        group.MapGet("/{id:guid}", (Guid id, int? limit, ChatService chat, CancellationToken ct) => chat.GetAsync(id, limit, ct))
+            .WithSummary("Get a conversation with its newest messages (50 by default, at most 200)");
+
+        group.MapGet("/{id:guid}/messages", (Guid id, DateTimeOffset? before, int? limit, ChatService chat, CancellationToken ct) => chat.GetMessagesAsync(id, before, limit, ct))
+            .WithSummary("Page back through older messages: those written before 'before', oldest first");
 
         group.MapPost("/", async (StartConversationRequest request, ChatService chat, CancellationToken ct) =>
             {
