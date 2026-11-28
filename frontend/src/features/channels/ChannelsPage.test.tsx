@@ -16,6 +16,18 @@ const pip = {
 }
 
 describe('ChannelsPage', () => {
+  it('renders without a connect form when no channel kinds are available', async () => {
+    mockApi({
+      'GET /api/channels': [],
+      'GET /api/orbs': [pip],
+      'GET /api/channels/kinds': [],
+    })
+    renderPage(<ChannelsPage />)
+
+    expect(await screen.findByText('No channels yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Connect a channel' })).not.toBeInTheDocument()
+  })
+
   it('connects a Telegram bot and shows how to pair', async () => {
     const created = {
       id: 'c1',
