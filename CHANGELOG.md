@@ -42,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Tools page: connected apps and MCP servers are listed first; **Connect an app** and **Connect an MCP server** open their forms when you need them. Built-in tools describe themselves in plain words for people, apart from the instructions the model reads.
 - Managing chats: rename or delete the open chat from its **⋯** menu, see every chat with an orb under **Chats > All chats** (open, rename, delete), and copy or delete single messages. A deleted message is gone for the orb too. `PUT /api/conversations/{id}` and `DELETE /api/conversations/{id}/messages/{messageId}`.
 - Edit everything: schedules (plus **Pause** and **Resume**), channels, connected apps, MCP servers and accounts now have **Edit**, which opens the item in place. Saved tokens and passwords stay when their field is left empty. Admins can rename an account, change its admin rights or set a new password, which signs that person out everywhere (`PUT /api/users/{id}`). Orbs keeps at least one admin and admins cannot remove their own rights.
+- The microphone button is always in the chat box. When talking cannot work yet, clicking it says why: no speech-to-text model chosen under Models (with a link), an address that is not https (browsers only allow the microphone on secure addresses), or a browser that cannot record.
 - Settings `Orbs:PublicUrl` (where passkeys are valid) and `Orbs:Auth:Oidc:*` (single sign-on).
 
 ### Changed
