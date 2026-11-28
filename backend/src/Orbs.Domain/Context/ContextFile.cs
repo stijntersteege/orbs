@@ -41,9 +41,34 @@ public sealed class ContextFile : OwnedAggregateRoot
 
     public bool IsImage => ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>True for files people can edit as text in the app, such as Markdown, plain text, CSV or JSON.</summary>
+    public bool IsEditableText =>
+        ContentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase) || ContentType.Equals("application/json", StringComparison.OrdinalIgnoreCase);
+
     public static ContextFile Create(Guid sourceId, string fileName, string contentType, byte[] data, DateTimeOffset now)
     {
         Guard.NotEmpty(sourceId, nameof(sourceId));
+        EnsureSize(data);
+
+        var name = Path.GetFileName(Guard.Text(fileName, nameof(FileName), MaxFileNameLength));
+        return new ContextFile(Guid.NewGuid(), sourceId, name, Guard.Text(contentType, nameof(ContentType), 100), data, now);
+    }
+
+    /// <summary>Saves new contents for a text file that someone edited.</summary>
+    public void ReplaceText(byte[] data, DateTimeOffset now)
+    {
+        if (!IsEditableText)
+        {
+            throw new DomainException("Only text files can be edited here. Download the file, change it, and upload it again.");
+        }
+
+        EnsureSize(data);
+        Data = data;
+        Touch(now);
+    }
+
+    private static void EnsureSize(byte[] data)
+    {
         ArgumentNullException.ThrowIfNull(data);
         if (data.LongLength == 0)
         {
@@ -54,8 +79,5 @@ public sealed class ContextFile : OwnedAggregateRoot
         {
             throw new DomainException($"Files can be at most {MaxBytes / 1024 / 1024} MB.");
         }
-
-        var name = Path.GetFileName(Guard.Text(fileName, nameof(FileName), MaxFileNameLength));
-        return new ContextFile(Guid.NewGuid(), sourceId, name, Guard.Text(contentType, nameof(ContentType), 100), data, now);
     }
 }

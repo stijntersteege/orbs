@@ -5,6 +5,7 @@ import { ButtonLink, EmptyState } from '@/components/ui'
 import { Orb } from '@/components/orb/Orb'
 import { ChatsPage } from '@/features/chat/ChatsPage'
 import { ChatPage } from '@/features/chat/ChatPage'
+import { ContextSourcePage } from '@/features/context/ContextSourcePage'
 import { ContextPage } from '@/features/context/ContextPage'
 import { ModelsPage } from '@/features/models/ModelsPage'
 import { OrbEditorPage } from '@/features/orbs/OrbEditorPage'
@@ -50,6 +51,7 @@ export const routes: RouteObject[] = [
           { path: 'orbs/:orbId', element: <OrbEditorPage /> },
           { path: 'orbs/:orbId/chats', element: <ChatsPage /> },
           { path: 'context', element: <ContextPage /> },
+          { path: 'context/:sourceId', element: <ContextSourcePage /> },
           { path: 'models', element: <ModelsPage /> },
           { path: 'tools', element: <ToolsPage /> },
           { path: 'skills', element: <SkillsPage /> },

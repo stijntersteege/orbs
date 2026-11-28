@@ -27,6 +27,13 @@ internal static class ContextEndpoints
         group.MapPut("/{id:guid}", (Guid id, SaveContextSourceRequest request, ContextService context, CancellationToken ct) => context.UpdateAsync(id, request, ct))
             .WithSummary("Update a context source and read it again");
 
+        group.MapGet("/{id:guid}/content", (Guid id, FileContextService files, CancellationToken ct) => files.ReadAsync(id, ct))
+            .WithSummary("What a source holds, as orbs read it, and how it can be edited");
+
+        group.MapPut("/{id:guid}/file", (Guid id, ReplaceFileTextRequest request, FileContextService files, CancellationToken ct) => files.ReplaceTextAsync(id, request, ct))
+            .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(Orbs.Domain.Context.ContextFile.MaxBytes + 1_000_000))
+            .WithSummary("Save edited text back into a text file (Markdown, plain text, CSV, JSON)");
+
         group.MapPost("/{id:guid}/sync", (Guid id, ContextService context, CancellationToken ct) => context.SyncAsync(id, ct))
             .WithSummary("Read a context source again");
 

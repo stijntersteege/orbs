@@ -211,6 +211,18 @@ export class DemoServer {
             'The live demo cannot read files. Self-host Orbs to upload documents and pictures.',
           )
         if (action === 'sync') return json(this.syncSource(id))
+        if (action === 'content') {
+          const source = this.find(s.contextSources, id, 'context source')
+          const isNote = source.kind === 'text'
+          return json({
+            id: source.id,
+            kind: source.kind,
+            content: isNote ? source.input : `The live demo does not fetch pages. ${source.location}`,
+            truncated: false,
+            editing: isNote ? 'note' : 'nameOnly',
+          })
+        }
+        if (action === 'file') throw new HttpError(400, 'The live demo has no files.')
         if (method === 'PUT') return json(this.saveSource(id, body))
         if (method === 'DELETE') return this.removeSource(id)
         break

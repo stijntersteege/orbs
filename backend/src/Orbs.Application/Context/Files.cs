@@ -83,6 +83,53 @@ public sealed class FileContextService(
         return source.ToDto();
     }
 
+    /// <summary>What a source holds and how it can be edited. Works for every kind; files also bring their name, type and size.</summary>
+    public async Task<ContextContentDto> ReadAsync(Guid sourceId, CancellationToken cancellationToken = default)
+    {
+        var source = await sources.FindAsync(sourceId, cancellationToken) ?? throw new NotFoundException("Context source", sourceId);
+        var truncated = source.Content.Length >= ContextSource.MaxContentLength;
+        if (source.Kind != Kind)
+        {
+            var isNote = source.Kind == "text";
+            return new ContextContentDto(source.Id, source.Kind, isNote ? source.Input : source.Content, truncated, isNote ? ContextEditing.Note : ContextEditing.NameOnly);
+        }
+
+        var file = await files.FindBySourceAsync(sourceId, cancellationToken);
+        if (file is null)
+        {
+            return new ContextContentDto(source.Id, source.Kind, source.Content, truncated, ContextEditing.NameOnly);
+        }
+
+        // An editable text file shows exactly what is in it, so saving it back changes nothing by accident.
+        var content = file.IsEditableText ? DecodeText(file.Data) : source.Content;
+        return new ContextContentDto(
+            source.Id,
+            source.Kind,
+            content,
+            truncated && !file.IsEditableText,
+            file.IsEditableText ? ContextEditing.TextFile : ContextEditing.NameOnly,
+            file.FileName,
+            file.ContentType,
+            file.Size);
+    }
+
+    /// <summary>Saves edited text back into a text file, reads it again and refreshes what orbs search.</summary>
+    public async Task<ContextContentDto> ReplaceTextAsync(Guid sourceId, ReplaceFileTextRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var source = await sources.FindAsync(sourceId, cancellationToken) ?? throw new NotFoundException("Context source", sourceId);
+        var file = await files.FindBySourceAsync(sourceId, cancellationToken) ?? throw new NotFoundException("This source has no file.");
+        var now = clock.GetUtcNow();
+        file.ReplaceText(System.Text.Encoding.UTF8.GetBytes(request.Text ?? string.Empty), now);
+        source.MarkSynced(await reader.ReadTextAsync(file.FileName, file.ContentType, file.Data, cancellationToken), now);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await indexer.QueueAsync(source, cancellationToken);
+        return await ReadAsync(sourceId, cancellationToken);
+    }
+
+    private static string DecodeText(byte[] data) =>
+        new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetString(data).TrimStart('\uFEFF');
+
     public async Task<ContextFile> DownloadAsync(Guid sourceId, CancellationToken cancellationToken = default)
     {
         _ = await sources.FindAsync(sourceId, cancellationToken) ?? throw new NotFoundException("Context source", sourceId);

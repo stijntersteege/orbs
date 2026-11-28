@@ -238,4 +238,15 @@ describe('DemoServer', () => {
     )
     expect((await call<Conversation>(server, 'GET', path)).body.attachedSourceIds).toEqual([])
   })
+
+  it('shows what a note holds, ready to edit', async () => {
+    const server = new DemoServer()
+    const content = await call<{ content: string; editing: string }>(
+      server,
+      'GET',
+      '/api/context-sources/demo-source-groceries/content',
+    )
+    expect(content.body.editing).toBe('note')
+    expect(content.body.content.length).toBeGreaterThan(0)
+  })
 })
