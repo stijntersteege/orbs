@@ -432,3 +432,12 @@ export interface SaveScheduleRequest {
   integrationId?: string
   isEnabled?: boolean
 }
+
+// Notifications
+
+export interface NotificationSettings {
+  quietFrom?: string
+  quietUntil?: string
+  timeZone: string
+  devices: number
+}

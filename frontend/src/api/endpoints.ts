@@ -26,6 +26,7 @@ import type {
   SaveMcpServerRequest,
   Integration,
   Schedule,
+  NotificationSettings,
   SaveScheduleRequest,
   IntegrationKind,
   SaveIntegrationRequest,
@@ -194,4 +195,15 @@ export const schedulesApi = {
   run: async (id: string) => {
     await request(`/api/schedules/${id}/run`, { method: 'POST' })
   },
+}
+
+export const notificationsApi = {
+  key: () => http.get<{ publicKey: string }>('/api/push/key'),
+  subscribe: async (body: { endpoint: string; keys: { p256dh: string; auth: string } }) => {
+    await request('/api/push/subscriptions', { method: 'POST', body: JSON.stringify(body) })
+  },
+  test: () => http.post<{ delivered: number }>('/api/push/test'),
+  settings: () => http.get<NotificationSettings>('/api/account/notifications'),
+  saveSettings: (body: { quietFrom?: string; quietUntil?: string; timeZone?: string }) =>
+    http.put<NotificationSettings>('/api/account/notifications', body),
 }

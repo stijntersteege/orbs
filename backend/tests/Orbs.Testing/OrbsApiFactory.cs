@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orbs.Application.Abstractions;
 using Orbs.Application.Accounts;
 using Orbs.Application.Jobs;
+using Orbs.Application.Notifications;
 using Orbs.Application.Schedules;
 using Orbs.Application.Tools;
 using Orbs.Infrastructure.Models;
@@ -40,6 +41,9 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
     /// <summary>The server's clock: real time, but tests can move it forward.</summary>
     public TestClock Clock { get; } = new();
+
+    /// <summary>Every push message the server sent.</summary>
+    public FakePushSender Push { get; } = new();
 
     /// <summary>What every RSS schedule sees.</summary>
     public FakeFeedReader Feeds { get; } = new();
@@ -154,6 +158,8 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
+            services.RemoveAll<IPushSender>();
+            services.AddSingleton<IPushSender>(Push);
             services.RemoveAll<IFeedReader>();
             services.AddSingleton<IFeedReader>(Feeds);
             services.RemoveAll<IMcpClient>();

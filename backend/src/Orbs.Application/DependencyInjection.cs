@@ -7,6 +7,7 @@ using Orbs.Application.Conversations;
 using Orbs.Application.Demo;
 using Orbs.Application.Jobs;
 using Orbs.Application.Memories;
+using Orbs.Application.Notifications;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
 using Orbs.Application.Schedules;
@@ -38,6 +39,8 @@ public static class DependencyInjection
         services.AddScoped<FileContextService>();
         services.AddScoped<ContextSyncDispatcher>();
         services.AddScoped<IJobHandler, ContextSyncJob>();
+        services.AddScoped<NotificationService>();
+        services.AddScoped<IJobHandler, NotificationJob>();
         services.AddScoped<ScheduleService>();
         services.AddScoped<ScheduleDispatcher>();
         services.AddScoped<ScheduleRunner>();

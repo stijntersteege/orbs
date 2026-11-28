@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icons'
 import { createPasskey, passkeysSupported } from '@/lib/webauthn'
 import shared from '../shared.module.css'
 import styles from './account.module.css'
+import { NotificationsCard } from './NotificationsCard'
 
 const date = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
 
@@ -44,6 +45,7 @@ export function AccountPage() {
         <Profile name={account.user.displayName} onSaved={refresh} />
         <Password hasPassword={account.user.hasPassword} />
         <Passkeys passkeys={account.passkeys} onChange={refresh} />
+        <NotificationsCard />
         <Card>
           <div className={shared.stack}>
             <h2>Signed-in devices</h2>

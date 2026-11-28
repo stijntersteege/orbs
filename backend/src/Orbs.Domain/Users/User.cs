@@ -46,6 +46,15 @@ public sealed class User : AggregateRoot
 
     public bool HasPassword => PasswordHash is not null;
 
+    /// <summary>When notifications wait instead of arriving, or null for never.</summary>
+    public QuietHours? QuietHours { get; private set; }
+
+    public void SetQuietHours(QuietHours? quietHours, DateTimeOffset now)
+    {
+        QuietHours = quietHours;
+        Touch(now);
+    }
+
     public static User Create(string email, string? displayName, bool isAdmin, DateTimeOffset now, Guid? id = null)
     {
         var normalized = NormalizeEmail(email);

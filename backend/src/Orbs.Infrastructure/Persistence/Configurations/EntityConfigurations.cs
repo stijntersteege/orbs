@@ -146,6 +146,12 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DisplayName).HasMaxLength(User.MaxNameLength).IsRequired();
         builder.Property(u => u.PasswordHash).HasMaxLength(500);
         builder.Ignore(u => u.HasPassword);
+        builder.OwnsOne(u => u.QuietHours, q =>
+        {
+            q.Property(x => x.From).HasColumnName("quiet_from");
+            q.Property(x => x.Until).HasColumnName("quiet_until");
+            q.Property(x => x.TimeZone).HasColumnName("quiet_time_zone").HasMaxLength(100);
+        });
 
         builder.OwnsMany(u => u.Passkeys, p =>
         {
@@ -325,5 +331,32 @@ internal sealed class ScheduleConfiguration : IEntityTypeConfiguration<Schedule>
         builder.Property(s => s.WebhookSecretHash).HasMaxLength(128);
         builder.Property(s => s.LastSeen).HasMaxLength(Schedule.MaxLastSeenLength);
         builder.HasOne<Orb>().WithMany().HasForeignKey(s => s.OrbId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class PushSubscriptionConfiguration : IEntityTypeConfiguration<PushSubscription>
+{
+    public void Configure(EntityTypeBuilder<PushSubscription> builder)
+    {
+        builder.ToTable("push_subscriptions");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasIndex(s => s.OwnerId);
+        builder.Property(s => s.Endpoint).HasMaxLength(PushSubscription.MaxEndpointLength).IsRequired();
+        builder.HasIndex(s => s.Endpoint).IsUnique();
+        builder.Property(s => s.P256dh).HasMaxLength(200).IsRequired();
+        builder.Property(s => s.Auth).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.Device).HasMaxLength(200).IsRequired();
+    }
+}
+
+internal sealed class ServerSettingConfiguration : IEntityTypeConfiguration<Notifications.ServerSetting>
+{
+    public void Configure(EntityTypeBuilder<Notifications.ServerSetting> builder)
+    {
+        builder.ToTable("server_settings");
+        builder.HasKey(s => s.Key);
+        builder.Property(s => s.Key).HasMaxLength(100);
+        builder.Property(s => s.Value).HasMaxLength(4_096).IsRequired();
     }
 }
