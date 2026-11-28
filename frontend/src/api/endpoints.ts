@@ -1,6 +1,7 @@
 import { http, request } from './client'
 import { readServerSentEvents } from './sse'
 import type {
+  ContextContent,
   ApprovalDecision,
   ChatEvent,
   ContextKind,
@@ -82,6 +83,13 @@ export const contextApi = {
     ).json() as Promise<ContextSource>
   },
   fileUrl: (id: string) => `/api/context-sources/${id}/file`,
+  /** What the source holds, as orbs read it, and how it can be edited. */
+  content: (id: string) => http.get<ContextContent>(`/api/context-sources/${id}/content`),
+  /** Saves edited text back into a text file. */
+  replaceText: (id: string, text: string) =>
+    http.put<ContextContent>(`/api/context-sources/${id}/file`, { text }),
+  /** The original file, with the signed-in session. */
+  download: async (id: string) => (await request(`/api/context-sources/${id}/file`)).blob(),
   remove: (id: string) => http.delete(`/api/context-sources/${id}`),
 }
 

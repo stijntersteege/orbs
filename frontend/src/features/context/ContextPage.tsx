@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import {
   useContextKinds,
   useContextSources,
@@ -11,6 +12,7 @@ import {
 import type { ContextKind, ContextSource, SyncInterval } from '@/api/types'
 import {
   Button,
+  ButtonLink,
   Card,
   Chip,
   EmptyState,
@@ -200,7 +202,9 @@ export function ContextPage() {
                     <Icon name={KIND_ICON[s.kind] ?? 'plug'} />
                   </span>
                   <span className={styles.rowText}>
-                    <strong>{s.name}</strong>
+                    <Link to={`/context/${s.id}`} className={styles.rowLink}>
+                      <strong>{s.name}</strong>
+                    </Link>
                     <span className={styles.muted}>
                       {s.location || `${s.contentLength.toLocaleString()} characters`}
                       {' · '}
@@ -215,6 +219,9 @@ export function ContextPage() {
                       {s.indexedChunks} {s.indexedChunks === 1 ? 'passage' : 'passages'}
                     </Chip>
                   )}
+                  <ButtonLink small to={`/context/${s.id}`} aria-label={`Open ${s.name}`}>
+                    Open
+                  </ButtonLink>
                   <Button
                     small
                     variant="ghost"

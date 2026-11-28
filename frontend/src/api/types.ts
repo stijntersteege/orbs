@@ -147,6 +147,22 @@ export interface ContextSource {
   indexedAt?: string
 }
 
+/** How a source can be changed in the app. */
+export type ContextEditing = 'nameOnly' | 'note' | 'textFile'
+
+/** What a source holds, as orbs read it. Files also say what they are. */
+export interface ContextContent {
+  id: string
+  kind: string
+  content: string
+  /** The text was cut at the limit orbs read. */
+  truncated: boolean
+  editing: ContextEditing
+  fileName?: string
+  contentType?: string
+  size?: number
+}
+
 export interface SaveContextSourceRequest {
   name: string
   kind: string
