@@ -155,20 +155,19 @@ function UserRow({
           {!isMe && (
             <Switch label="Admin" description="Can manage accounts." checked={admin} onChange={setAdmin} />
           )}
-          <TextField
-            label="New password"
-            type="password"
-            autoComplete="new-password"
-            minLength={10}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            hint={
-              isMe
-                ? 'Change your own password on the Account page.'
-                : 'Optional. Signs them out on every device.'
-            }
-            disabled={isMe}
-          />
+          {isMe ? (
+            <p className={shared.muted}>Change your own password on the Account page.</p>
+          ) : (
+            <TextField
+              label="New password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              hint="Optional. Signs them out on every device."
+            />
+          )}
           <ErrorNotice error={save.error} />
           <div className={shared.actions}>
             <Button type="submit" variant="primary" disabled={save.isPending || !name.trim()}>
