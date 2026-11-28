@@ -99,6 +99,12 @@ public sealed class Conversation : OwnedAggregateRoot
     // Other orbs in a group chat. A list (not a set) so EF Core can store it as a primitive collection.
     private readonly List<Guid> _guestOrbIds = [];
 
+    // Context sources (usually uploaded files) that only this chat reads.
+    private readonly List<Guid> _attachedSourceIds = [];
+
+    /// <summary>At most this many files can be attached to one chat.</summary>
+    public const int MaxAttachments = 20;
+
     private Conversation(Guid id, Guid orbId, DateTimeOffset now) : base(id, now)
     {
         OrbId = orbId;
@@ -117,6 +123,35 @@ public sealed class Conversation : OwnedAggregateRoot
     public IReadOnlyList<Guid> OrbIds => [OrbId, .. _guestOrbIds];
 
     public bool IsGroup => _guestOrbIds.Count > 0;
+
+    /// <summary>Context sources attached to this chat only, such as a file dropped into the message box.</summary>
+    public IReadOnlyList<Guid> AttachedSourceIds => _attachedSourceIds;
+
+    /// <summary>Lets this chat read a context source, without the orb keeping it for other chats.</summary>
+    public void Attach(Guid contextSourceId, DateTimeOffset now)
+    {
+        Guard.NotEmpty(contextSourceId, nameof(contextSourceId));
+        if (_attachedSourceIds.Contains(contextSourceId))
+        {
+            return;
+        }
+
+        if (_attachedSourceIds.Count >= MaxAttachments)
+        {
+            throw new DomainException($"A chat can have at most {MaxAttachments} files.");
+        }
+
+        _attachedSourceIds.Add(contextSourceId);
+        Touch(now);
+    }
+
+    public void Detach(Guid contextSourceId, DateTimeOffset now)
+    {
+        if (_attachedSourceIds.Remove(contextSourceId))
+        {
+            Touch(now);
+        }
+    }
 
     /// <summary>Brings another orb into the chat, such as when someone mentions it.</summary>
     public void Invite(Guid orbId, DateTimeOffset now)

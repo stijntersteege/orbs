@@ -87,6 +87,36 @@ public sealed class ChatService(
         return conversation.ToSummary();
     }
 
+    /// <summary>Attaches a context source to a chat, and to its orb as well when asked to remember it.</summary>
+    public async Task<ConversationSummaryDto> AttachAsync(Guid id, AttachRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var conversation = await LoadAsync(id, cancellationToken);
+        _ = await contextSources.FindAsync(request.ContextSourceId, cancellationToken) ?? throw new NotFoundException("Context source", request.ContextSourceId);
+        var now = clock.GetUtcNow();
+        if (request.Remember)
+        {
+            var orb = await LoadOrbAsync(conversation.OrbId, cancellationToken);
+            orb.LinkContext(request.ContextSourceId, now);
+            conversation.Detach(request.ContextSourceId, now);
+        }
+        else
+        {
+            conversation.Attach(request.ContextSourceId, now);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return conversation.ToSummary();
+    }
+
+    /// <summary>Takes a file back out of a chat. The file itself stays under Context.</summary>
+    public async Task DetachAsync(Guid id, Guid contextSourceId, CancellationToken cancellationToken = default)
+    {
+        var conversation = await LoadAsync(id, cancellationToken);
+        conversation.Detach(contextSourceId, clock.GetUtcNow());
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>Deletes one message from a chat, such as a reply that went wrong. The orb no longer sees it.</summary>
     public async Task DeleteMessageAsync(Guid id, Guid messageId, CancellationToken cancellationToken = default)
     {
@@ -182,7 +212,8 @@ public sealed class ChatService(
         }
 
         var adapter = adapters.Get(resolved.Provider.Kind);
-        var context = await contextSources.ListAsync(orb.ContextSourceIds, cancellationToken);
+        // What the orb always knows, plus what was attached to this chat.
+        var context = await contextSources.ListAsync([.. orb.ContextSourceIds.Union(conversation.AttachedSourceIds)], cancellationToken);
         var toolSet = await tools.ForOrbAsync(orb, adapter.SupportsTools, cancellationToken);
         var retrieved = await retriever.RetrieveAsync(context, question, cancellationToken);
         var images = adapter.SupportsImages ? await files.ImagesForAsync(context, cancellationToken) : [];

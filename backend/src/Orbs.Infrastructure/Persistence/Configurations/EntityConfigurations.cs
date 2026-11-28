@@ -121,6 +121,8 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
 
         builder.HasMany(c => c.Messages).WithOne().HasForeignKey("ConversationId").OnDelete(DeleteBehavior.Cascade);
         builder.PrimitiveCollection<List<Guid>>("_guestOrbIds").HasColumnName("guest_orb_ids").IsRequired();
+        builder.PrimitiveCollection<List<Guid>>("_attachedSourceIds").HasColumnName("attached_source_ids").IsRequired();
+        builder.Ignore(c => c.AttachedSourceIds);
         builder.Ignore(c => c.OrbIds);
         builder.Ignore(c => c.IsGroup);
         builder.Navigation(c => c.Messages).HasField("_messages").UsePropertyAccessMode(PropertyAccessMode.Field);

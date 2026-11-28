@@ -198,4 +198,26 @@ describe('ChatPage', () => {
     expect(screen.getByText(/only allow the microphone on a secure address/)).toBeInTheDocument()
     vi.unstubAllGlobals()
   })
+
+  it('attaches picked files and offers to remember them', async () => {
+    mockApi({
+      'GET /api/orbs': [pip],
+      'GET /api/providers': [echo],
+      'GET /api/context-sources': [],
+      'GET /api/providers/p1/models': [{ id: 'echo-1' }],
+    })
+    const user = userEvent.setup()
+    const { container } = renderRoute(routes, '/orbs/o1/chat')
+
+    expect(await screen.findByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')!
+    await user.upload(input, new File(['Soup on Friday'], 'menu.md'))
+
+    expect(screen.getByRole('list', { name: 'Files to send' })).toHaveTextContent('menu.md')
+    expect(screen.getByRole('checkbox', { name: 'Remember for Pip, in every chat' })).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Remove menu.md' }))
+    expect(screen.queryByRole('list', { name: 'Files to send' })).not.toBeInTheDocument()
+  })
 })

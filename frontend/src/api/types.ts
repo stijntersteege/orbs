@@ -217,6 +217,8 @@ export interface Conversation extends ConversationSummary {
   /** True when older messages can be loaded with `conversationsApi.messages`. */
   hasMoreMessages?: boolean
   pendingApproval?: Approval
+  /** Context sources (usually files) that only this chat reads. */
+  attachedSourceIds?: string[]
 }
 
 export interface MessagePage {

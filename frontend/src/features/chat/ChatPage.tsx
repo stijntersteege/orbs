@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
-import { conversationsApi } from '@/api/endpoints'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { contextApi, conversationsApi } from '@/api/endpoints'
 import {
   keys,
   useContextSources,
@@ -13,6 +13,7 @@ import {
   useSaveOrb,
 } from '@/api/queries'
 import {
+  type ContextSource,
   DEFAULT_APPEARANCE,
   type ChatSource,
   type Message,
@@ -103,6 +104,37 @@ function ChatsMenu({ orb, current }: { orb: OrbModel; current?: string }) {
   )
 }
 
+/** The files this chat reads, each with a way to take it out again. */
+function AttachedFiles({ conversationId, files }: { conversationId: string; files: ContextSource[] }) {
+  const client = useQueryClient()
+  const detach = useMutation({
+    mutationFn: (sourceId: string) => conversationsApi.detach(conversationId, sourceId),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.conversation(conversationId) }),
+  })
+  return (
+    <div className={styles.attachments}>
+      <span className={styles.attachedLabel}>In this chat:</span>
+      <ul className={styles.fileChips} aria-label="Files in this chat">
+        {files.map((f) => (
+          <li key={f.id} className={styles.fileChip}>
+            <Icon name="file" size={14} />
+            <span className={styles.fileName}>{f.name}</span>
+            <button
+              type="button"
+              className={styles.fileRemove}
+              aria-label={`Take ${f.name} out of this chat`}
+              disabled={detach.isPending}
+              onClick={() => detach.mutate(f.id)}
+            >
+              <Icon name="close" size={12} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** Copy and delete, under each saved message. */
 function MessageActions({
   message,
@@ -173,6 +205,15 @@ export function ChatPage() {
   )
   const [draft, setDraft] = useState('')
   const [voiceHelp, setVoiceHelp] = useState(false)
+  const [attaching, setAttaching] = useState(false)
+  // Files picked in the message box, sent along with the next message.
+  const [files, setFiles] = useState<File[]>([])
+  const [rememberFiles, setRememberFiles] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const addFiles = (list: FileList | File[] | null | undefined) => {
+    const picked = [...(list ?? [])]
+    if (picked.length) setFiles((f) => [...f, ...picked].slice(0, 10))
+  }
   const [pendingModel, setPendingModel] = useState<ModelRef | undefined>()
   const [error, setError] = useState<unknown>(null)
   const [activityOpen, setActivityOpen] = useState(false)
@@ -221,6 +262,7 @@ export function ChatPage() {
   const allProviders = providers.data ?? []
   const hasModel = allProviders.some((p) => p.isEnabled)
   const known = orb ? (sources.data?.filter((s) => orb.contextSourceIds.includes(s.id)) ?? []) : []
+  const attached = sources.data?.filter((s) => conversation.data?.attachedSourceIds?.includes(s.id)) ?? []
   const model = orb ? orb.model : pendingModel
   const name = orb?.name ?? 'Pip'
   const citations = new Map(chat.activity.map((a) => [a.id, a.sources]))
@@ -282,7 +324,9 @@ export function ChatPage() {
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault()
-    const text = draft.trim()
+    const sending = files
+    const text =
+      draft.trim() || (sending.length ? `I attached ${sending.map((f) => f.name).join(', ')}.` : '')
     if (!text || chat.isStreaming) return
     setDraft('')
     if (inputRef.current) inputRef.current.style.height = 'auto'
@@ -308,10 +352,23 @@ export function ChatPage() {
         void client.invalidateQueries({ queryKey: ['conversations'] })
         navigate(`/orbs/${target.id}/chat/${started.id}`, { replace: !!params.orbId })
       }
+      if (sending.length) {
+        setAttaching(true)
+        for (const file of sending) {
+          const source = await contextApi.upload(file)
+          await conversationsApi.attach(targetId, source.id, rememberFiles)
+        }
+        setFiles([])
+        void client.invalidateQueries({ queryKey: keys.context })
+        void client.invalidateQueries({ queryKey: keys.conversation(targetId) })
+        if (rememberFiles) void client.invalidateQueries({ queryKey: keys.orbs })
+      }
     } catch (err) {
       setError(err)
-      setDraft(text)
+      setDraft(draft)
       return
+    } finally {
+      setAttaching(false)
     }
     await chat.send(text, targetId)
   }
@@ -354,6 +411,37 @@ export function ChatPage() {
           ))}
         </div>
       )}
+      {attached.length > 0 && conversationId && (
+        <AttachedFiles conversationId={conversationId} files={attached} />
+      )}
+      {files.length > 0 && (
+        <div className={styles.attachments}>
+          <ul className={styles.fileChips} aria-label="Files to send">
+            {files.map((f, i) => (
+              <li key={`${f.name}-${i}`} className={styles.fileChip}>
+                <Icon name="file" size={14} />
+                <span className={styles.fileName}>{f.name}</span>
+                <button
+                  type="button"
+                  className={styles.fileRemove}
+                  aria-label={`Remove ${f.name}`}
+                  onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}
+                >
+                  <Icon name="close" size={12} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <label className={styles.rememberFiles}>
+            <input
+              type="checkbox"
+              checked={rememberFiles}
+              onChange={(e) => setRememberFiles(e.target.checked)}
+            />
+            Remember for {name}, in every chat
+          </label>
+        </div>
+      )}
       <label htmlFor="message" className="visually-hidden">
         Message {name}
       </label>
@@ -366,6 +454,19 @@ export function ChatPage() {
         placeholder={hasModel ? `Message ${name}, or @mention another orb` : 'Connect a model to start'}
         onChange={(e) => onDraft(e.target)}
         onKeyDown={onKeyDown}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          if (e.dataTransfer.files.length) {
+            e.preventDefault()
+            addFiles(e.dataTransfer.files)
+          }
+        }}
+        onPaste={(e) => {
+          if (e.clipboardData.files.length) {
+            e.preventDefault()
+            addFiles(e.clipboardData.files)
+          }
+        }}
       />
       {voiceHelp && voiceBlocker && (
         <output className={styles.voiceHelp}>
@@ -406,6 +507,29 @@ export function ChatPage() {
             <Icon name="speaker" size={18} />
           </button>
         )}
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          className="visually-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+          accept=".pdf,.docx,.md,.markdown,.txt,.csv,.json,.html,.png,.jpg,.jpeg,.gif,.webp"
+          onChange={(e) => {
+            addFiles(e.target.files)
+            e.target.value = ''
+          }}
+        />
+        <button
+          type="button"
+          className={styles.voiceButton}
+          aria-label="Attach files"
+          title="Attach files: PDF, Word, Markdown, text or pictures"
+          disabled={chat.isStreaming || attaching}
+          onClick={() => fileInput.current?.click()}
+        >
+          <Icon name="file" size={18} />
+        </button>
         {!chat.isStreaming && (
           <button
             type="button"
@@ -437,7 +561,12 @@ export function ChatPage() {
             <Icon name="stop" size={16} />
           </button>
         ) : (
-          <button type="submit" className={styles.send} disabled={!draft.trim()} aria-label="Send">
+          <button
+            type="submit"
+            className={styles.send}
+            disabled={(!draft.trim() && files.length === 0) || attaching}
+            aria-label={attaching ? 'Uploading files' : 'Send'}
+          >
             <Icon name="up" size={18} />
           </button>
         )}

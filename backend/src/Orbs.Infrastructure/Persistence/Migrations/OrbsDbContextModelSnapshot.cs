@@ -279,6 +279,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.PrimitiveCollection<List<Guid>>("_attachedSourceIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("attached_source_ids");
+
                     b.PrimitiveCollection<List<Guid>>("_guestOrbIds")
                         .IsRequired()
                         .HasColumnType("uuid[]")

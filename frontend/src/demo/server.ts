@@ -301,6 +301,7 @@ export class DemoServer {
         }
         if (action === 'messages' && parts[4] === 'skill')
           return json(this.skillFromReply(id, parts[3]!, body), 201)
+        if (action === 'attachments') return this.attachment(id, method, parts[3], body)
         if (action === 'messages' && method === 'DELETE') {
           const chat = this.find(s.conversations, id, 'conversation')
           const before = chat.messages.length
@@ -445,6 +446,31 @@ export class DemoServer {
       description: `Repeats the steps from the chat "${conversation.title}".`,
       instructions: steps,
     })
+  }
+
+  /** Files (or notes) for one chat; "remember" gives them to the chat's orb instead. */
+  private attachment(id: string, method: string, sourceId: string | undefined, body: unknown): Response {
+    const chat = this.find(this.state.conversations, id, 'conversation') as Conversation
+    const attached = chat.attachedSourceIds ?? []
+    if (method === 'DELETE') {
+      chat.attachedSourceIds = attached.filter((a) => a !== sourceId)
+      this.save()
+      return new Response(null, { status: 204 })
+    }
+    const request = body as { contextSourceId?: string; remember?: boolean }
+    const source = this.find(this.state.contextSources, request.contextSourceId ?? '', 'context source')
+    if (request.remember) {
+      const orb = this.find(this.state.orbs, chat.orbId, 'orb')
+      if (!orb.contextSourceIds.includes(source.id))
+        orb.contextSourceIds = [...orb.contextSourceIds, source.id]
+      chat.attachedSourceIds = attached.filter((a) => a !== source.id)
+    } else if (!attached.includes(source.id)) {
+      chat.attachedSourceIds = [...attached, source.id]
+    }
+    chat.updatedAt = this.timestamp()
+    this.save()
+    const { messages: _messages, ...summary } = chat
+    return json(summary)
   }
 
   private addMemory(orbId: string, body: unknown): Memory {
@@ -684,9 +710,12 @@ export class DemoServer {
   }
 
   /** The sources that go into the prompt, with the same budget rules as the server's PromptBuilder. */
-  private sourcesUsed(orb: Orb): ChatSource[] {
+  private sourcesUsed(orb: Orb, chat?: Conversation): ChatSource[] {
     const ready = this.state.contextSources.filter(
-      (s) => orb.contextSourceIds.includes(s.id) && s.status === 'ready' && s.contentLength > 0,
+      (s) =>
+        (orb.contextSourceIds.includes(s.id) || (chat?.attachedSourceIds ?? []).includes(s.id)) &&
+        s.status === 'ready' &&
+        s.contentLength > 0,
     )
     if (ready.length === 0) return []
     const share = Math.floor(PROMPT_CONTEXT_CHARACTERS / ready.length)
@@ -721,7 +750,7 @@ export class DemoServer {
     }
 
     const { provider, model } = this.resolve(orb)
-    const sources = this.sourcesUsed(orb)
+    const sources = this.sourcesUsed(orb, conversation)
 
     this.append(conversation, 'user', content)
     this.pending.delete(id)
@@ -795,7 +824,7 @@ export class DemoServer {
         type: 'start',
         model,
         provider: provider.name,
-        sources: this.sourcesUsed(orb),
+        sources: this.sourcesUsed(orb, conversation),
         orbId: orb.id,
         orbName: orb.name,
       }
