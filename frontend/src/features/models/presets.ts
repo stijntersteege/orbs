@@ -46,6 +46,22 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     hint: 'GPT models with your own key.',
   },
   {
+    id: 'anthropic',
+    name: 'Anthropic',
+    kind: 'anthropic',
+    needsKey: true,
+    defaultModel: 'claude-sonnet-5-5',
+    hint: 'Claude models, native API with tool use.',
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    kind: 'gemini',
+    needsKey: true,
+    defaultModel: 'gemini-3.5-flash',
+    hint: 'Gemini models, native API with function calling.',
+  },
+  {
     id: 'custom',
     name: 'Custom endpoint',
     kind: 'openai-compatible',

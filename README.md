@@ -92,6 +92,8 @@ docker run -p 8080:8080 -v orbs-data:/data orbs
 | OpenRouter | OpenAI-compatible | `https://openrouter.ai/api/v1` |
 | OpenAI | OpenAI-compatible | `https://api.openai.com/v1` |
 | Anything else that speaks the OpenAI chat API | OpenAI-compatible | its `/v1` URL |
+| Anthropic (Claude) | Anthropic | default, just add your key |
+| Google Gemini | Google Gemini | default, just add your key |
 
 The app has presets for these under **Models > Add provider**.
 
