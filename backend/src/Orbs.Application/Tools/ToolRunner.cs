@@ -24,8 +24,11 @@ public sealed class ToolRunner(ToolCatalog catalog, CurrentUser currentUser)
     /// <summary>A reply may go back and forth with tools this many times before Orbs stops it.</summary>
     public const int MaxRounds = 6;
 
+    /// <summary>The tools the model may see: everything the orb has not blocked.</summary>
     public async Task<ToolSet> ForOrbAsync(Orb orb, bool modelSupportsTools, CancellationToken cancellationToken = default) =>
-        modelSupportsTools ? new ToolSet(await catalog.ForOrbAsync(orb, cancellationToken)) : ToolSet.Empty;
+        modelSupportsTools
+            ? new ToolSet([.. (await catalog.ForOrbAsync(orb, cancellationToken)).Where(t => orb.PermissionFor(t.Kind) != ToolAccess.Block)])
+            : ToolSet.Empty;
 
     /// <summary>Runs one call. Failures become an error result the model can read, never an exception.</summary>
     public async Task<ToolCallRecord> RunAsync(ToolSet tools, Orb orb, ToolCall call, CancellationToken cancellationToken)

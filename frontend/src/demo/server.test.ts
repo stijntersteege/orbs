@@ -47,6 +47,34 @@ describe('DemoServer', () => {
     expect(result.body.detail).toBe('The name is required.')
   })
 
+  it('asks before a tool call and continues once approved', async () => {
+    const server = new DemoServer({ wordDelay: 0 })
+    const conversation = await call<Conversation>(server, 'POST', '/api/conversations', {
+      orbId: 'demo-orb-pip',
+    })
+    const read = async (response: Response) => {
+      const events: ChatEvent[] = []
+      for await (const event of readServerSentEvents<ChatEvent>(response.body!)) events.push(event)
+      return events
+    }
+    const path = `/api/conversations/${conversation.body.id}`
+
+    const asked = await read(
+      await server.handle('POST', new URL(`${path}/messages`, base), {
+        content: '/tool calculator {"expression":"6*7"}',
+      }),
+    )
+    const ask = asked.at(-1)
+    expect(ask?.type).toBe('approval_required')
+    const approvalId = ask?.type === 'approval_required' ? ask.approvalId : ''
+
+    const rest = await read(
+      await server.handle('POST', new URL(`${path}/approvals/${approvalId}`, base), { decision: 'approve' }),
+    )
+    expect(rest.flatMap((e) => (e.type === 'delta' ? [e.text] : [])).join('')).toBe('calculator said: 42')
+    expect(rest.find((e) => e.type === 'tool_result')).toMatchObject({ decision: 'approved' })
+  })
+
   it('streams an echo reply and stores the conversation', async () => {
     const server = new DemoServer({ wordDelay: 0 })
     const conversation = await call<Conversation>(server, 'POST', '/api/conversations', {

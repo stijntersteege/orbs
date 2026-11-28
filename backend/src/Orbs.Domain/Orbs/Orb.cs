@@ -14,6 +14,13 @@ public sealed class Orb : OwnedAggregateRoot
     // A list (not a set) so EF Core can store it as a primitive collection; uniqueness is kept by the methods below.
     private readonly List<Guid> _contextSourceIds = [];
 
+    private readonly Dictionary<string, ToolAccess> _toolPermissions = new(StringComparer.Ordinal);
+
+    public const int MaxToolNameLength = 64;
+
+    /// <summary>Ask first: an orb never acts in another app without the person saying yes, unless they allowed it.</summary>
+    public const ToolAccess DefaultToolPermission = ToolAccess.Ask;
+
     private Orb(Guid id, string name, DateTimeOffset now) : base(id, now)
     {
         Name = name;
@@ -94,6 +101,40 @@ public sealed class Orb : OwnedAggregateRoot
         {
             Touch(now);
         }
+    }
+
+    /// <summary>Per-tool permissions. Tools that are not listed use <see cref="DefaultToolPermission"/>.</summary>
+    public IReadOnlyDictionary<string, ToolAccess> ToolPermissions => _toolPermissions;
+
+    public ToolAccess PermissionFor(string tool) =>
+        _toolPermissions.TryGetValue(tool, out var permission) ? permission : DefaultToolPermission;
+
+    public void SetToolPermission(string tool, ToolAccess permission, DateTimeOffset now)
+    {
+        var name = Guard.Text(tool, nameof(tool), MaxToolNameLength);
+        if (permission == DefaultToolPermission)
+        {
+            _toolPermissions.Remove(name);
+        }
+        else
+        {
+            _toolPermissions[name] = permission;
+        }
+
+        Touch(now);
+    }
+
+    /// <summary>Replaces every tool permission in one go.</summary>
+    public void SetToolPermissions(IReadOnlyDictionary<string, ToolAccess> permissions, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(permissions);
+        _toolPermissions.Clear();
+        foreach (var (tool, permission) in permissions)
+        {
+            SetToolPermission(tool, permission, now);
+        }
+
+        Touch(now);
     }
 
     /// <summary>Replaces the whole set of linked sources in one go.</summary>

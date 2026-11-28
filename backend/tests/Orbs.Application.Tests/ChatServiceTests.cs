@@ -22,7 +22,8 @@ public class ChatServiceTests
         var registry = new PluginRegistry<IModelAdapter>(adapters);
         var providerService = new ProviderService(_store.Providers, _store.Orbs, registry, new FakeSecretProtector(), _store, _clock);
         var tools = new ToolRunner(new ToolCatalog([]), new CurrentUser());
-        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, _store, _clock);
+        var engine = new ReplyEngine(tools, _store.Approvals, _store, _clock);
+        return new ChatService(_store.Conversations, _store.Orbs, _store.Providers, _store.Context, registry, providerService, tools, engine, _store.Approvals, _store, _clock);
     }
 
     private (Orb Orb, Conversation Chat) GivenAnOrbWithAChat(string providerKind = "scripted")

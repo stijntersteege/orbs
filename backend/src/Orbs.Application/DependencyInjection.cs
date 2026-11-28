@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<ChatService>();
         services.AddScoped<ToolCatalog>();
         services.AddScoped<ToolRunner>();
+        services.AddScoped<ReplyEngine>();
         services.AddScoped<IToolSource, BuiltInToolSource>();
         services.AddScoped<DemoSeeder>();
 

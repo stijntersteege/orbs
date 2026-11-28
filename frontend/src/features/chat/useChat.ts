@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { conversationsApi } from '@/api/endpoints'
 import { keys } from '@/api/queries'
-import type { ChatEvent, ChatSource, Message, ToolCallRecord } from '@/api/types'
+import type { Approval, ApprovalDecision, ChatEvent, ChatSource, Message, ToolCallRecord } from '@/api/types'
 
 /** What the orb did for one reply: which model and provider answered, what it read and how long it took. */
 export interface ActivityEntry {
@@ -51,6 +51,8 @@ export interface ChatState {
   activity: ActivityEntry[]
   /** True while older messages exist on the server that are not loaded yet. */
   hasMore: boolean
+  /** A tool call that waits for your answer; the reply continues once you give it. */
+  approval: Approval | null
 }
 
 const current = (state: ChatState) => state.activity.at(-1)
@@ -74,6 +76,8 @@ function finishActivity(state: ChatState, patch: Partial<ActivityEntry>, now: nu
 export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Date()): ChatState {
   switch (event.type) {
     case 'start':
+      // A reply that continues after an approval keeps its activity entry.
+      if (event.resumed && current(state)) return { ...state, streaming: '', error: null, approval: null }
       return {
         ...state,
         streaming: '',
@@ -91,6 +95,17 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
           },
         ],
       }
+    case 'approval_required':
+      return {
+        ...state,
+        streaming: null,
+        approval: {
+          id: event.approvalId,
+          callId: event.callId,
+          tool: event.tool,
+          arguments: event.arguments,
+        },
+      }
     case 'tool_call':
       return withCurrent(state, (entry) => ({
         ...entry,
@@ -101,7 +116,13 @@ export function reduceChatEvent(state: ChatState, event: ChatEvent, now = new Da
         ...entry,
         tools: entry.tools.map((t) =>
           t.callId === event.callId
-            ? { ...t, result: event.text, isError: event.isError, durationMs: event.durationMs }
+            ? {
+                ...t,
+                result: event.text,
+                isError: event.isError,
+                durationMs: event.durationMs,
+                decision: event.decision,
+              }
             : t,
         ),
       }))
@@ -137,6 +158,7 @@ export function useChat(
   conversationId: string | undefined,
   initial: Message[] | undefined,
   initialHasMore = false,
+  initialApproval: Approval | null = null,
 ) {
   const client = useQueryClient()
   const [state, setState] = useState<ChatState>({
@@ -146,6 +168,7 @@ export function useChat(
     error: null,
     activity: [],
     hasMore: false,
+    approval: null,
   })
   const [loadingEarlier, setLoadingEarlier] = useState(false)
   const abort = useRef<AbortController | null>(null)
@@ -165,25 +188,19 @@ export function useChat(
       error: null,
       activity: same && s.activity.length > 0 ? s.activity : activityFromHistory(initial ?? []),
       hasMore: initialHasMore,
+      approval: initialApproval,
     }))
-  }, [initial, conversationId, initialHasMore])
+  }, [initial, conversationId, initialHasMore, initialApproval])
 
   useEffect(() => () => abort.current?.abort(), [])
 
-  const send = useCallback(
-    async (content: string, targetId = conversationId) => {
-      if (!targetId || !content.trim()) return
+  /** Streams events into the state, whatever started them: a message or an answer to an approval. */
+  const stream = useCallback(
+    async (targetId: string, events: (signal: AbortSignal) => AsyncGenerator<ChatEvent>) => {
       const controller = new AbortController()
       abort.current = controller
-      const userMessage: Message = {
-        id: `local-${Date.now()}`,
-        role: 'user',
-        content,
-        createdAt: new Date().toISOString(),
-      }
-      setState((s) => ({ ...s, messages: [...s.messages, userMessage], streaming: '', error: null }))
       try {
-        for await (const event of conversationsApi.send(targetId, content, controller.signal)) {
+        for await (const event of events(controller.signal)) {
           setState((s) => reduceChatEvent(s, event))
         }
       } catch (error) {
@@ -202,7 +219,41 @@ export function useChat(
         void client.invalidateQueries({ queryKey: keys.conversation(targetId) })
       }
     },
-    [client, conversationId],
+    [client],
+  )
+
+  const send = useCallback(
+    async (content: string, targetId = conversationId) => {
+      if (!targetId || !content.trim()) return
+      const userMessage: Message = {
+        id: `local-${Date.now()}`,
+        role: 'user',
+        content,
+        createdAt: new Date().toISOString(),
+      }
+      setState((s) => ({
+        ...s,
+        messages: [...s.messages, userMessage],
+        streaming: '',
+        error: null,
+        approval: null,
+      }))
+      await stream(targetId, (signal) => conversationsApi.send(targetId, content, signal))
+    },
+    [conversationId, stream],
+  )
+
+  /** Answers the waiting tool call; the reply continues in the same bubble. */
+  const decide = useCallback(
+    async (decision: ApprovalDecision) => {
+      const approval = state.approval
+      if (!conversationId || !approval) return
+      setState((s) => ({ ...s, approval: null, streaming: '', error: null }))
+      await stream(conversationId, (signal) =>
+        conversationsApi.decide(conversationId, approval.id, decision, signal),
+      )
+    },
+    [conversationId, state.approval, stream],
   )
 
   const stop = useCallback(() => abort.current?.abort(), [])
@@ -227,5 +278,14 @@ export function useChat(
     activityFor.current = id
   }, [])
 
-  return { ...state, isStreaming: state.streaming !== null, send, stop, adopt, loadEarlier, loadingEarlier }
+  return {
+    ...state,
+    isStreaming: state.streaming !== null,
+    send,
+    decide,
+    stop,
+    adopt,
+    loadEarlier,
+    loadingEarlier,
+  }
 }

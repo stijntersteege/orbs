@@ -45,14 +45,18 @@ public sealed class ToolCallRecord
 {
     public const int MaxTextLength = 20_000;
 
-    public ToolCallRecord(string tool, string arguments, string result, bool isError, long durationMs)
+    public ToolCallRecord(string tool, string arguments, string result, bool isError, long durationMs, string? decision = null)
     {
         Tool = Guard.Text(tool, nameof(tool), 200);
         Arguments = Clip(arguments);
         Result = Clip(result);
         IsError = isError;
         DurationMs = durationMs;
+        Decision = decision;
     }
+
+    /// <summary>Who let the call happen: "allowed" (by the orb's settings), "approved" or "denied" (by the person), or "blocked".</summary>
+    public string? Decision { get; private set; }
 
     // For EF Core materialization.
     private ToolCallRecord()

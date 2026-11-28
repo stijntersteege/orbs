@@ -114,6 +114,11 @@ export class DemoServer {
   private state: DemoState
   private readonly wordDelay: number
   private readonly now: () => Date
+  /** Tool calls waiting for an answer, per conversation. Kept in memory only. */
+  private readonly pending = new Map<
+    string,
+    { approvalId: string; tool: { name: string; args: string }; model: string; provider: string }
+  >()
 
   constructor(options: DemoOptions = {}) {
     this.wordDelay = options.wordDelay ?? 30
@@ -213,8 +218,23 @@ export class DemoServer {
           return json(this.startConversation(body), 201)
         }
         if (action === 'messages' && method === 'GET') return json(this.olderMessages(id, url))
+        if (action === 'approvals') return this.decide(id, parts[3], body, signal)
         if (action === 'messages') return this.send(id, body, signal)
-        if (method === 'GET') return json(this.find(s.conversations, id, 'conversation'))
+        if (method === 'GET') {
+          const found = this.find(s.conversations, id, 'conversation')
+          const waiting = this.pending.get(id)
+          return json({
+            ...found,
+            pendingApproval: waiting
+              ? {
+                  id: waiting.approvalId,
+                  callId: 'demo-call',
+                  tool: waiting.tool.name,
+                  arguments: waiting.tool.args,
+                }
+              : undefined,
+          })
+        }
         if (method === 'DELETE') {
           s.conversations = s.conversations.filter((c) => c.id !== id)
           this.save()
@@ -447,67 +467,110 @@ export class DemoServer {
     const sources = this.sourcesUsed(orb)
 
     this.append(conversation, 'user', content)
-    const toolMatch = provider.kind === ECHO_KIND ? /^\/tool (\S+)\s*(.*)$/.exec(content) : null
-    const tool = toolMatch && DEMO_TOOLS.some((t) => t.name === toolMatch[1]) ? toolMatch : null
-    const ran = tool ? runDemoTool(tool[1]!, tool[2] ?? '', this.now()) : null
-    const reply = tool
-      ? `${tool[1]} said: ${ran!.result}`
-      : provider.kind === ECHO_KIND
-        ? `You said: ${content}`
-        : OFFLINE_REPLY
-    const words = reply.split(' ').map((word, i) => (i === 0 ? word : ` ${word}`))
+    this.pending.delete(id)
+    const match = provider.kind === ECHO_KIND ? /^\/tool (\S+)\s*(.*)$/.exec(content) : null
+    const access = match ? (orb.toolPermissions?.[match[1]!] ?? 'ask') : 'block'
+    const tool =
+      match && access !== 'block' && DEMO_TOOLS.some((t) => t.name === match[1])
+        ? { name: match[1]!, args: match[2] || '{}' }
+        : null
 
-    const events = async function* (this: DemoServer): AsyncGenerator<ChatEvent> {
-      yield { type: 'start', model, provider: provider.name, sources }
-      if (tool && ran) {
-        const args = tool[2] || '{}'
-        yield { type: 'tool_call', callId: 'demo-call', tool: tool[1]!, arguments: args }
-        await delay(this.wordDelay, signal)
-        yield {
-          type: 'tool_result',
-          callId: 'demo-call',
-          tool: tool[1]!,
-          text: ran.result,
+    if (tool && access === 'ask') {
+      const approvalId = newId()
+      this.pending.set(id, { approvalId, tool, model, provider: provider.name })
+      return sse(
+        (async function* (): AsyncGenerator<ChatEvent> {
+          yield { type: 'start', model, provider: provider.name, sources }
+          yield {
+            type: 'approval_required',
+            approvalId,
+            callId: 'demo-call',
+            tool: tool.name,
+            arguments: tool.args,
+          }
+        })(),
+      )
+    }
+
+    const start: ChatEvent = { type: 'start', model, provider: provider.name, sources }
+    const fallback = provider.kind === ECHO_KIND ? `You said: ${content}` : OFFLINE_REPLY
+    return sse(this.reply(conversation, model, start, tool, tool ? 'allowed' : undefined, fallback, signal))
+  }
+
+  /** Answers a waiting tool call, like POST /api/conversations/{id}/approvals/{approvalId}. */
+  private decide(id: string, approvalId: string | undefined, body: unknown, signal?: AbortSignal): Response {
+    const conversation = this.find(this.state.conversations, id, 'conversation')
+    const waiting = this.pending.get(id)
+    if (!waiting || waiting.approvalId !== approvalId) {
+      throw new HttpError(400, 'This request was already answered.')
+    }
+    this.pending.delete(id)
+    const decision = (body as { decision?: string })?.decision ?? 'approve'
+    if (decision === 'always') {
+      this.state.orbs = this.state.orbs.map((o) =>
+        o.id === conversation.orbId
+          ? { ...o, toolPermissions: { ...o.toolPermissions, [waiting.tool.name]: 'allow' as const } }
+          : o,
+      )
+      this.save()
+    }
+    const start: ChatEvent = {
+      type: 'start',
+      model: waiting.model,
+      provider: waiting.provider,
+      resumed: true,
+    }
+    const verdict = decision === 'deny' ? 'denied' : 'approved'
+    return sse(this.reply(conversation, waiting.model, start, waiting.tool, verdict, '', signal))
+  }
+
+  /** Streams a reply: optionally one tool call first, then the words; then saves it. */
+  private async *reply(
+    conversation: Conversation,
+    model: string,
+    start: ChatEvent,
+    tool: { name: string; args: string } | null,
+    decision: string | undefined,
+    fallback: string,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ChatEvent> {
+    yield start
+    let text = fallback
+    let toolCalls: Message['toolCalls']
+    if (tool) {
+      const ran =
+        decision === 'denied'
+          ? { result: 'The person declined this tool call.', isError: true }
+          : runDemoTool(tool.name, tool.args, this.now())
+      yield { type: 'tool_call', callId: 'demo-call', tool: tool.name, arguments: tool.args }
+      await delay(this.wordDelay, signal)
+      yield {
+        type: 'tool_result',
+        callId: 'demo-call',
+        tool: tool.name,
+        text: ran.result,
+        isError: ran.isError,
+        durationMs: 1,
+        decision,
+      }
+      text = `${tool.name} said: ${ran.result}`
+      toolCalls = [
+        {
+          tool: tool.name,
+          arguments: tool.args,
+          result: ran.result,
           isError: ran.isError,
           durationMs: 1,
-        }
-      }
-      for (const word of words) {
-        await delay(this.wordDelay, signal)
-        yield { type: 'delta', text: word }
-      }
-      const toolCalls =
-        tool && ran
-          ? [
-              {
-                tool: tool[1]!,
-                arguments: tool[2] || '{}',
-                result: ran.result,
-                isError: ran.isError,
-                durationMs: 1,
-              },
-            ]
-          : undefined
-      const message = this.append(conversation, 'assistant', reply, model, toolCalls)
-      yield { type: 'done', messageId: message.id }
-    }.call(this)
-
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        try {
-          const next = await events.next()
-          if (next.done) controller.close()
-          else controller.enqueue(encoder.encode(`data: ${JSON.stringify(next.value)}\n\n`))
-        } catch (error) {
-          controller.error(error)
-        }
-      },
-      cancel() {
-        void events.return(undefined)
-      },
-    })
-    return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
+          decision,
+        },
+      ]
+    }
+    for (const [i, word] of text.split(' ').entries()) {
+      await delay(this.wordDelay, signal)
+      yield { type: 'delta', text: i === 0 ? word : ` ${word}` }
+    }
+    const message = this.append(conversation, 'assistant', text, model, toolCalls)
+    yield { type: 'done', messageId: message.id }
   }
 
   /** Same paging as the server: messages before `before`, oldest first. */
@@ -604,4 +667,24 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
       { once: true },
     )
   })
+}
+
+/** Wraps chat events as a server-sent events response, like the real API. */
+function sse(events: AsyncGenerator<ChatEvent>): Response {
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const next = await events.next()
+        if (next.done) controller.close()
+        else controller.enqueue(encoder.encode(`data: ${JSON.stringify(next.value)}\n\n`))
+      } catch (error) {
+        controller.error(error)
+      }
+    },
+    cancel() {
+      void events.return(undefined)
+    },
+  })
+  return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
 }

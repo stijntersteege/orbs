@@ -61,7 +61,13 @@ function ToolItem({ call }: { call: ToolActivity }) {
   return (
     <Item
       tone={call.isError ? 'err' : 'ok'}
-      title={call.isError ? `${call.tool} failed` : `Used ${call.tool}`}
+      title={
+        call.decision === 'denied'
+          ? `You declined ${call.tool}`
+          : call.isError
+            ? `${call.tool} failed`
+            : `Used ${call.tool}${call.decision === 'approved' ? ' (you approved)' : ''}`
+      }
       detail={clip(`${input} → ${call.result}`)}
     />
   )

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui'
 import { Icon } from '@/components/ui/icons'
 import { OrbMaker } from './OrbMaker'
+import { ToolsCard } from './ToolsCard'
 import styles from './orbs.module.css'
 
 const AUTO = ''
@@ -29,6 +30,7 @@ function toForm(orb?: OrbModel): SaveOrbRequest {
     appearance: orb?.appearance ?? DEFAULT_APPEARANCE,
     model: orb?.model ?? null,
     contextSourceIds: orb?.contextSourceIds ?? [],
+    toolPermissions: orb?.toolPermissions ?? {},
   }
 }
 
@@ -197,9 +199,16 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
             </SelectField>
           </Card>
 
+          <ToolsCard
+            name={name}
+            step={4}
+            permissions={form.toolPermissions ?? {}}
+            onChange={(toolPermissions) => set({ toolPermissions })}
+          />
+
           <Card>
             <div className={styles.sectionHead}>
-              <span className={styles.step}>4</span>
+              <span className={styles.step}>5</span>
               <h2>How {name} behaves</h2>
             </div>
             <TextArea
@@ -215,7 +224,7 @@ function OrbForm({ orb }: { orb?: OrbModel }) {
 
           <Card>
             <div className={styles.sectionHead}>
-              <span className={styles.step}>5</span>
+              <span className={styles.step}>6</span>
               <h2>Give it a face</h2>
             </div>
             <OrbMaker value={appearance} onChange={(a) => set({ appearance: a })} />

@@ -60,6 +60,12 @@ public sealed class OrbService(
         orb.ChangeAppearance(request.Appearance ?? orb.Appearance, now);
         orb.UseModel(await ResolveModelAsync(request.Model, cancellationToken), now);
         orb.SetContext(await ResolveContextAsync(request.ContextSourceIds, cancellationToken), now);
+
+        // Omitted means "keep": older clients do not know about tool permissions.
+        if (request.ToolPermissions is not null)
+        {
+            orb.SetToolPermissions(request.ToolPermissions, now);
+        }
     }
 
     private async Task<ModelRef?> ResolveModelAsync(ModelRefDto? model, CancellationToken cancellationToken)

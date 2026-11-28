@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Orbs.Application.Conversations;
 using Orbs.Application.Orbs;
 using Orbs.Application.Providers;
@@ -151,7 +152,7 @@ public sealed class ToolApiTests : IDisposable
     {
         var api = new ApiClient(_factory.CreateClient());
         await api.ConnectEchoAsync();
-        var orb = await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var orb = await api.SetToolAccessAsync(await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip")), "calculator", Orbs.Domain.Orbs.ToolAccess.Allow);
         var chat = await api.StartConversationAsync(orb.Id);
 
         var result = await api.SendAsync(chat.Id, """/tool calculator {"expression":"6*7"}""");
@@ -169,6 +170,7 @@ public sealed class ToolApiTests : IDisposable
         record.Tool.ShouldBe("calculator");
         record.Result.ShouldBe("42");
         record.IsError.ShouldBeFalse();
+        record.Decision.ShouldBe("allowed");
     }
 
     [Fact]
@@ -176,7 +178,7 @@ public sealed class ToolApiTests : IDisposable
     {
         var api = new ApiClient(_factory.CreateClient());
         await api.ConnectEchoAsync();
-        var orb = await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        var orb = await api.SetToolAccessAsync(await api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip")), "calculator", Orbs.Domain.Orbs.ToolAccess.Allow);
         var chat = await api.StartConversationAsync(orb.Id);
 
         var result = await api.SendAsync(chat.Id, """/tool calculator {"expression":"1/0"}""");
@@ -184,5 +186,99 @@ public sealed class ToolApiTests : IDisposable
         var toolResult = result.Events.Single(e => e.Type == ChatEvent.ToolResultType);
         toolResult.IsError.ShouldBe(true);
         result.Reply.ShouldStartWith("calculator said: The result is not a finite number");
+    }
+}
+
+public sealed class ApprovalApiTests : IDisposable
+{
+    private readonly OrbsApiFactory _factory = new();
+    private readonly ApiClient _api;
+
+    public ApprovalApiTests() => _api = new ApiClient(_factory.CreateClient());
+
+    public void Dispose() => _factory.Dispose();
+
+    private async Task<(Orbs.Application.Orbs.OrbDto Orb, ConversationDto Chat)> PipWithAChatAsync()
+    {
+        await _api.ConnectEchoAsync();
+        var orb = await _api.CreateOrbAsync(new Orbs.Application.Orbs.SaveOrbRequest("Pip"));
+        return (orb, await _api.StartConversationAsync(orb.Id));
+    }
+
+    [Fact]
+    public async Task By_default_an_orb_asks_before_using_a_tool_and_waits()
+    {
+        var (_, chat) = await PipWithAChatAsync();
+
+        var result = await _api.SendAsync(chat.Id, "/tool current_time");
+
+        result.Events.Select(e => e.Type).ShouldBe(["start", "approval_required"]);
+        var ask = result.Events[^1];
+        ask.Tool.ShouldBe("current_time");
+        ask.ApprovalId.ShouldNotBeNull();
+        (await _api.GetAsync<ConversationDto>($"/api/conversations/{chat.Id}")).PendingApproval.ShouldNotBeNull().Tool.ShouldBe("current_time");
+    }
+
+    [Fact]
+    public async Task Approving_runs_the_tool_and_finishes_the_reply()
+    {
+        var (_, chat) = await PipWithAChatAsync();
+        var ask = (await _api.SendAsync(chat.Id, """/tool calculator {"expression":"2*21"}""")).Events[^1];
+
+        var rest = await _api.DecideAsync(chat.Id, ask.ApprovalId!.Value, ApprovalDecision.Approve);
+
+        rest.Events[0].Resumed.ShouldBe(true);
+        rest.Events.Single(e => e.Type == ChatEvent.ToolResultType).Decision.ShouldBe("approved");
+        rest.Reply.ShouldBe("calculator said: 42");
+        var saved = await _api.GetAsync<ConversationDto>($"/api/conversations/{chat.Id}");
+        saved.PendingApproval.ShouldBeNull();
+        saved.Messages[^1].ToolCalls.ShouldNotBeNull().Single().Decision.ShouldBe("approved");
+    }
+
+    [Fact]
+    public async Task Denying_tells_the_model_and_the_tool_never_runs()
+    {
+        var (_, chat) = await PipWithAChatAsync();
+        var ask = (await _api.SendAsync(chat.Id, """/tool calculator {"expression":"2*21"}""")).Events[^1];
+
+        var rest = await _api.DecideAsync(chat.Id, ask.ApprovalId!.Value, ApprovalDecision.Deny);
+
+        rest.Events.Single(e => e.Type == ChatEvent.ToolResultType).Decision.ShouldBe("denied");
+        rest.Reply.ShouldStartWith("calculator said: The person declined");
+    }
+
+    [Fact]
+    public async Task Always_allows_the_tool_from_now_on()
+    {
+        var (orb, chat) = await PipWithAChatAsync();
+        var ask = (await _api.SendAsync(chat.Id, "/tool current_time")).Events[^1];
+
+        await _api.DecideAsync(chat.Id, ask.ApprovalId!.Value, ApprovalDecision.Always);
+
+        (await _api.GetAsync<Orbs.Application.Orbs.OrbDto>($"/api/orbs/{orb.Id}")).ToolPermissions!["current_time"].ShouldBe(Orbs.Domain.Orbs.ToolAccess.Allow);
+        (await _api.SendAsync(chat.Id, "/tool current_time")).Events.Select(e => e.Type).ShouldContain("done");
+    }
+
+    [Fact]
+    public async Task Blocked_tools_are_not_offered_to_the_model()
+    {
+        var (orb, chat) = await PipWithAChatAsync();
+        await _api.SetToolAccessAsync(orb, "current_time", Orbs.Domain.Orbs.ToolAccess.Block);
+
+        var result = await _api.SendAsync(chat.Id, "/tool current_time");
+
+        result.Reply.ShouldBe("You said: /tool current_time");
+    }
+
+    [Fact]
+    public async Task An_answered_request_cannot_be_answered_again()
+    {
+        var (_, chat) = await PipWithAChatAsync();
+        var ask = (await _api.SendAsync(chat.Id, "/tool current_time")).Events[^1];
+        await _api.DecideAsync(chat.Id, ask.ApprovalId!.Value, ApprovalDecision.Approve);
+
+        var again = await _api.Http.PostAsJsonAsync($"/api/conversations/{chat.Id}/approvals/{ask.ApprovalId}", new DecideRequest(ApprovalDecision.Approve), ApiClient.Json);
+
+        again.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 }

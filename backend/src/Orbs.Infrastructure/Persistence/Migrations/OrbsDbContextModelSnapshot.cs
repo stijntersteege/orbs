@@ -161,6 +161,61 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Orbs.Domain.Conversations.ToolApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Arguments")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CallId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrbId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Tool")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("ConversationId", "Status");
+
+                    b.ToTable("tool_approvals", (string)null);
+                });
+
             modelBuilder.Entity("Orbs.Domain.Jobs.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -255,6 +310,11 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("context_source_ids");
+
+                    b.Property<string>("_toolPermissions")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tool_permissions");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Appearance", "Orbs.Domain.Orbs.Orb.Appearance#OrbAppearance", b1 =>
                         {
@@ -458,6 +518,8 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                             b1.Property<string>("Arguments")
                                 .IsRequired();
 
+                            b1.Property<string>("Decision");
+
                             b1.Property<long>("DurationMs");
 
                             b1.Property<bool>("IsError");
@@ -481,6 +543,15 @@ namespace Orbs.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("ToolCalls");
+                });
+
+            modelBuilder.Entity("Orbs.Domain.Conversations.ToolApproval", b =>
+                {
+                    b.HasOne("Orbs.Domain.Conversations.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Orbs.Domain.Orbs.Orb", b =>

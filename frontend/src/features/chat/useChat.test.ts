@@ -7,6 +7,7 @@ const empty: ChatState = {
   error: null,
   activity: [],
   hasMore: false,
+  approval: null,
 }
 const now = new Date('2026-01-01T09:00:00Z')
 
@@ -97,6 +98,24 @@ describe('reduceChatEvent', () => {
       model: 'echo-1',
       tools: [{ tool: 'calculator', result: '4' }],
     })
+  })
+
+  it('pauses for approval and continues in the same activity entry', () => {
+    let state = reduceChatEvent(empty, { type: 'start', model: 'm' })
+    state = reduceChatEvent(state, {
+      type: 'approval_required',
+      approvalId: 'a1',
+      callId: 'c1',
+      tool: 'send_email',
+      arguments: '{}',
+    })
+    expect(state.streaming).toBeNull()
+    expect(state.approval).toMatchObject({ id: 'a1', tool: 'send_email' })
+
+    state = reduceChatEvent(state, { type: 'start', model: 'm', resumed: true })
+    expect(state.activity).toHaveLength(1)
+    expect(state.approval).toBeNull()
+    expect(state.streaming).toBe('')
   })
 
   it('marks the activity of a failed reply', () => {
