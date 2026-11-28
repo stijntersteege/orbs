@@ -8,7 +8,7 @@ import {
   useSyncContextSource,
   useUploadContextFile,
 } from '@/api/queries'
-import type { ContextKind, ContextSource } from '@/api/types'
+import type { ContextKind, ContextSource, SyncInterval } from '@/api/types'
 import {
   Button,
   Card,
@@ -16,6 +16,7 @@ import {
   EmptyState,
   ErrorNotice,
   PageHeader,
+  SelectField,
   Spinner,
   TextArea,
   TextField,
@@ -37,6 +38,7 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
   const [location, setLocation] = useState('')
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [syncEvery, setSyncEvery] = useState<SyncInterval>('daily')
   const save = useSaveContextSource()
   const upload = useUploadContextFile()
   const selected = kinds.find((k) => k.kind === kind)
@@ -49,7 +51,13 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
       await upload.mutateAsync({ file, name: name || undefined })
     } else {
       await save.mutateAsync({
-        body: { name, kind, location: location || undefined, input: input || undefined },
+        body: {
+          name,
+          kind,
+          location: location || undefined,
+          input: input || undefined,
+          syncEvery: selected?.usesLocation ? syncEvery : undefined,
+        },
       })
     }
     onDone()
@@ -105,6 +113,19 @@ function AddSourceForm({ kinds, onDone }: { kinds: ContextKind[]; onDone: () => 
             onChange={(e) => setLocation(e.target.value)}
             placeholder="https://example.com/docs"
           />
+        )}
+        {selected?.usesLocation && (
+          <SelectField
+            label="Keep in sync"
+            value={syncEvery}
+            onChange={(e) => setSyncEvery(e.target.value as SyncInterval)}
+            hint="Orbs reads the page again in the background."
+          >
+            <option value="off">Only when I ask</option>
+            <option value="hourly">Every hour</option>
+            <option value="daily">Every day</option>
+            <option value="weekly">Every week</option>
+          </SelectField>
         )}
         {selected?.usesInput && (
           <TextArea
@@ -184,6 +205,7 @@ export function ContextPage() {
                       {s.location || `${s.contentLength.toLocaleString()} characters`}
                       {' · '}
                       {users.length > 0 ? `Used by ${users.join(', ')}` : 'Not used by any orb yet'}
+                      {s.syncEvery && s.syncEvery !== 'off' && ` · syncs ${s.syncEvery}`}
                     </span>
                     {s.lastError && <span className={styles.error}>{s.lastError}</span>}
                   </span>

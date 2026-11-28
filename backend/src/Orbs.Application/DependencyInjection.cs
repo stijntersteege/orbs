@@ -36,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<ContextIndexer>();
         services.AddScoped<ContextRetriever>();
         services.AddScoped<FileContextService>();
+        services.AddScoped<ContextSyncDispatcher>();
+        services.AddScoped<IJobHandler, ContextSyncJob>();
         services.AddScoped<ScheduleService>();
         services.AddScoped<ScheduleDispatcher>();
         services.AddScoped<ScheduleRunner>();

@@ -115,6 +115,8 @@ export interface ContextKind {
   usesInput: boolean
 }
 
+export type SyncInterval = 'off' | 'hourly' | 'daily' | 'weekly'
+
 export type ContextSourceStatus = 'pending' | 'ready' | 'failed'
 
 export interface ContextSource {
@@ -131,6 +133,8 @@ export interface ContextSource {
   updatedAt: string
   /** Passages embedded for retrieval; 0 until indexed. */
   indexedChunks?: number
+  syncEvery?: SyncInterval
+  nextSyncAt?: string
   indexedAt?: string
 }
 
@@ -139,6 +143,8 @@ export interface SaveContextSourceRequest {
   kind: string
   location?: string
   input?: string
+  /** Only for kinds that read from a location, such as web pages. */
+  syncEvery?: SyncInterval
 }
 
 export type MessageRole = 'user' | 'assistant'

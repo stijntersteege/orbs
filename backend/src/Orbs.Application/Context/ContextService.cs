@@ -113,6 +113,11 @@ public sealed class ContextService(
             connector.UsesLocation ? request.Location : null,
             connector.UsesInput ? request.Input : null,
             clock.GetUtcNow());
+
+        if (request.SyncEvery is { } every)
+        {
+            source.KeepInSync(connector.UsesLocation ? every : SyncInterval.Off, clock.GetUtcNow());
+        }
     }
 
     /// <summary>A failed read is recorded on the source instead of failing the request.</summary>
@@ -127,5 +132,41 @@ public sealed class ContextService(
         {
             source.MarkFailed(ex.Message, clock.GetUtcNow());
         }
+    }
+}
+
+/// <summary>Finds sources whose background sync is due (as the system) and queues a sync for each, owned by its owner.</summary>
+public sealed class ContextSyncDispatcher(IContextSourceRepository sources, Jobs.JobScheduler jobs, IUnitOfWork unitOfWork, TimeProvider clock)
+{
+    public async Task<int> DispatchDueAsync(CancellationToken cancellationToken = default)
+    {
+        var now = clock.GetUtcNow();
+        var due = await sources.ListDueForSyncAsync(now, 50, cancellationToken);
+        foreach (var source in due)
+        {
+            source.SyncPlanned(now);
+            await jobs.EnqueueAsync(ContextSyncJob.KindName, new ContextSyncJob.Payload(source.Id), maxAttempts: 2, ownerId: source.OwnerId, cancellationToken: cancellationToken);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return due.Count;
+    }
+}
+
+/// <summary>Reads one source again in the background, as its owner, and re-indexes it when it changed.</summary>
+public sealed class ContextSyncJob(ContextService context) : Jobs.IJobHandler
+{
+    public const string KindName = "context.sync";
+
+    public string Kind => KindName;
+
+    public sealed record Payload(Guid SourceId);
+
+    public async Task<string?> HandleAsync(Domain.Jobs.Job job, CancellationToken cancellationToken)
+    {
+        var source = await context.SyncAsync(Jobs.JobScheduler.ReadPayload<Payload>(job).SourceId, cancellationToken);
+        return source.Status == ContextSourceStatus.Failed
+            ? throw new InvalidOperationException(source.LastError ?? "The sync failed.")
+            : $"Synced {source.Name}: {source.ContentLength:N0} characters.";
     }
 }

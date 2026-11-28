@@ -26,3 +26,7 @@ Feature: Connecting context
     When I say "Who leads design?" to "Scout"
     Then the reply was written by "echo-1" from "Echo"
     And the reply read the source "Team"
+
+  Scenario: A web page keeps itself up to date
+    When I add the web page "https://example.com/menu" as "Menu" and keep it in sync every day
+    Then the source "Menu" syncs again within a day

@@ -4,6 +4,9 @@ namespace Orbs.Domain.Context;
 
 public enum ContextSourceStatus { Pending, Ready, Failed }
 
+/// <summary>How often a source reads itself again.</summary>
+public enum SyncInterval { Off, Hourly, Daily, Weekly }
+
 /// <summary>
 /// Something orbs can know: a note, a web page, an API, a repository.
 /// Connected once, then shared with the orbs the user picks.
@@ -52,6 +55,34 @@ public sealed class ContextSource : OwnedAggregateRoot
     public int IndexedChunks { get; private set; }
 
     public DateTimeOffset? IndexedAt { get; private set; }
+
+    /// <summary>Keeps the source up to date in the background. Off reads it only when asked.</summary>
+    public SyncInterval SyncEvery { get; private set; } = SyncInterval.Off;
+
+    /// <summary>When the next background sync is due, or null when it is off.</summary>
+    public DateTimeOffset? NextSyncAt { get; private set; }
+
+    public void KeepInSync(SyncInterval every, DateTimeOffset now)
+    {
+        SyncEvery = every;
+        NextSyncAt = Next(every, now);
+        Touch(now);
+    }
+
+    /// <summary>Plans the next background sync after one ran (or was queued).</summary>
+    public void SyncPlanned(DateTimeOffset now)
+    {
+        NextSyncAt = Next(SyncEvery, now);
+        Touch(now);
+    }
+
+    private static DateTimeOffset? Next(SyncInterval every, DateTimeOffset now) => every switch
+    {
+        SyncInterval.Hourly => now.AddHours(1),
+        SyncInterval.Daily => now.AddDays(1),
+        SyncInterval.Weekly => now.AddDays(7),
+        _ => null,
+    };
 
     public static ContextSource Create(string name, string kind, DateTimeOffset now, Guid? id = null) =>
         new(id ?? Guid.NewGuid(), Guard.Text(name, nameof(Name), MaxNameLength), Slug.Normalize(kind, nameof(Kind)), now);

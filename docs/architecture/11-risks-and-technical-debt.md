@@ -14,7 +14,6 @@
 
 | Item | Why it exists | Plan |
 | --- | --- | --- |
-| Context sync is on demand only. | Keeps the first version simple. | The job runner exists now; scheduled sync builds on it. |
 | Background jobs run inside the web process, polled from a table. | One container, no extra broker. | Fine for one instance. Running several instances would need row locking (`FOR UPDATE SKIP LOCKED`) when claiming jobs. |
 | Frontend API types are written by hand. | Avoids a generator step for a small API. | Generate from `/openapi/v1.json` once the API stabilizes. |
 | Retrieval scores every passage of an orb's sources in memory. | No database extension needed, and it works on SQLite and PostgreSQL alike. | Fine for thousands of passages; move to pgvector or sqlite-vec when people index far more. |

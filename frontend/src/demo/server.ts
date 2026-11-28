@@ -453,6 +453,8 @@ export class DemoServer {
       name,
       kind: request.kind,
       location: request.location?.trim() ?? '',
+      syncEvery:
+        request.kind === 'url' ? (request.syncEvery ?? existing?.syncEvery ?? 'off') : ('off' as const),
       input: request.input ?? '',
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,

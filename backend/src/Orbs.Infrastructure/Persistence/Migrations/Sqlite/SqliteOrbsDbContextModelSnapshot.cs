@@ -163,6 +163,9 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("NextSyncAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("TEXT");
 
@@ -171,10 +174,17 @@ namespace Orbs.Infrastructure.Persistence.Migrations.Sqlite
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SyncEvery")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NextSyncAt");
 
                     b.HasIndex("OwnerId");
 

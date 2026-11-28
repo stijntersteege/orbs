@@ -85,6 +85,7 @@ public class OrbsApiFactory : WebApplicationFactory<Program>
         {
             scope.ServiceProvider.GetRequiredService<CurrentUser>().ActAsSystem();
             await scope.ServiceProvider.GetRequiredService<ScheduleDispatcher>().DispatchDueAsync();
+            await scope.ServiceProvider.GetRequiredService<Orbs.Application.Context.ContextSyncDispatcher>().DispatchDueAsync();
         }
 
         await RunJobsAsync();

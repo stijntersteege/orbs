@@ -28,6 +28,21 @@ public sealed class ContextSteps(SpecContext context)
         context.Sources[name] = await ApiClient.ReadAsync<ContextSourceDto>(response);
     }
 
+    [When("I add the web page {string} as {string} and keep it in sync every day")]
+    public async Task WhenIAddAPageKeptInSync(string url, string name)
+    {
+        var response = await context.Api.Http.PostAsJsonAsync("/api/context-sources", new SaveContextSourceRequest(name, "url", Location: url, SyncEvery: SyncInterval.Daily), ApiClient.Json);
+        context.Sources[name] = await ApiClient.ReadAsync<ContextSourceDto>(response);
+    }
+
+    [Then("the source {string} syncs again within a day")]
+    public async Task ThenSyncsWithinADay(string name)
+    {
+        var source = await context.Api.GetAsync<ContextSourceDto>($"/api/context-sources/{context.Sources[name].Id}");
+        source.SyncEvery.ShouldBe(SyncInterval.Daily);
+        source.NextSyncAt.ShouldNotBeNull().ShouldBeLessThanOrEqualTo(DateTimeOffset.UtcNow.AddDays(1).AddMinutes(1));
+    }
+
     [Then("the source {string} failed because {string}")]
     public async Task ThenTheSourceFailedBecause(string name, string reason)
     {
