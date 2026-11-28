@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { conversationsApi } from '@/api/endpoints'
@@ -43,6 +43,9 @@ export function RenameChat({
   busy?: boolean
 }) {
   const [value, setValue] = useState(title)
+  const input = useRef<HTMLInputElement>(null)
+  // Ready to type: the old name is selected, so typing replaces it.
+  useEffect(() => input.current?.select(), [])
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (value.trim()) onSave(value.trim())
@@ -50,6 +53,7 @@ export function RenameChat({
   return (
     <form className={styles.renameForm} onSubmit={submit} aria-label="Rename chat">
       <input
+        ref={input}
         className={styles.renameInput}
         aria-label="Chat name"
         value={value}
